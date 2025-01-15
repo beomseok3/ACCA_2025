@@ -1,0 +1,6 @@
+package_name: create_trajectory
+
+save_waypoint.py: rviz상에서 찍은 goal_pose를 txt 파일에 [wpt.n] pos_x pos_y pos_z ori_x ori_y ori_z ori_w 형식으로 저장
+
+find_lane_id.py: 현재 erp42 가 속해 있는 lane_id(Int32)정보를 Publish
+waypoint_publisher.py: save_waypoint.py로 저장된 .txt파일에서 각 lane_id에 맞는 goal_pose정보를 받아와 다시 /planning/mission_planning_goal/goal(PoseStamped)형식으로 Publish
