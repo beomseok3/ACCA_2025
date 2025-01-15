@@ -1,0 +1,23 @@
+
+우선 obstacle callback이 pose가 아닌 posearray 받도록 수정
+ㄴ 해당 posearray 내에서 차와의 거리가 2.0m 이내인 것만 검출해서 obstacle_poses_ (요소가 pose 타입인 vector)에 넣기
+obstacle_poses_ 내의 pose와 내 차 사이의 거리가 "가장 가까운" 하나의 pose를 obstacle_pose_에 저장
+
+obstacle_pose_가 path1과 거리가 더 가까우면 -> path2_active = true & path1_active = false
+obstacle_pose_가 path2와 거리가 더 가까우면 -> path1_active = true & path2_active = false
+
+if (path1_active == true && path2_active == false)
+{
+	path1 publish하기
+}
+else if (path1_active == false && path2_active == true)
+{
+	path2 publish하기
+}
+
+
+
+
+
+만약 차가 회전하면서 순간적으로 obstacle이 cropbox내에 안 잡혀도 173번 조건문에 걸려서 return 되면 가장 최근의 pub된 path가 유지되므로 괜찮은듯. 
+그리고 회전이 모두 끝난 후 다른 obstacle 잡으면 다시 한 번 반대편 path 활성화 돼서 괜찮은듯
