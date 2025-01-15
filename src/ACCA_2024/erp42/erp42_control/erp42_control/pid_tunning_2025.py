@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from erp42_msgs.msg import ControlMessage
@@ -7,7 +6,6 @@ from std_msgs.msg import *
 import math as m
 import numpy as np
 import matplotlib.pyplot as plt
-from time import time
 from rclpy.qos import QoSProfile
 import threading
 
@@ -47,7 +45,7 @@ class PID:
         node.create_subscription(SerialFeedBack, "/erp42_feedback", self.callback_erp, qos_profile)
         self.pub = node.create_publisher(ControlMessage, "/cmd_msg", qos_profile)
 
-    def PIDControl(self, desired_value): # desired_value = m/s
+    def PIDControl(self, desired_value): # desired_value = km/h # self.feedback(speed) = m/s, self. speed = km/h
         self.current = self.node.get_clock().now().seconds_nanoseconds()[0] + (self.node.get_clock().now().seconds_nanoseconds()[1] / 1e9)
         self.time.append(self.current - self.init_time)
 
@@ -70,7 +68,7 @@ class PID:
         self.final_speed = self.PIDControl(self.desired_value)
 
         msg = ControlMessage()
-        msg.speed = self.final_speed*10
+        msg.speed = self.final_speed*10 # 이거 10을 곱하는 이유 찾아보기
         msg.steer = int(m.degrees((-1)*self.steer))
         msg.gear = 2
         msg.brake = 0
@@ -80,7 +78,7 @@ class PID:
 
     
     def make_txt(self, tv, flag):
-        f = open("/home/gjs/pid_test/p:{}, i:{}, v:{}, battery:48.8.txt".format(self.p_gain, self.i_gain, self.desired_value), 'a')
+        f = open("/home/ps/pid_test/p:{}, i:{}, v:{}, battery:48.8.txt".format(self.p_gain, self.i_gain, self.desired_value), 'a')
         
         if flag :
             data = "{}, {}\n".format(tv[0], tv[1])
@@ -89,7 +87,7 @@ class PID:
         else:
             f.write("\novershoot:{}, rising_time:{}, settling_time:{}, ss_err:{}\n".format(self.overshoot, self.rising_time, self.settling_time, self.steady_state_err))
             f.close()
-    
+
     def callback_erp(self, msg):
         self.speed = msg.speed *3.6 #km/h
 
@@ -173,6 +171,12 @@ def main(args = None):
 if __name__=="__main__":
     main()
 
+# TODO
 
+# long
+# 외란을 plot할 방법 생각하기 (경사, 자갈길, DB 속도 변화 등등) why? 실제로 눈으로 보기 힘들 수 있다.
+# D 제어 추가하기 
 
-#https://www.ni.com/en/shop/labview/pid-theory-explained.html
+# short (함수구현 문서 참고할것)
+# T_critical = 정상상태 오차의 반복 주기( count 90 )
+# K_p, K_i = ziegler_nicholas(k_critical, T_critical) 

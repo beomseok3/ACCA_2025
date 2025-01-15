@@ -165,7 +165,7 @@ class Control:
         feedback_gear = line[5]
 
         # speed (m/s)
-        feedback_KPH = (line[6] + line[7] * 256) / 10
+        feedback_KPH = (line[6] + line[7] * 256) / 10 
         feedback_speed = self.kph2mps(value=feedback_KPH)
 
         # steer (RAD)
