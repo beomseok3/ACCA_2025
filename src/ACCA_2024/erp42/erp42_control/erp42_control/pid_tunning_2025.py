@@ -75,7 +75,6 @@ class PID:
 
         self.pub.publish(msg)
 
-
     
     def make_txt(self, tv, flag):
         f = open("/home/ps/pid_test/p:{}, i:{}, v:{}, battery:48.8.txt".format(self.p_gain, self.i_gain, self.desired_value), 'a')
@@ -157,6 +156,8 @@ def main(args = None):
                 plt.show()
                
                 break
+        
+
                 
 
 
@@ -174,7 +175,7 @@ if __name__=="__main__":
 # TODO
 
 # long
-# 외란을 plot할 방법 생각하기 (경사, 자갈길, DB 속도 변화 등등) why? 실제로 눈으로 보기 힘들 수 있다.
+# 외란을 plot할 방법(현재속도가 이상해진다) 생각하기 (경사, 자갈길, DB 속도 변화 등등) why? 실제로 눈으로 보기 힘들 수 있다.
 # D 제어 추가하기 
 
 # short (함수구현 문서 참고할것)
