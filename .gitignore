@@ -5,7 +5,6 @@ log/
 install/
 ### C ###
 # Prerequisites
-*.d
 
 # Object files
 *.o
@@ -23,7 +22,6 @@ install/
 *.pch
 
 # Libraries
-*.a
 *.la
 *.lo
 
