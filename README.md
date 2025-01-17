@@ -6,7 +6,7 @@ acca 팀 주요 코드(SLAM, Perception등 일부 코드 제외)
 darknet 제외(사유:용량)
 
 # 실행 방법
-git clone (https://github.com/beomseok3/ACCA_2025)
+git clone https://github.com/beomseok3/ACCA_2025
 
 cd /ACCA_2025
 
