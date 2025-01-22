@@ -20,11 +20,13 @@ class PID:
 
         self.p_err = 0.
         self.i_err = 0.
+        self.d_err = 0.
 
         self.speed = 0
         self.final_speed = 0.
         self.steer = 0.
         self.desired_value = 0.
+        self.prev_err = 0.
 
         self.init_time = node.get_clock().now().seconds_nanoseconds()[0] + (node.get_clock().now().seconds_nanoseconds()[1] / 1e9)
         self.time = []
@@ -56,12 +58,11 @@ class PID:
 
         self.p_err = err
         self.i_err += self.p_err * self.dt  * (0.0 if self.speed == 0 else 1.0)
-        
-        derivative = delta_err / self.dt
+        self.d_err = delta_err / self.dt
 
         self.last = self.current
 
-        speed = self.speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err) + (self.d_gain * derivative)
+        speed = self.speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err) + (self.d_gain * self.d_err)
 
         self.final_speed = int(np.clip(speed, 0, 20))
 
