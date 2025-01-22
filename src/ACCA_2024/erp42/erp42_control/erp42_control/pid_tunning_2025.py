@@ -16,6 +16,7 @@ class PID:
 
         self.p_gain = 2.07
         self.i_gain = 0.85
+        self.d_gain = 0.        
 
         self.p_err = 0.
         self.i_err = 0.
@@ -51,15 +52,20 @@ class PID:
 
         self.dt = self.current - self.last
         err = desired_value - self.speed
+        delta_err = err - self.prev_err
 
         self.p_err = err
         self.i_err += self.p_err * self.dt  * (0.0 if self.speed == 0 else 1.0)
+        
+        derivative = delta_err / self.dt
 
         self.last = self.current
 
-        speed = self.speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err)
+        speed = self.speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err) + (self.d_gain * derivative)
 
         self.final_speed = int(np.clip(speed, 0, 20))
+
+        self.prev_err = err
 
         return self.final_speed
     
