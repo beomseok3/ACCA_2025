@@ -16,7 +16,8 @@ class PID:
 
         self.p_gain = 2.07
         self.i_gain = 0.85
-        self.d_gain = 0.        
+        self.d_gain = 0.     
+        self.brake_gain = 0.0   
 
         self.p_err = 0.
         self.i_err = 0.
@@ -81,6 +82,13 @@ class PID:
 
         self.pub.publish(msg)
 
+    # def cacluate_brake(self, adapted_speed): # brake 값 정하는 알고리즘 좀 더 정교하게 생각
+    #         if self.odometry.v * 3.6 >= adapted_speed:
+    #             brake = (abs(self.odometry.v * 3.6 - adapted_speed) / 20.0) * 200
+    #             brake = np.clip(brake, 0, 100)
+    #         else:
+    #             brake = 0
+    #     return brake
     
     def make_txt(self, tv, flag):
         f = open("/home/ps/pid_test/p:{}, i:{}, v:{}, battery:48.8.txt".format(self.p_gain, self.i_gain, self.desired_value), 'a')

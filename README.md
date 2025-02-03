@@ -2,9 +2,10 @@
 Autonomous Vihicle Project with ERP42 
 
 ## repo 소개
-ACCA팀 주요 코드(SLAM, Perception등 일부 코드 제외)
+ACCA팀 주요 코드
 
-# 빌드
+
+## 빌드
     git clone https://github.com/beomseok3/ACCA_2025
 
     cd /ACCA_2025

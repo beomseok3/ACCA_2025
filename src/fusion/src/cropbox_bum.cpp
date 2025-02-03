@@ -11,7 +11,7 @@ class VelodyneSubscriber : public rclcpp::Node
 public:
     VelodyneSubscriber() : Node("bs_cropbox_filter")
     {
-        this->declare_parameter<std::vector<double>>("detection_area", { 0.0, 20.0, -2.5, 2.5 });
+        this->declare_parameter<std::vector<double>>("detection_area", { 0.0, 10.0, -2.5, 2.5 });
         this->get_parameter("detection_area", detection);
 
         velodyne_raw_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
