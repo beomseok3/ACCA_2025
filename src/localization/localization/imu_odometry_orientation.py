@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
+from std_msgs.msg import Float32
 
 from tf_transformations import *
 import math as m
@@ -25,6 +26,18 @@ class IMU(Node):
         )
         self.odom_pub = self.create_publisher(
             Odometry, odom_topic, qos_profile=qos_profile_system_default
+        )
+
+        self.roll_pub = self.create_publisher(
+            Float32, "/roll", qos_profile=qos_profile_system_default
+        )
+
+        self.pitch_pub = self.create_publisher(
+            Float32, "/pitch", qos_profile=qos_profile_system_default
+        )
+
+        self.yaw_pub = self.create_publisher(
+            Float32, "/yaw", qos_profile=qos_profile_system_default
         )
 
         self.frame_id = self.get_parameter("frame_id").value
@@ -62,8 +75,13 @@ class IMU(Node):
         #     # return
 
         # self.yaw = euler[2] - self.init_yaw
+        self.roll = euler[0]
+        self.pitch = euler[1]
         self.yaw = euler[2]
         current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        self.roll_pub.publish(Float32(self.roll))
+        self.pitch_pub.publish(Float32(self.pitch))
+        self.yaw_pub.publish(Float32(self.yaw))
 
         if self.last_time is None:
             self.last_time = current_time
@@ -84,18 +102,27 @@ class IMU(Node):
         self.x += self.v * np.cos(self.yaw) * dt
         self.y += self.v * np.sin(self.yaw) * dt
 
-        msg = Odometry()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = self.frame_id
-        msg.child_frame_id = self.child_frame_id
-        msg.pose.pose.position.x = self.x
-        msg.pose.pose.position.y = self.y
+        msg_ = Odometry()
+        msg_.header.stamp = self.get_clock().now().to_msg()
+        msg_.header.frame_id = self.frame_id
+        msg_.child_frame_id = self.child_frame_id
+        # msg.pose.pose.position.x = self.x
+        # msg.pose.pose.position.y = self.y
+        msg_.pose.pose.position.x = 0.0
+        msg_.pose.pose.position.y = 0.0
         q = quaternion_from_euler(0, 0, self.yaw)
-        msg.pose.pose.orientation.x = q[0]
-        msg.pose.pose.orientation.y = q[1]
-        msg.pose.pose.orientation.z = q[2]
-        msg.pose.pose.orientation.w = q[3]
-        self.odom_pub.publish(msg)
+        msg_.pose.pose.orientation.x = q[0]
+        msg_.pose.pose.orientation.y = q[1]
+        msg_.pose.pose.orientation.z = q[2]
+        msg_.pose.pose.orientation.w = q[3]
+        covariance_matrix = np.zeros((6, 6))
+        covariance_matrix[3, 3] = 0.0025  # roll
+        covariance_matrix[4, 4] = 0.0025  # pitch
+        covariance_matrix[5, 5] = 0.0025  # yaw
+
+        msg_.pose.covariance = covariance_matrix.flatten().tolist()
+
+        self.odom_pub.publish(msg_)
 
     # def imu_callback(self, msg):
     #     # Orientation -> Euler angles 변환
