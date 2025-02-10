@@ -7,7 +7,7 @@ ekf_filter_node:
         base_link_frame: base_link  # Defaults to "base_link" if unspecified
         world_frame: odom            # Defaults to the value of odom_frame if unspecified
 
-        frequency: 16.
+        frequency: 15.
         two_d_mode: true
         sensor_timeout: 0.01
         

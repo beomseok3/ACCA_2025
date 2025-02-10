@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
@@ -9,7 +7,7 @@ from nav_msgs.msg import Odometry
 from tf_transformations import *
 import math as m
 import numpy as np
-from rclpy.qos import QoSProfile
+from rclpy.qos import qos_profile_sensor_data
 
 
 def normalize_angle(angle):
@@ -30,18 +28,21 @@ def normalize_angle(angle):
 class Rotate(Node):
     def __init__(self):
         super().__init__("rotate_yaw")
-        qos_profile = QoSProfile(depth=1)
-        self.create_subscription(Imu, "imu/data", self.callback, qos_profile)
+        self.create_subscription(
+            Imu, "imu/data", self.callback, qos_profile_sensor_data
+        )
         self.create_subscription(
             TwistWithCovarianceStamped,
             "ublox_gps_node/fix_velocity",
             self.callback_gps_vel,
-            qos_profile,
+            qos_profile_sensor_data,
         )
-        self.create_subscription(String, "road_type", self.callback_shape, qos_profile)
-        # self.create_subscription(Odometry, "odometry/navsat",self.callback_odom, qos_profile)
+        self.create_subscription(
+            String, "road_type", self.callback_shape, qos_profile_sensor_data
+        )
+        # self.create_subscription(Odometry, "odometry/navsat",self.callback_odom, qos_profile_sensor_data_)
 
-        self.pub = self.create_publisher(Imu, "imu/rotated", qos_profile)
+        self.pub = self.create_publisher(Imu, "imu/rotated", qos_profile_sensor_data)
 
         self.delta_yaw = self.declare_parameter("delta_yaw", 0.0).value
         self.gps_yaw = 0.0
@@ -53,6 +54,7 @@ class Rotate(Node):
             None
         ] * 10  # 큐 사이즈 10 고려해보기 -> 아래 decision_straight함수에서 하나씩 꺼내서 다 검사하기 때문에 연산 시간 때문에 조금 줄여야 할 수도 있음 / 심지어 imu는 400hz
         self.mean = 0.0
+        self.cnt = 0.0
 
     def decision_straight(self):
         sum = 0.0
@@ -94,9 +96,15 @@ class Rotate(Node):
 
         # curve에서는 보정이 안 되고 있는 것 같은데 방안 생각해보기!
         # if abs(delta) > m.radians(2) and abs(delta) < m.radians(90) and self.v > 0.30 and self.path_shape == "straight":  #self.path_shape은 path_opener에서 내보내주기 때문에 path_opener먼저 키기
-        if abs(delta) > m.radians(2) and abs(delta) < m.radians(90) and self.v > 0.30:
+        if (
+            abs(delta) > m.radians(2)
+            and abs(delta) < m.radians(90)
+            and self.v > 0.30
+            and self.cnt < 50
+        ):
             if self.decision_straight():
                 self.delta = self.mean - yaw
+                self.cnt += 1
         yaw_prev = yaw
         yaw = yaw + self.delta_yaw + self.delta
         x, y, z, w = quaternion_from_euler(0, 0, yaw)
