@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import TwistWithCovarianceStamped
-from std_msgs.msg import String, Float32
+from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from tf_transformations import *
 import math as m
@@ -43,10 +43,6 @@ class Rotate(Node):
         # self.create_subscription(Odometry, "odometry/navsat",self.callback_odom, qos_profile_sensor_data_)
 
         self.pub = self.create_publisher(Imu, "imu/rotated", qos_profile_sensor_data)
-
-        self.pub_dyaw = self.create_publisher(
-            Float32, "imu/dyaw", qos_profile_sensor_data
-        )
 
         self.delta_yaw = self.declare_parameter("delta_yaw", 0.0).value
         self.gps_yaw = 0.0
@@ -104,13 +100,11 @@ class Rotate(Node):
             abs(delta) > m.radians(2)
             and abs(delta) < m.radians(90)
             and self.v > 0.30
-            # and self.cnt < 50
+            and self.cnt < 50
         ):
             if self.decision_straight():
                 self.delta = self.mean - yaw
-                # self.cnt += 1
-        self.pub_dyaw.publish(Float32(data=self.delta))
-
+                self.cnt += 1
         yaw_prev = yaw
         yaw = yaw + self.delta_yaw + self.delta
         x, y, z, w = quaternion_from_euler(0, 0, yaw)
