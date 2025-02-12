@@ -39,6 +39,7 @@ setup(
             "set_initial = localization.set_initial:main",
             "solve_pnp = localization.solve_pnp:main",
             "imu_odometry = localization.imu_odometry:main",
+            "imu_test = localization.imu_test:main",
             "imu_odometry_orientation = localization.imu_odometry_orientation:main",
             "imu_encoder_odometry = localization.imu_encoder_odometry:main",
             "test_map = localization.test_map:main",
