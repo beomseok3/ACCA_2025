@@ -12,51 +12,75 @@ from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
 class IMU(Node):
     def __init__(self):
         super().__init__("imu_odometry")
+        
         self.declare_parameter("imu_topic", "/imu/data")
-        self.declare_parameter("odom_topic", "/odom_imu")
+        self.declare_parameter("imu_gps_topic", "/imu/rotated")
+        self.declare_parameter("odom_imu_topic", "/odom_imu")
+        self.declare_parameter("odom_imu_gps_topic", "/odom_imu_gps")
         self.declare_parameter("frame_id", "odom")
         self.declare_parameter("child_frame_id", "base_link")
 
         imu_topic = self.get_parameter("imu_topic").value
-        odom_topic = self.get_parameter("odom_topic").value
-
-        self.imu_sub = self.create_subscription(
-            Imu, imu_topic, self.imu_callback, qos_profile=qos_profile_sensor_data
-        )
-        self.odom_pub = self.create_publisher(
-            Odometry, odom_topic, qos_profile=qos_profile_system_default
-        )
-
+        imu_gps_topic = self.get_parameter("imu_gps_topic").value
+        odom_imu_topic = self.get_parameter("odom_imu_topic").value
+        odom_imu_gps_topic = self.get_parameter("odom_imu_gps_topic").value
         self.frame_id = self.get_parameter("frame_id").value
         self.child_frame_id = self.get_parameter("child_frame_id").value
 
+        # subscriber
+        self.imu_sub = self.create_subscription(
+            Imu, imu_topic, self.imu_callback, qos_profile=qos_profile_sensor_data
+        )
+        self.imu_gps_sub = self.create_subscription(
+            Imu, imu_gps_topic, self.imu_gps_callback, qos_profile=qos_profile_sensor_data
+        )
+
+        #publisher
+        self.odom_imu_pub = self.create_publisher(
+            Odometry, odom_imu_topic, qos_profile=qos_profile_system_default
+        )
+        self.odom_imu_gps_pub = self.create_publisher(
+            Odometry, odom_imu_gps_topic, qos_profile=qos_profile_system_default
+        )
+
+
         self.x = 0.0
         self.y = 0.0
-        self.yaw = 0.0
-        self.init_yaw = 0.0
         self.v = 0.0
+        self.yaw_ = 0.0
+        self.yaw_gps = 0.0
+        self.init_yaw = None
+        self.init_yaw_gps = None
+
         self.last_time = None
 
-    # def imu_callback(self, msg):
-    #     q = [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
-    #     euler = euler_from_quaternion(q)
-    #     self.yaw = euler[2]
+    def imu_gps_callback(self,msg):
+        q = [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
+        euler = euler_from_quaternion(q)
 
-    #     current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
-    #     dt = (current_time - self.last_time) if self.last_time else 0.0
-    #     self.last_time = current_time
+        # if self.init_yaw_gps is None:
+        #     self.init_yaw_gps = euler[2]
+        self.init_yaw_gps = 0.0
+        self.yaw_gps = euler[2] - self.init_yaw_gps
 
-    #     self.x += self.v * np.cos(self.yaw) * dt
-    #     self.y += self.v * np.sin(self.yaw) * dt
-
-    #     a_x = msg.linear_acceleration.x
-
-    #     self.v += a_x * dt
+        msg__ = Odometry()
+        msg__.header.stamp = self.get_clock().now().to_msg()
+        msg__.header.frame_id = self.frame_id
+        msg__.child_frame_id = self.child_frame_id
+        msg__.pose.pose.position.x = self.x
+        msg__.pose.pose.position.y = self.y
+        q = quaternion_from_euler(0, 0, self.yaw_gps)
+        msg__.pose.pose.orientation.x = q[0]
+        msg__.pose.pose.orientation.y = q[1]
+        msg__.pose.pose.orientation.z = q[2]
+        msg__.pose.pose.orientation.w = q[3]
+        self.odom_imu_gps_pub.publish(msg__)
 
     def imu_callback(self, msg):
         q = [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
         euler = euler_from_quaternion(q)
 
+<<<<<<< HEAD
         # if self.init_yaw == 0.0:
         #     self.init_yaw = euler[2]
         #     # return
@@ -126,7 +150,26 @@ class IMU(Node):
 
     #     self.x += self.v_x * dt
     #     self.y += self.v_y * dt
+=======
+        # if self.init_yaw is None:
+        #     self.init_yaw = euler[2]
+        #     print(self.init_yaw)
+        self.init_yaw = 0.
+        self.yaw_ = euler[2] - self.init_yaw
+>>>>>>> 905bcc9 (commit_com)
 
+        msg__ = Odometry()
+        msg__.header.stamp = self.get_clock().now().to_msg()
+        msg__.header.frame_id = self.frame_id
+        msg__.child_frame_id = self.child_frame_id
+        msg__.pose.pose.position.x = self.x
+        msg__.pose.pose.position.y = self.y
+        q = quaternion_from_euler(0, 0, self.yaw_)
+        msg__.pose.pose.orientation.x = q[0]
+        msg__.pose.pose.orientation.y = q[1]
+        msg__.pose.pose.orientation.z = q[2]
+        msg__.pose.pose.orientation.w = q[3]
+        self.odom_imu_pub.publish(msg__)
 
 def main(args=None):
     rclpy.init(args=args)
