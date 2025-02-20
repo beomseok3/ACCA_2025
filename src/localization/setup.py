@@ -46,6 +46,9 @@ setup(
             "kalman_localization = localization.kalman_localization:main",
             "map_odom_tf_publisher = localization.map_odom_tf_publisher:main",
             "real_time_map_server = localization.real_time_map_server:main",
+            "imu_bias_measure = localization.imu_bias_measure:main",
+            "imu_temper_measure = localization.imu_temper_measure:main",
+            "imu_scalefactor_measure = localization.imu_scalefactor_measure:main",
         ],
     },
 )

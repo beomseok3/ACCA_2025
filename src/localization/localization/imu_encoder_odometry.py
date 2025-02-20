@@ -66,7 +66,7 @@ class Imu_Encoder(Node):
         self.yaw = euler[2]
 
     def callback_erp_twist(self, msg):
-        print("ongoing")
+        # print("ongoing")
         current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
 
         if self.last_time is None:
@@ -82,8 +82,10 @@ class Imu_Encoder(Node):
         self.y = self.y + float(self.v_y) * dt
 
         if self.logging is True:
-            print(f"position & time: {self.x}    {self.y}    {dt}")
-            print(f"velocity & orientation: {self.v_x}  {self.v_y}  {self.yaw}")
+            self.get_logger().info(f"position & time: {self.x}    {self.y}    {dt}")
+            self.get_logger().info(
+                f"velocity & orientation: {self.v_x}  {self.v_y}  {self.yaw}"
+            )
 
         msg = Odometry()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -125,9 +127,12 @@ class Imu_Encoder(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    imu_encoder_node = Imu_Encoder()
 
-    rclpy.spin(imu_encoder_node)
+    node = Imu_Encoder()
+
+    rclpy.spin(node)
+
+    node.destroy_node()
     rclpy.shutdown()
 
 
