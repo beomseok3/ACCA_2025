@@ -10,10 +10,6 @@ ACCA팀 주요 코드
 
     cd ACCA_2025
 
-*의존성 파일 설치*
-
-    rosdep install --from-paths src --ignore-src -r -y
-
 *msg 먼저 빌드해주기!!* (권장)
 
     colcon build --symlink-install --packages-select adaptive_clustering_msgs
@@ -25,4 +21,10 @@ ACCA팀 주요 코드
 *전체 패키지 빌드*
 
     colcon build --symlink-install
+
+## prerequisite
+    mavros_msgs
+    nmea_msgs
+    ...
+    
 
