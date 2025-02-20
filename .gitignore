@@ -275,5 +275,5 @@ COLCON_IGNORE
 AMENT_IGNORE
 
 *.zip
-
+!/home/ps/acca_ws/src/ACCA_2025/src/sensor/Xsens_MTi_ROS_Driver_and_Ntrip_Client-ros2/src/xsens_mti_ros2_driver/lib/*
 # End of https://www.toptal.com/developers/gitignore/api/python,c,c++,ros2
