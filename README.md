@@ -8,7 +8,7 @@ ACCA팀 주요 코드
 ## 빌드
     git clone https://github.com/beomseok3/ACCA_2025
 
-    cd /ACCA_2025
+    cd ACCA_2025
 
 *의존성 파일 설치*
 
