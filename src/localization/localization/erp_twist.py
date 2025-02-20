@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, qos_profile_sensor_data
 from erp42_msgs.msg import SerialFeedBack
 from geometry_msgs.msg import TwistWithCovarianceStamped
 from sensor_msgs.msg import Imu
@@ -15,18 +15,19 @@ class ErpTwist(Node):
         qos_profile = QoSProfile(depth=10)
 
         self.sub_erp = self.create_subscription(
-            SerialFeedBack, "erp42_feedback", self.callback_erp, qos_profile
+            SerialFeedBack, "erp42_feedback", self.callback_erp, qos_profile_sensor_data
         )
         # self.sub_imu = self.create_subscription(
         #     Imu, "imu/rotated", self.callback_imu, qos_profile
         # )
         self.pub = self.create_publisher(
-            TwistWithCovarianceStamped, "erp42/twist", qos_profile
+            TwistWithCovarianceStamped, "erp42/twist", qos_profile_sensor_data
         )
         self.yaw = None
         self.header = Header()
 
     def callback_erp(self, msg):
+        print("on callback_erp")
         if self.yaw is not None:
             yaw = self.yaw
             header = self.header

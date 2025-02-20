@@ -88,8 +88,8 @@ class IMU(Node):
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = self.frame_id
         msg.child_frame_id = self.child_frame_id
-        msg.pose.pose.position.x = self.x
-        msg.pose.pose.position.y = self.y
+        msg.pose.pose.position.x = 0.0
+        msg.pose.pose.position.y = 0.0
         q = quaternion_from_euler(0, 0, self.yaw)
         msg.pose.pose.orientation.x = q[0]
         msg.pose.pose.orientation.y = q[1]

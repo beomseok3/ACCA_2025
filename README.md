@@ -14,7 +14,7 @@ ACCA팀 주요 코드
 
     rosdep install --from-paths src --ignore-src -r -y
 
-*msg 먼저 빌드해주기!!*
+*msg 먼저 빌드해주기!!* (권장)
 
     colcon build --symlink-install --packages-select adaptive_clustering_msgs
 

@@ -8,6 +8,20 @@ from tf_transformations import *
 import math as m
 import numpy as np
 from rclpy.qos import qos_profile_sensor_data
+import sys, os
+
+import subprocess
+
+
+def set_param(node_name, param_name, value):
+    try:
+        command = f"ros2 param set /{node_name} {param_name} {value}"
+        # a=os.system(command)
+        # print(a)
+        var = subprocess.check_output(command, shell=True, text=True)
+        print(var)
+    except:
+        raise ValueError
 
 
 def normalize_angle(angle):
@@ -48,7 +62,7 @@ class Rotate(Node):
             Float32, "imu/dyaw", qos_profile_sensor_data
         )
 
-        self.delta_yaw = self.declare_parameter("delta_yaw", 0.0).value
+        self.delta_yaw = self.declare_parameter("delta_yaw", -0.15799).value
         self.gps_yaw = 0.0
         self.v = 0.0
         self.odom_yaw = 0.0
@@ -96,7 +110,7 @@ class Rotate(Node):
         _, _, yaw = euler_from_quaternion(
             [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
         )
-        delta = self.gps_yaw - yaw
+        delta = self.gps_yaw - yaw - self.delta_yaw
 
         # curve에서는 보정이 안 되고 있는 것 같은데 방안 생각해보기!
         # if abs(delta) > m.radians(2) and abs(delta) < m.radians(90) and self.v > 0.30 and self.path_shape == "straight":  #self.path_shape은 path_opener에서 내보내주기 때문에 path_opener먼저 키기
@@ -104,11 +118,15 @@ class Rotate(Node):
             abs(delta) > m.radians(2)
             and abs(delta) < m.radians(90)
             and self.v > 0.30
-            # and self.cnt < 50
+            and self.cnt < 10
         ):
             if self.decision_straight():
-                self.delta = self.mean - yaw
-                # self.cnt += 1
+                self.delta = self.mean - yaw - self.delta_yaw
+                self.cnt += 1
+                a = self.delta + self.delta_yaw
+                set_param(
+                    "navsat_transform_node", "magnetic_declination_radians", str(a)
+                )
         self.pub_dyaw.publish(Float32(data=self.delta))
 
         yaw_prev = yaw
