@@ -14,8 +14,8 @@ class Imu_Encoder(Node):
     def __init__(self):
         super().__init__("imu_encoder_odometry")
 
-        self.declare_parameter("imu_topic", "/imu/rotated")
-        self.declare_parameter("odom_topic", "/odom_imu_encoder")
+        self.declare_parameter("imu_topic", "/imu/data")
+        self.declare_parameter("odom_topic", "/odom/imu_encoder")
         self.declare_parameter("frame_id", "odom")
         self.declare_parameter("child_frame_id", "base_link")
         self.declare_parameter("logging", True)
@@ -44,9 +44,8 @@ class Imu_Encoder(Node):
 
         # tf
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(
-            self, qos_profile=qos_profile_system_default
+            self
         )
-
         self.x = 0.0
         self.y = 0.0
         self.yaw = 0.0

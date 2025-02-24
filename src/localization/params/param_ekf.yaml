@@ -7,14 +7,14 @@ ekf_filter_node:
         base_link_frame: base_link  # Defaults to "base_link" if unspecified
         world_frame: odom            # Defaults to the value of odom_frame if unspecified
 
-        frequency: 16.
+        frequency: 8.
         two_d_mode: true
         sensor_timeout: 0.01
         
         # -------------------------------------
         # External IMU:
         # -------------------------------------
-        imu0: imu/rotated
+        imu0: imu/data
         # make sure the input is aligned with ROS REP105. "imu_correct" is manually transformed by myself. EKF can also transform the data using tf between your imu and base_link
         imu0_config: [false, false, false,
                         false, false, true,

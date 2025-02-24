@@ -17,6 +17,9 @@ class ErpTwist(Node):
         self.sub_erp = self.create_subscription(
             SerialFeedBack, "erp42_feedback", self.callback_erp, qos_profile
         )
+        self.sub_imu = self.create_subscription(
+            Imu, "imu/rotated", self.callback_imu, qos_profile
+        )
         self.pub = self.create_publisher(
             TwistWithCovarianceStamped, "erp42/twist", qos_profile
         )
@@ -24,24 +27,36 @@ class ErpTwist(Node):
         self.header = Header()
 
     def callback_erp(self, msg):
-        header = self.header
-        header.stamp = self.get_clock().now().to_msg()
-        header.frame_id = "base_link"
-        gear = msg.gear
-        if gear == 2:
-            v = msg.speed
-        else:
-            v = (-1) * msg.speed
-        self.publish_twist(v, header)
+        if self.yaw is not None:
+            yaw = self.yaw
+            header = self.header
+            header.stamp = self.get_clock().now().to_msg()
+            header.frame_id = "base_link"
+            gear = msg.gear
+            if gear == 2:
+                v = msg.speed
+            else:
+                v = (-1) * msg.speed
+            self.publish_twist(v,yaw, header)
 
-    def publish_twist(self, v, header):
+    def callback_imu(self, msg):
+        quarternion = msg.orientation
+        _, _, self.yaw = euler_from_quaternion(
+            [quarternion.x, quarternion.y, quarternion.z, quarternion.w]
+        )
+
+    def publish_twist(self, v,yaw, header):
         data = TwistWithCovarianceStamped()
 
         data.header = header
 
+        # world_frame
+        data.twist.twist.linear.x = v * np.cos(yaw)
+        data.twist.twist.linear.y = v * np.sin(yaw)
+
         # base_link_frame
-        data.twist.twist.linear.x = v
-        data.twist.twist.linear.y = 0.0
+        # data.twist.twist.linear.x = v
+        # data.twist.twist.linear.y = 0.0
         data.twist.twist.linear.z = 0.0
 
         data.twist.twist.angular.x = 0.0

@@ -1,4 +1,0 @@
-std_msgs/Header header
-float32 longitudinal_velocity
-float32 lateral_velocity
-float32 heading_rate

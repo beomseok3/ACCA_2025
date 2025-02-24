@@ -263,8 +263,10 @@ class StateMachine():
             if self.odometry.x != 0.: #10.03 수정
                 steer, self.target_idx, hdr, ctr = self.st.stanley_control(self.odometry, self.path.cx, self.path.cy, self.path.cyaw, h_gain=0.5, c_gain=0.24)
                 target_speed = self.set_target_speed()
-                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=8, max_value=15) # 에러(hdr, ctr) 기반 목표 속력 조정
-                speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed, min=8, max=15) # speed 조정 (PI control) 
+                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=5, max_value=15) # 에러(hdr, ctr) 기반 목표 속력 조정
+                speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed, min=5, max=15) # speed 조정 (PI control)  
+                #TODO:
+                    # min max system parameter로 빼기 DB로 관리
                 brake = self.cacluate_brake(adapted_speed) # brake 조정
 
                 # msg.speed = int(adapted_speed) * 10
