@@ -8,6 +8,8 @@ from tf_transformations import euler_from_quaternion
 import threading
 
 # TOOD: add threading to make it work efficiently
+# 물리적으로 정확히 360도 돈 상황을 만들수 없어 scale factor를 재는 의미가 없어짐
+# imu_bias에서 변형 , refactoring 할것
 
 
 class ImuBiasMeasure(Node):

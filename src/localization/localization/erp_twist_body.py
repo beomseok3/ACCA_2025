@@ -8,19 +8,18 @@ from std_msgs.msg import Header
 import numpy as np
 from tf_transformations import euler_from_quaternion
 
-"""
- non-filter(recommend:low-pass-filter)
- publish control input(V_x) of Body_frame
- """
-
 
 class ErpTwist(Node):
     def __init__(self):
         super().__init__("erp_twist")
+        qos_profile = QoSProfile(depth=10)
 
         self.sub_erp = self.create_subscription(
             SerialFeedBack, "erp42_feedback", self.callback_erp, qos_profile_sensor_data
         )
+        # self.sub_imu = self.create_subscription(
+        #     Imu, "imu/rotated", self.callback_imu, qos_profile
+        # )
         self.pub = self.create_publisher(
             TwistWithCovarianceStamped, "erp42/twist", qos_profile_sensor_data
         )
@@ -28,7 +27,7 @@ class ErpTwist(Node):
         self.header = Header()
 
     def callback_erp(self, msg):
-        print("!")
+        print("on callback_erp")
         if self.yaw is not None:
             yaw = self.yaw
             header = self.header
@@ -41,10 +40,20 @@ class ErpTwist(Node):
                 v = (-1) * msg.speed
             self.publish_twist(v, header)
 
+    # def callback_imu(self, msg):
+    #     quarternion = msg.orientation
+    #     _, _, self.yaw = euler_from_quaternion(
+    #         [quarternion.x, quarternion.y, quarternion.z, quarternion.w]
+    #     )
+
     def publish_twist(self, v, header):
         data = TwistWithCovarianceStamped()
 
         data.header = header
+
+        # world_frame
+        # data.twist.twist.linear.x = v * np.cos(yaw)
+        # data.twist.twist.linear.y = v * np.sin(yaw)
 
         # base_link_frame
         data.twist.twist.linear.x = v

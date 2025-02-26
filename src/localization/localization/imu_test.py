@@ -22,9 +22,23 @@ class Imu_test(Node):
             Float32, "imu/yaw", qos_profile_system_default
         )
 
+        self.total_differ = 0.0
+        self.last_time = 0.0
+        self.current_time = 0.0
+        self.total_time = 0.0
+
         self.prev_r, self.prev_p, self.prev_y = None, None, None
 
     def callback_imu(self, msg):
+
+        self.current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+
+        if self.last_time == 0.0:
+            self.last_time = self.current_time
+            return
+            # print(f"{self.current_time} {self.last_time}")
+
+        self.total_time += self.current_time - self.last_time
 
         r, p, y = euler_from_quaternion(
             [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
@@ -36,15 +50,29 @@ class Imu_test(Node):
 
         if self.prev_r is not None:
             self.get_logger().info(
-                f"r: {r - self.prev_r}, p: {p - self.prev_p}, y: {y - self.prev_y}"
+                f"r: {r - self.prev_r}, p: {p - self.prev_p}, y: {y - self.prev_y}"  # heading error시 error 속도 확인하기
             )
-            self.get_logger().warn(f"r: {r}, p: {p}, y: {y}")
+            self.total_differ += y - self.prev_y
+        # self.get_logger().warn(f"r: {r}, p: {p}, y: {y}")
+        self.get_logger().info(f"total_differ: {self.total_differ}")
+        self.get_logger().info(f"total_time: {self.total_time}")
+        avg_differ = self.total_differ / self.total_time
+        self.get_logger().info(f"yaw_bias: {avg_differ}")
 
         self.prev_r = r
         self.prev_p = p
         self.prev_y = y
+        self.last_time = self.current_time
 
         self.pub_deg_yaw.publish(Float32(data=y))
+        self.make_txt(self.total_time, avg_differ)
+
+    def make_txt(self, time, value):
+
+        f = open("/home/ps/imu_bias/yaw_bias_test.txt", "a")
+        data = "{},{}\n".format(time, value)
+        f.write(data)
+        f.close()
 
 
 def main(args=None):
