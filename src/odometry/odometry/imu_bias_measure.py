@@ -91,7 +91,7 @@ class ImuBiasMeasure(Node):
 
     def make_txt(self, time, value):
 
-        f = open("/home/ps/imu_bias/7_bias.txt", "a")
+        f = open("/home/ps/imu_bias/imu7_bias_inner_test.txt", "a")
         data = "{},{}\n".format(time, value)
         f.write(data)
         f.close()
