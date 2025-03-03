@@ -28,7 +28,6 @@ setup(
             "erp_twist = localization.erp_twist:main",
             "rotate_yaw = localization.rotate_yaw:main",
             "rotate_yaw_cone = localization.rotate_yaw_cone:main",
-            "rotate_yaw_bum = localization.rotate_yaw_bum:main",
             "gps_odom = localization.gps_odom:main",
             "imu_bias_measure = localization.imu_bias_measure:main",
             "create_accel = localization.create_accel:main",
@@ -44,6 +43,13 @@ setup(
             "real_time_map_server = localization.real_time_map_server:main",
             "dfilter_yaw = localization.dfilter_yaw:main",
             "imu_test = localization.imu_test:main",
+            "erp_twist_world = localization.erp_twist_world:main",
+            "position_filter_yaw = localization.position_filter_yaw:main",
+            "orientation_source_2 = localization.orientation_source_2:main",
+            "orientation_source_3 = localization.orientation_source_3:main",
+            "orientation_source_4 = localization.orientation_source_4:main",
+            "orientation_source_5 = localization.orientation_source_5:main",
+            
         ],
     },
 )

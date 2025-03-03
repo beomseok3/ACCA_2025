@@ -18,7 +18,7 @@ class Dfilter(Node):
         )
 
         self.pub_filtered_yaw = self.create_publisher(
-            Imu, "imu/filtered_yaw", qos_profile_sensor_data
+            Imu, "imu/rotated_dfiltered", qos_profile_sensor_data
         )
 
         self.prev_value = 0.0
@@ -51,7 +51,7 @@ class Dfilter(Node):
         ]
         euler = euler_from_quaternion(quaternion)
         yaw = self.dfilter(euler[2])
-        quaternion = quaternion_from_euler([0, 0, yaw])
+        quaternion = quaternion_from_euler(0, 0, yaw)
         msg.orientation.x = quaternion[0]
         msg.orientation.y = quaternion[1]
         msg.orientation.z = quaternion[2]

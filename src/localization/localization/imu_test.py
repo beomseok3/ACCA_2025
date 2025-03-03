@@ -6,6 +6,7 @@ from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
 from tf_transformations import *
 
 import numpy as np
+import math as m
 
 
 class Imu_test(Node):
@@ -26,6 +27,7 @@ class Imu_test(Node):
         self.last_time = 0.0
         self.current_time = 0.0
         self.total_time = 0.0
+        self.gyro_bias = 0.0
 
         self.prev_r, self.prev_p, self.prev_y = None, None, None
 
@@ -39,6 +41,9 @@ class Imu_test(Node):
             # print(f"{self.current_time} {self.last_time}")
 
         self.total_time += self.current_time - self.last_time
+        self.gyro_bias += m.degrees(
+            msg.angular_velocity.z * (self.current_time - self.last_time)
+        )
 
         r, p, y = euler_from_quaternion(
             [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
@@ -49,16 +54,17 @@ class Imu_test(Node):
         y = np.rad2deg(y)
 
         if self.prev_r is not None:
-            self.get_logger().info(
+            print(
                 f"r: {r - self.prev_r}, p: {p - self.prev_p}, y: {y - self.prev_y}"  # heading error시 error 속도 확인하기
             )
             self.total_differ += y - self.prev_y
         # self.get_logger().warn(f"r: {r}, p: {p}, y: {y}")
-        self.get_logger().info(f"total_differ: {self.total_differ}")
-        self.get_logger().info(f"total_time: {self.total_time}")
+        print("=====================================")
+        print(f"total_differ: {self.total_differ}")
+        print(f"gyro differ: {self.gyro_bias}")
+        print(f"total_time: {self.total_time}")
         avg_differ = self.total_differ / self.total_time
-        self.get_logger().info(f"yaw_bias: {avg_differ}")
-
+        print(f"yaw_bias: {avg_differ}")
         self.prev_r = r
         self.prev_p = p
         self.prev_y = y

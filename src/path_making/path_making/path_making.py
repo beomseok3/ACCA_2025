@@ -34,7 +34,7 @@ class DBWRITE(Node):
         self.euclidean_list = []
         self.distance = 0
         self.ds = 0.1
-        self.db = db("B3_back.db")
+        self.db = db("0228_school_test.db")
         for i in range(1,31,1):
             self.db.write_db_Node([(f"A{i}",f"A{i+1}",f"A{i}A{i+1}"),])
         
