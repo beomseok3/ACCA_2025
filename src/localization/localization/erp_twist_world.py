@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, qos_profile_sensor_data
 from erp42_msgs.msg import SerialFeedBack
 from geometry_msgs.msg import TwistWithCovarianceStamped
 from sensor_msgs.msg import Imu
@@ -18,19 +18,22 @@ class ErpTwist(Node):
             SerialFeedBack, "erp42_feedback", self.callback_erp, qos_profile
         )
         self.sub_imu = self.create_subscription(
-            Imu, "imu/rotated", self.callback_imu, qos_profile
+            Imu, "imu/data", self.callback_imu, qos_profile_sensor_data
         )
+
         self.pub = self.create_publisher(
-            TwistWithCovarianceStamped, "erp42/twist", qos_profile
+            TwistWithCovarianceStamped, "erp42/twist/world", qos_profile
         )
+
         self.yaw = None
+        self.time = None
         self.header = Header()
 
     def callback_erp(self, msg):
-        if self.yaw is not None:
+        if self.yaw is not None and self.time is not None:
             yaw = self.yaw
             header = self.header
-            header.stamp = self.get_clock().now().to_msg()
+            header.stamp = self.time
             header.frame_id = "base_link"
             gear = msg.gear
             if gear == 2:
@@ -41,6 +44,7 @@ class ErpTwist(Node):
 
     def callback_imu(self, msg):
         quarternion = msg.orientation
+        self.time = msg.header.stamp
         _, _, self.yaw = euler_from_quaternion(
             [quarternion.x, quarternion.y, quarternion.z, quarternion.w]
         )

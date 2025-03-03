@@ -15,7 +15,7 @@ class Imu_Encoder(Node):
         super().__init__("imu_encoder_odometry")
 
         self.declare_parameter("imu_topic", "/imu/data")
-        self.declare_parameter("odom_topic", "/odom_imu_encoder")
+        self.declare_parameter("odom_topic", "/odometry/wheel")
         self.declare_parameter("frame_id", "odom")
         self.declare_parameter("child_frame_id", "base_link")
         self.declare_parameter("logging", True)
@@ -32,7 +32,7 @@ class Imu_Encoder(Node):
         )
         self.erp_twist_sub = self.create_subscription(
             TwistWithCovarianceStamped,
-            "erp42/twist",
+            "erp42/twist/world",
             self.callback_erp_twist,
             qos_profile=qos_profile_sensor_data,
         )
@@ -43,9 +43,7 @@ class Imu_Encoder(Node):
         )
 
         # tf
-        self.tf_broadcaster = tf2_ros.TransformBroadcaster(
-            self, qos_profile=qos_profile_system_default
-        )
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         self.x = 0.0
         self.y = 0.0

@@ -13,7 +13,7 @@ navsat_transform_node:
 
                 # If your IMU does not account for magnetic declination, enter the value for your location here. If you don't know it,
                 # see http://www.ngdc.noaa.gov/geomag-web/ (make sure to convert the value to radians). This parameter is mandatory.
-                magnetic_declination_radians: -0.1568579 
+                magnetic_declination_radians: 0.
                 # magnetic_declination_radians: 1.2949384267948966
                 #Kcity-YS
                 # magnetic_declination_radians: -0.15799
