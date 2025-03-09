@@ -247,6 +247,7 @@ pyrightconfig.json
 ### ROS2 ###
 install/
 log/
+src/darknet_ros_yolov4/
 
 # Ignore generated docs
 *.dox
