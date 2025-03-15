@@ -35,6 +35,7 @@ setup(
             "ndt_rotate = localization.ndt_rotate:main",
             "ndt_kalman_tf = localization.ndt_kalman_tf:main",
             "wheel_odometry = localization.wheel_odometry:main",
+            "wheel_odometry_steer = localization.wheel_odometry_steer:main",
             "set_initial = localization.set_initial:main",
             "solve_pnp = localization.solve_pnp:main",
             "test_map = localization.test_map:main",
@@ -49,7 +50,8 @@ setup(
             "orientation_source_3 = localization.orientation_source_3:main",
             "orientation_source_4 = localization.orientation_source_4:main",
             "orientation_source_5 = localization.orientation_source_5:main",
-            
+            "gps_variance_filter = localization.gps_variance_filter:main",
+            "fake_feedback = localization.fake_feedback:main",
         ],
     },
 )

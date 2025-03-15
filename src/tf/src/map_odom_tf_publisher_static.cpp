@@ -32,6 +32,7 @@ public:
         map_lat_ = 37.2388925;
         map_lon_ = 126.77293309999999;
 
+
         // // // // // kcity-ys
         // map_lat_ = 37.2392369;
         // map_lon_ = 126.77316379999999;
@@ -82,8 +83,10 @@ public:
         double trans_x = dx_;
         double trans_y = dy_;
 
-        tf_msg.transform.translation.x = trans_y;
-        tf_msg.transform.translation.y = trans_x;  
+        // tf_msg.transform.translation.x = trans_y;
+        // tf_msg.transform.translation.y = trans_x;  
+        tf_msg.transform.translation.x = 0.0;
+        tf_msg.transform.translation.y = 0.0;  
         tf_msg.transform.translation.z = 0.0;
 
 

@@ -51,11 +51,11 @@ class GPSToUTMKNode(Node):
         odom_msg.pose.orientation.w = 1.0
 
         odom_msg.pose.covariance = np.identity(6)
-        
+
         # x (m) 공분산
-        odom_msg.pose.covariance[0] = msg.
-        # y (m) 공분산
-        odom_msg.pose.covariance[6] = 
+        # odom_msg.pose.covariance[0] = msg.
+        # # y (m) 공분산
+        # odom_msg.pose.covariance[6] =
 
         # (필요하다면 orientation 및 covariance도 설정 가능)
 

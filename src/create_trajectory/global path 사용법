@@ -1,5 +1,0 @@
-1. save_waypoints.py 켜서 wpt 정보 txt 로 저장
-
-2. find_lane_id.py : 차의 현재 위치가 어느 lanelet 에 속해있는지 정보를 lane_id 로 받아옴
-
-3. waypoint_publisher.py : 특정 lane_id 에 할당되어있는 목적지 waypoint를 다음 goal_pose로 설정.

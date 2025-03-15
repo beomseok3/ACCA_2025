@@ -13,13 +13,16 @@ from rclpy.clock import Clock
 class ErpTwist(Node):
     def __init__(self):
         super().__init__("erp_twist")
+
+        self.declare_parameter("imu_topic", "steer_yaw")
+        imu_data = self.get_parameter("imu_topic").value
         qos_profile = QoSProfile(depth=10)
 
         self.sub_erp = self.create_subscription(
             SerialFeedBack, "erp42_feedback", self.callback_erp, qos_profile
         )
         self.sub_imu = self.create_subscription(
-            Imu, "imu/data", self.callback_imu, qos_profile_sensor_data
+            Quaternion, imu_data, self.callback_imu, qos_profile_sensor_data
         )
 
         self.pub = self.create_publisher(
@@ -44,12 +47,10 @@ class ErpTwist(Node):
             self.publish_twist(v, yaw, header)
 
     def callback_imu(self, msg):
-        quarternion = msg.orientation
-        # self.time =
+        quarternion = msg
         _, _, self.yaw = euler_from_quaternion(
             [quarternion.x, quarternion.y, quarternion.z, quarternion.w]
         )
-        # self.yaw = 0.0
 
     def publish_twist(self, v, yaw, header):
         data = TwistWithCovarianceStamped()

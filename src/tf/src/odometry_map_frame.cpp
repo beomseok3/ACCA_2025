@@ -17,7 +17,7 @@ public:
           tf_listener_(tf_buffer_)
     {
         odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-            "/odometry/navsat", 10, std::bind(&OdometryTransformer::odom_callback, this, std::placeholders::_1));
+            "/odometry/wheel", 10, std::bind(&OdometryTransformer::odom_callback, this, std::placeholders::_1));
         
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/localization/kinematic_state", 10);
     }
