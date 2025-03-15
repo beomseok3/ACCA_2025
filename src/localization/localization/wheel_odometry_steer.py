@@ -1,70 +1,81 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.clock import Clock
 from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Quaternion
+
 from geometry_msgs.msg import TwistWithCovarianceStamped
+
 from tf_transformations import euler_from_quaternion, quaternion_from_euler
-import tf2_ros
-from geometry_msgs.msg import TransformStamped
 import numpy as np
+import tf2_ros
 
 
-class ImuEncoder(Node):
+class Imu_Encoder(Node):
     def __init__(self):
         super().__init__("imu_encoder_odometry")
 
-        self.declare_parameter("imu_topic", "/imu/data")
+        self.declare_parameter("imu_topic", "steer_yaw")
         self.declare_parameter("odom_topic", "/odometry/wheel")
-        self.declare_parameter("twist_topic", "erp42/twist/world")
         self.declare_parameter("frame_id", "odom")
         self.declare_parameter("child_frame_id", "base_link")
         self.declare_parameter("logging", True)
 
         imu_topic = self.get_parameter("imu_topic").value
         odom_topic = self.get_parameter("odom_topic").value
-        twist_topic = self.get_parameter("twist_topic").value
         self.frame_id = self.get_parameter("frame_id").value
         self.child_frame_id = self.get_parameter("child_frame_id").value
         self.logging = self.get_parameter("logging").value
 
-        # Subscriber 설정
+        # subscriber
         self.imu_sub = self.create_subscription(
-            Imu, imu_topic, self.imu_callback, qos_profile=qos_profile_sensor_data
+            Quaternion,
+            "imu/data",
+            self.imu_callback,
+            qos_profile=qos_profile_sensor_data,
         )
         self.erp_twist_sub = self.create_subscription(
             TwistWithCovarianceStamped,
-            twist_topic,
+            "erp42/twist/world",
             self.callback_erp_twist,
-            qos_profile=qos_profile_system_default,
+            qos_profile=qos_profile_sensor_data,
         )
 
-        # Publisher 설정
+        # publisher(odometry)
         self.odom_pub = self.create_publisher(
             Odometry, odom_topic, qos_profile=qos_profile_system_default
         )
 
-        # TF Broadcaster
+        # tf
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
-        # 상태 변수 초기화
         self.x = 0.0
         self.y = 0.0
         self.yaw = 0.0
+        self.init_yaw = 0.0
+        self.v_x = 0.0
+        self.v_y = 0.0
         self.last_time = None
 
     def imu_callback(self, msg):
-        q = [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
+        q = [msg.x, msg.y, msg.z, msg.w]
+        print(q)
         euler = euler_from_quaternion(q)
-        self.yaw = euler[2]  # Yaw 값 업데이트
+
+        # if self.init_yaw == 0.0:
+        #     self.init_yaw = euler[2]
+
+        # self.yaw = euler[2] - self.init_yaw
+        self.yaw = euler[2]
 
     def callback_erp_twist(self, msg):
-        current_time = rclpy.time.Time.from_msg(msg.header.stamp).seconds_nanoseconds()[0] + \
-                       rclpy.time.Time.from_msg(msg.header.stamp).seconds_nanoseconds()[1] * 1e-9
+        # print("ongoing")
+        current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
 
         if self.last_time is None:
             self.last_time = current_time
-            return
 
         dt = current_time - self.last_time
         self.last_time = current_time
@@ -72,40 +83,40 @@ class ImuEncoder(Node):
         self.v_x = msg.twist.twist.linear.x
         self.v_y = msg.twist.twist.linear.y
 
-        # Yaw 값을 고려한 변위 계산 (기본 좌표계가 ROS의 오른손 좌표계임을 감안)
-        self.x += (self.v_x) * dt
-        self.y += ( self.v_y ) * dt
+        self.x = self.x + float(self.v_x) * dt
+        self.y = self.y + float(self.v_y) * dt
 
-        if self.logging:
-            self.get_logger().info(f"Position & Time: x={self.x}, y={self.y}, dt={dt}")
-            self.get_logger().info(f"Velocity & Orientation: vx={self.v_x}, vy={self.v_y}, yaw={self.yaw}")
+        if self.logging is True:
+            self.get_logger().info(f"position & time: {self.x}    {self.y}    {dt}")
+            self.get_logger().info(
+                f"velocity & orientation: {self.v_x}  {self.v_y}  {self.yaw}"
+            )
 
-        # Odometry 메시지 생성 및 발행
-        odom_msg = Odometry()
-        odom_msg.header.stamp = self.get_clock().now().to_msg()
-        odom_msg.header.frame_id = self.frame_id
-        odom_msg.child_frame_id = self.child_frame_id
+        msg = Odometry()
+        msg.header.stamp = self.get_clock().now().to_msg()
 
-        odom_msg.pose.pose.position.x = self.x
-        odom_msg.pose.pose.position.y = self.y
+        msg.header.frame_id = self.frame_id
+        msg.child_frame_id = self.child_frame_id
 
-        # Yaw 값을 quaternion으로 변환
+        msg.pose.pose.position.x = self.x
+        msg.pose.pose.position.y = self.y
+
         q = quaternion_from_euler(0, 0, self.yaw)
-        odom_msg.pose.pose.orientation.x = q[0]
-        odom_msg.pose.pose.orientation.y = q[1]
-        odom_msg.pose.pose.orientation.z = q[2]
-        odom_msg.pose.pose.orientation.w = q[3]
+        msg.pose.pose.orientation.x = q[0]
+        msg.pose.pose.orientation.y = q[1]
+        msg.pose.pose.orientation.z = q[2]
+        msg.pose.pose.orientation.w = q[3]
 
-        self.odom_pub.publish(odom_msg)
+        self.odom_pub.publish(msg)
 
-        # TF 발행
         self.publish_tf(self.x, self.y, q)
 
     def publish_tf(self, x, y, q):
-        tf_msg = TransformStamped()
+        tf_msg = tf2_ros.TransformStamped()
         tf_msg.header.stamp = self.get_clock().now().to_msg()
-        tf_msg.header.frame_id = self.frame_id
-        tf_msg.child_frame_id = self.child_frame_id
+
+        tf_msg.header.frame_id = "odom"
+        tf_msg.child_frame_id = "base_link"
 
         tf_msg.transform.translation.x = x
         tf_msg.transform.translation.y = y
@@ -121,8 +132,11 @@ class ImuEncoder(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = ImuEncoder()
+
+    node = Imu_Encoder()
+
     rclpy.spin(node)
+
     node.destroy_node()
     rclpy.shutdown()
 

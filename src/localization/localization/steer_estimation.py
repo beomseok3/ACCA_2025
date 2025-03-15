@@ -5,6 +5,7 @@ from erp42_msgs.msg import SerialFeedBack
 from geometry_msgs.msg import Quaternion
 from tf_transformations import quaternion_from_euler
 import math as m
+import time
 
 
 class Estimate_bicycle_heaing(Node):
@@ -19,12 +20,24 @@ class Estimate_bicycle_heaing(Node):
             Quaternion, "steer_yaw", qos_profile_sensor_data
         )
 
-        self.__L = 1.04
+        self.__L = 1.24
         self.heading = 0.0
-        self.prev_alive = 0.0
+        self.prev_alive = -1
+        self.last_time = time.time()
 
     def feedback_erp(self, msg):
-        dt = 0.05
+        current_time = time.time()
+        # if self.prev_alive == -1:
+        #     dt = 0.05  # 초기값 설정
+        # else:
+        #     alive_diff = msg.alive - self.prev_alive
+        #     if alive_diff < 0:
+        #         alive_diff += 256  # 255에서 0으로 롤오버 처리
+        #     dt = alive_diff * 0.05
+
+        self.prev_alive = msg.alive
+        # self.last_time = current_time
+        # dt = 0.05
         v = msg.speed  # m/s
         steer = msg.steer  # rad
 
@@ -41,9 +54,9 @@ class Estimate_bicycle_heaing(Node):
     def update_orientation(self, theta, v, steer, dt):
         """
         현재 orientation(theta)와 주어진 속도(v), 조향각(steer), 휠베이스(L), 시간 간격(dt)를 이용해 새로운 orientation을 계산합니다.
-        theta: 현재 orientation (라디안)
+        theta: 현재 orientation (rad))
         v: 전진 속도 (m/s)
-        steer: 조향각 (라디안)
+        steer: 조향각 (rad)
         L: 휠베이스 (m)
         dt: 시간 간격 (s)
         """

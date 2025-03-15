@@ -51,8 +51,8 @@ def generate_launch_description():
         parameters=[navsat_transform_yaml],
         remappings=[
             # ("imu", "imu/data"),
-            # ('imu', 'imu/rotated'),
-            ("imu", "imu/pfiltered"),
+            ('imu', 'imu/rotated'),
+            # ("imu", "imu/pfiltered"),
             ("odometry/filtered", "/odometry/navsat"),
             # ('odometry/filtered', '/localization/kinematic_state'),
             ("gps/fix", "ublox_gps_node/fix"),
