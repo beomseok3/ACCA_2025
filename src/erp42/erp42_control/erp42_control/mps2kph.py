@@ -19,6 +19,25 @@ class mps2kph(Node):
         self.msf_msg = AckermannDriveStamped()
         
         self.create_subscription(SerialFeedBack, "/localization/kinematic_state", self.odom_callback, 1)   
+        
+        # PID 제어에 필요한 변수들 초기화
+        self.p_gain = 2.07
+        self.i_gain = 0.85
+        # self.d_gain = 0.0
+        
+        self.p_err = 0.0
+        self.i_err = 0.0 
+        self.d_err = 0.0
+        
+        self.current = self.get_clock().now().seconds_nanoseconds()[0] + (self.get_clock().now().seconds_nanoseconds()[1] / 1e9)
+        self.init_time = self.current
+        self.last = self.current
+        self.dt = 0.0
+        
+        self.time = []
+        self.odom_msg = Odometry()
+        self.odom_v = 0.0
+
 
         self.v = 0     
 
