@@ -4,6 +4,7 @@ from sensor_msgs.msg import MagneticField, Imu
 from nav_msgs.msg import Odometry
 import math
 from geometry_msgs.msg import Quaternion
+from tf_transformations import *
 
 
 class MagHeadingNode(Node):
@@ -19,15 +20,23 @@ class MagHeadingNode(Node):
         )
         self.imu_sub = self.create_subscription(Imu, "imu/data", self.imu_callback, 10)
         self.odom_sub = self.create_subscription(
-            Odometry, "odometry/wheel", self.odometry_callback, 10
+            Odometry, "odometry/navsat", self.odometry_callback, 10
         )
 
+        # self.odom_sub = self.create_subscription(
+        #     Odometry, "localization/kinematic_state", self.odometry_callback, 10
+        # )
         # 새로운 Odometry 발행
         self.pub = self.create_publisher(Odometry, "odometry/mag", 10)
 
         # Roll, Pitch 값 저장용
         self.roll = 0.0
         self.pitch = 0.0
+        
+        self.first = True
+        self.initial_odom_yaw = None
+        self.initial_mag_yaw = None
+
 
     def imu_callback(self, msg):
         """IMU 데이터를 받아서 Roll, Pitch를 업데이트"""
@@ -44,54 +53,62 @@ class MagHeadingNode(Node):
             self.pitch = math.asin(sinp)
 
     def odometry_callback(self, msg):
-        """Odometry 데이터를 받아서 저장 (위치 정보 유지)"""
-        self.odom_data = msg  # 최신 Odometry 데이터 저장
+        self.odom_data = msg
+
+        # 처음 들어온 odom의 yaw 저장
+        if self.first and self.initial_mag_yaw is not None:
+            self.initial_odom_yaw = self.get_yaw_from_quaternion(
+                self.odom_data.pose.pose.orientation
+            )
+            self.first = False
 
     def mag_callback(self, msg):
-        """Magnetometer 데이터를 받아 Heading을 계산하고, Odometry를 업데이트"""
         if self.odom_data is None:
-            return  # Odometry 데이터가 없으면 업데이트하지 않음
+            return
 
-        # Magnetometer X, Y, Z 값
         mx, my, mz = msg.magnetic_field.x, msg.magnetic_field.y, msg.magnetic_field.z
 
-        # Step 1: Roll 보정
+        # 보정된 heading 계산 (roll, pitch 적용)
         mx_r = mx
         my_r = my * math.cos(self.roll) - mz * math.sin(self.roll)
         mz_r = my * math.sin(self.roll) + mz * math.cos(self.roll)
 
-        # Step 2: Pitch 보정
         mx_p = mx_r * math.cos(self.pitch) + mz_r * math.sin(self.pitch)
         my_p = my_r
-        mz_p = -mx_r * math.sin(self.pitch) + mz_r * math.cos(self.pitch)
 
-        # Step 3: 보정된 X, Y를 이용하여 Heading 계산
-        heading = math.atan2(my_p, mx_p)
-
-        # ✅ -π ~ π 범위로 변환
+        heading = -math.atan2(my_p, mx_p)
         heading = (heading + math.pi) % (2 * math.pi) - math.pi
 
-        # ✅ Heading 값을 Quaternion으로 변환
-        q = self.yaw_to_quaternion(heading)
+        # 초기 mag heading 저장
+        if self.initial_mag_yaw is None:
+            self.initial_mag_yaw = heading
+            return  # odom yaw를 기다림
 
-        # ✅ 새로운 Odometry 메시지 생성
+        if self.first:
+            return  # odom yaw를 기다림
+
+        # delta_heading 계산
+        delta_mag = heading - self.initial_mag_yaw
+
+        # 최종 yaw = odom의 초기 yaw + mag 변화량
+        final_yaw = self.initial_odom_yaw + delta_mag
+
+        # -π ~ π 범위로 조정
+        final_yaw = (final_yaw + math.pi) % (2 * math.pi) - math.pi
+
+        q = self.yaw_to_quaternion(final_yaw)
+
+        # 새로운 odom 발행
         new_odom = Odometry()
         new_odom.header = self.odom_data.header
         new_odom.child_frame_id = self.odom_data.child_frame_id
-        new_odom.pose.pose.position = (
-            self.odom_data.pose.pose.position
-        )  # 기존 위치 유지
-        new_odom.pose.pose.orientation = q  # ✅ 새로운 heading 반영
-        new_odom.twist = self.odom_data.twist  # 속도 정보 유지
+        new_odom.pose.pose.position = self.odom_data.pose.pose.position
+        new_odom.pose.pose.orientation = q
+        new_odom.twist = self.odom_data.twist
 
-        # ✅ 새로운 Odometry 메시지 발행
         self.pub.publish(new_odom)
+        self.get_logger().info(f"Heading: {math.degrees(final_yaw):.2f} deg")
 
-        # ✅ Heading 값 로깅 (디버깅용)
-        heading_deg = heading * 180.0 / math.pi
-        self.get_logger().info(
-            f"Published Updated Odometry with Heading: {heading_deg:.2f} degrees"
-        )
 
     def yaw_to_quaternion(self, yaw):
         """Yaw 값을 Quaternion으로 변환"""
@@ -101,6 +118,9 @@ class MagHeadingNode(Node):
         q.y = 0.0
         q.z = math.sin(yaw / 2)
         return q
+
+    def get_yaw_from_quaternion(self, q):
+        return euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
 
 
 def main(args=None):
