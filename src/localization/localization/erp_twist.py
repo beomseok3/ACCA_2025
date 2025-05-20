@@ -5,8 +5,6 @@ from erp42_msgs.msg import SerialFeedBack
 from geometry_msgs.msg import TwistWithCovarianceStamped
 from sensor_msgs.msg import Imu
 from std_msgs.msg import Header
-import numpy as np
-from tf_transformations import euler_from_quaternion
 
 """
  non-filter(recommend:low-pass-filter)
@@ -24,22 +22,19 @@ class ErpTwist(Node):
         self.pub = self.create_publisher(
             TwistWithCovarianceStamped, "erp42/twist", qos_profile_sensor_data
         )
-        self.yaw = None
         self.header = Header()
 
     def callback_erp(self, msg):
         print("!")
-        if self.yaw is not None:
-            yaw = self.yaw
-            header = self.header
-            header.stamp = self.get_clock().now().to_msg()
-            header.frame_id = "base_link"
-            gear = msg.gear
-            if gear == 2:
-                v = msg.speed
-            else:
-                v = (-1) * msg.speed
-            self.publish_twist(v, header)
+        header = self.header
+        header.stamp = self.get_clock().now().to_msg()
+        header.frame_id = "base_link"
+        gear = msg.gear
+        if gear == 2:
+            v = msg.speed
+        else:
+            v = (-1) * msg.speed
+        self.publish_twist(v, header)
 
     def publish_twist(self, v, header):
         data = TwistWithCovarianceStamped()

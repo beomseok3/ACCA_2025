@@ -50,7 +50,7 @@ class DB:
             self.makeTable()
 
     # write method
-    def write_db_Path(self, data, speed=None, id="A1A2"):
+    def write_db_Path(self, data, id="A1A2"):
         """Write on Path Table
 
         Args:
@@ -60,26 +60,26 @@ class DB:
         Note:
             idx가 같으면 덮어쓰기 된다
         """
-        if speed:
-            for i, (x, y, yaw) in enumerate(data):
-                self.__cur.execute(
-                    """
-                    INSERT INTO Path (path_id, idx, x, y, yaw, speed) VALUES (?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(idx) DO UPDATE SET path_id = excluded.path_id, 
-                    x=excluded.x, y=excluded.y, yaw=excluded.yaw, speed=excluded.speed
-                    """,
-                    (
-                        id,
-                        i,
-                        x,
-                        y,
-                        yaw,
-                        speed,
-                    ),
-                )
+
+        for i, (x, y, yaw, speed) in enumerate(data):
+            self.__cur.execute(
+                """
+                INSERT INTO Path (path_id, idx, x, y, yaw, speed) VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(idx) DO UPDATE SET path_id = excluded.path_id, 
+                x=excluded.x, y=excluded.y, yaw=excluded.yaw, speed=excluded.speed
+                """,
+                (
+                    id,
+                    i,
+                    x,
+                    y,
+                    yaw,
+                    speed,
+                ),
+            )
         self.__conn.commit()
 
-    def write_db_Path_insert(self, x, y, yaw, id="A1A2", idx=0):
+    def write_db_Path_insert(self, data, id="A1A2", idx=0):
         """Write on Path Table (insert mode)
 
         Args:
@@ -90,12 +90,12 @@ class DB:
         if self.idx is None:
             self.idx = idx
 
-        # for i, (x, y, yaw, speed) in enumerate(data):
-        self.__cur.execute(
-            "INSERT INTO Path (path_id, idx, x, y, yaw, speed) VALUES (?, ?, ?, ?, ?, ?)",
-            (id, self.idx, x, y, yaw, 5.0),
-        )
-        self.idx += 1
+        for i, (x, y, yaw, speed) in enumerate(data):
+            self.__cur.execute(
+                "INSERT INTO Path (path_id, idx, x, y, yaw, speed) VALUES (?, ?, ?, ?, ?, ?)",
+                (id, self.idx, x, y, yaw, speed),
+            )
+            self.idx += 1
         self.__conn.commit()
 
     def write_db_Node(self, data, mission="driving"):
@@ -184,11 +184,21 @@ class DB:
         )
         rows = self.__cur.fetchall()
 
+        cx = []
+        cy = []
+        cyaw = []
+        cv = []
+
+        # for x, y, yaw, v in rows:
+        #     cx.append(x)
+        #     cy.append(y)
+        #     cyaw.append(yaw)
+        #     cv.append(v)
+
         rows = np.array(rows)
 
         # return cx, cy, cyaw, cv
-        # return rows[:, 0], rows[:, 1], rows[:, 2], rows[:, 3]
-        return rows
+        return rows[:, 0], rows[:, 1], rows[:, 2], rows[:, 3]
 
     def read_db_mission(self, id):
         """Read mission from Node Table with path_id

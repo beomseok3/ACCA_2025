@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SerialFeedBack.msg"
   "msg/ControlMessage.msg"
   "msg/StanleyError.msg"
+  "msg/AckermannDriveStamped.msg"
  )
 
 if(BUILD_TESTING)

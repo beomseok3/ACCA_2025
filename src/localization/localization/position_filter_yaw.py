@@ -33,7 +33,7 @@ class Pfilter(Node):
         self.yaw_drift = 0.0  # 정적 상태에서 누적된 드리프트 값
 
     def is_dynamic(self, msg):
-        self.is_moving = msg.speed > 0
+        self.is_moving = msg.speed > 0 # or msg.steer != 0
 
     def pfilter(self, msg):
         # 쿼터니언 -> 오일러 변환

@@ -12,7 +12,7 @@ public:
     publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    if (pcl::io::loadPCDFile<pcl::PointXYZ>("/home/acca/path/본선/2023_kcity.pcd", *cloud) == -1) {
+    if (pcl::io::loadPCDFile<pcl::PointXYZ>("/media/ps/T7 Shield/0215_school.pcd", *cloud) == -1) {
       RCLCPP_ERROR(this->get_logger(), "Couldn't read PCD file");
       return;
     }

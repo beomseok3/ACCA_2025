@@ -1,17 +1,22 @@
 import rclpy
-import tf2_ros
-from rclpy.node import Node
-from rclpy.duration import Duration
 from rclpy.time import Time
+from rclpy.duration import Duration
 from rclpy.qos import qos_profile_system_default
-from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformStamped
-import numpy as np
+from rclpy.node import Node
 import math as m
+import numpy as np
 import time
-from std_msgs.msg import Float32, Float32MultiArray, Header
-from geometry_msgs.msg import Transform, Vector3, Quaternion, PoseWithCovarianceStamped
-from nav_msgs.msg import Odometry
+from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformStamped
+from std_msgs.msg import Header, Float32, Float32MultiArray, Empty
+from geometry_msgs.msg import (
+    PoseWithCovarianceStamped,
+    Transform,
+    Vector3,
+    Quaternion,
+    PoseWithCovarianceStamped,
+)
 from tf2_geometry_msgs.tf2_geometry_msgs import PoseStamped as PoseStamped2
+from nav_msgs.msg import Odometry
 
 
 def euler_from_quaternion(quaternion):
@@ -61,88 +66,131 @@ def quaternion_from_euler(roll, pitch, yaw):
     return qx, qy, qz, qw
 
 
+class Queue(object):
+    def __init__(self, length=10, init=True):
+        self.__array = [init for i in range(length)]
+
+    def inputValue(self, value):
+        # assert type(value) == bool
+        self.__array.append(value)
+        del self.__array[0]
+
+    def count(self, flag):
+        return self.__array.count(flag)
+
+    def isTrue(self, threshhold=10):
+        return self.count(True) >= threshhold
+
+    def isFalse(self, threshhold=10):
+        return self.count(False) >= threshhold
+
+
 class Map_Odom_TF_Publisher(Node):
     def __init__(self):
         super().__init__("map_odom_tf_node")
 
-        # Odomety State Instace. Odometry data => state(linear vel, angular vel)
-        class Odom_State(object):
-            def __init__(self):
-                self.state = [0.0, 0.0]
-                self.time = time.time()
-
-            def update_state(self, new_pose):
-                vel_x = new_pose.twist.twist.linear.x
-                vel_y = new_pose.twist.twist.linear.y
-
-                linear_vel = m.sqrt(vel_x**2 + vel_y**2)
-
-                angular_vel = new_pose.twist.twist.angular.z
-
-                self.state = np.array([linear_vel, angular_vel])
-                self.time = time.time()
-
-        # PCL State Instance. Same with OdomState
-        class PCL_State(object):
-            def __init__(self):
-                self.last_pose = PoseWithCovarianceStamped()
-                self.last_time = time.time()
-                self.state = [0.0, 0.0]
-                self.time = time.time()
-
-            def update_state(self, new_pose):
-                current_time = time.time()
-
-                dt = current_time - self.last_time
-
-                current_x = new_pose.pose.pose.position.x
-                current_y = new_pose.pose.pose.position.y
-                current_quat = new_pose.pose.pose.orientation
-                _, _, current_yaw = euler_from_quaternion(
-                    [current_quat.x, current_quat.y, current_quat.z, current_quat.w]
-                )
-
-                last_x = self.last_pose.pose.pose.position.x
-                last_y = self.last_pose.pose.pose.position.y
-                last_quat = self.last_pose.pose.pose.orientation
-                _, _, last_yaw = euler_from_quaternion(
-                    [last_quat.x, last_quat.y, last_quat.z, last_quat.w]
-                )
-
-                dist_x = current_x - last_x
-                dist_y = current_y - last_y
-                dist = m.sqrt(dist_x**2 + dist_y**2)
-
-                angular_dist = current_yaw - last_yaw
-
-                linear_vel = dist / dt
-                angular_vel = angular_dist / dt
-
-                self.state = [linear_vel, angular_vel]
-                self.time = time.time()
-
-                self.last_pose = new_pose
-                self.last_time = current_time
-
-        # Parameters declare
-        self.params = self.declare_parameters(
+        self.declare_parameters(
             namespace="",
-            parameters=(
-                ("/map_topic", "/pcl_pose"),
-                ("/odom_topic", "/odometry/kalman"),
-                ("linear_err_threshold", 1.5),
-                ("angular_err_threshold", 0.5),
-                ("i_err_threshold", 1.0),
-                ("score_threshold", 3.0),
-                ("logging", True),
-            ),
+            parameters=[
+                ("odom", "/odometry/kf"),
+                ("pcl_pose", "/pcl_pose"),
+                ("pcl_score", "/pcl_score"),
+                ("queue_length", 15),
+                ("pose_threshold", 0.2),
+                ("score_threshold", 0.3),
+                ("reinitialize_waiting", 3.0),
+                ("valid_threshold", 15),
+                ("invalid_threshold", 15),
+                ("tf_distance_threshold", 20.0),
+                ("reinitialize_count_threshold", 5),
+            ],
         )
 
-        self.map_topic = (
-            self.get_parameter("/map_topic").get_parameter_value().string_value
+        self.odom_topic = self.get_parameter("odom").get_parameter_value().string_value
+        self.pcl_topic = (
+            self.get_parameter("pcl_pose").get_parameter_value().string_value
         )
-        self.odom_topic = (
-            self.get_parameter("/odom_topic").get_parameter_value().string_value
+        self.pcl_score_topic = (
+            self.get_parameter("pcl_score").get_parameter_value().string_value
+        )
+        self.pose_threshold = (
+            self.get_parameter("pose_threshold").get_parameter_value().double_value
+        )
+        self.score_threshold = (
+            self.get_parameter("score_threshold").get_parameter_value().double_value
+        )
+        self.reinitialize_waiting = (
+            self.get_parameter("reinitialize_waiting")
+            .get_parameter_value()
+            .double_value
+        )
+        self.valid_threshold = (
+            self.get_parameter("valid_threshold").get_parameter_value().integer_value
+        )
+        self.invalid_threshold = (
+            self.get_parameter("invalid_threshold").get_parameter_value().integer_value
+        )
+        self.tf_distance_threshold = (
+            self.get_parameter("tf_distance_threshold")
+            .get_parameter_value()
+            .double_value
+        )
+        self.reinitialize_count_threshold = (
+            self.get_parameter("reinitialize_count_threshold")
+            .get_parameter_value()
+            .integer_value
+        )
+
+        self.get_logger().info("odom: {}".format(self.odom_topic))
+        self.get_logger().info("pcl_pose: {}".format(self.pcl_topic))
+        self.get_logger().info("pcl_score: {}".format(self.pcl_score_topic))
+        self.get_logger().info("pose_threshold: {}".format(self.pose_threshold))
+        self.get_logger().info("score_threshold: {}".format(self.score_threshold))
+        self.get_logger().info(
+            "reinitialize_waiting: {}".format(self.reinitialize_waiting)
+        )
+        self.get_logger().info("valid_threshold: {}".format(self.valid_threshold))
+        self.get_logger().info("invalid_threshold: {}".format(self.invalid_threshold))
+        self.get_logger().info(
+            "tf_distance_threshold: {}".format(self.tf_distance_threshold)
+        )
+        self.get_logger().info(
+            "reinitialize_count_threshold: {}".format(self.reinitialize_count_threshold)
+        )
+
+        self.odom = Odometry()
+        self.pcl = PoseWithCovarianceStamped()
+        self.predicted_pcl = PoseWithCovarianceStamped()
+
+        self.current_time = time.time()
+        self.last_time = time.time()
+
+        self.data = [99.9, 99.9]
+        self.score = 99.9
+
+        self.odom_sub = self.create_subscription(
+            Odometry,
+            self.odom_topic,
+            callback=self.odom_update_state,
+            qos_profile=qos_profile_system_default,
+        )
+        self.pcl_sub = self.create_subscription(
+            PoseWithCovarianceStamped,
+            self.pcl_topic,
+            callback=self.pcl_update_state,
+            qos_profile=qos_profile_system_default,
+        )
+        self.score_subscriber = self.create_subscription(
+            Float32,
+            self.pcl_score_topic,
+            callback=self.score_callback,
+            qos_profile=qos_profile_system_default,
+        )
+
+        self.initpose_pub = self.create_publisher(
+            PoseWithCovarianceStamped,
+            "/initialpose",
+            qos_profile=qos_profile_system_default,
         )
 
         # TF
@@ -151,158 +199,132 @@ class Map_Odom_TF_Publisher(Node):
             self.buffer, self, qos=qos_profile_system_default
         )
         self.tf_publisher = TransformBroadcaster(self, qos=qos_profile_system_default)
-        self.tf_msg = tf2_ros.TransformStamped()
+        self.tf_msg = TransformStamped()
 
-        # Publisher & Subscriber
-        self.err_pub = self.create_publisher(
-            Float32MultiArray, "/tf_err", qos_profile=qos_profile_system_default
+        self.queue_length = (
+            self.get_parameter("queue_length").get_parameter_value().integer_value
         )
-        self.initpose_pub = self.create_publisher(
-            PoseWithCovarianceStamped,
-            "/initialpose",
-            qos_profile=qos_profile_system_default,
-        )
-        self.pcl_subscriber = self.create_subscription(
-            PoseWithCovarianceStamped,
-            self.map_topic,
-            callback=self.pcl_callback,
-            qos_profile=qos_profile_system_default,
-        )
-        self.odom_subscriber = self.create_subscription(
-            Odometry,
-            self.odom_topic,
-            callback=self.odom_callback,
-            qos_profile=qos_profile_system_default,
-        )
-        self.score_subscriber = self.create_subscription(
-            Float32,
-            "/pcl_score",
-            callback=self.score_callback,
-            qos_profile=qos_profile_system_default,
-        )
+        self.queue = Queue(init=True, length=self.queue_length)
+        self.reinitialize_count = 0
 
-        # Topic Variables. Update autumatically
-        self.pcl = PoseWithCovarianceStamped()
-        self.odom = Odometry()
-        self.score = 0.0
-
-        # Local Variables
-        self.err_stack = 0  # Err stack flag
-        self.linear_err = 0.0
-        self.angular_err = 0.0
-        self.i_err = 0.0
-        self.logging = self.get_parameter("logging").get_parameter_value().bool_value
-        self.last_time = time.time()
-
-        # Threshold Values
-        self.linear_err_threshold = (
-            self.get_parameter("linear_err_threshold")
-            .get_parameter_value()
-            .double_value
-        )
-        self.angular_err_threshold = (
-            self.get_parameter("angular_err_threshold")
-            .get_parameter_value()
-            .double_value
-        )
-        self.i_err_threshold = (
-            self.get_parameter("i_err_threshold").get_parameter_value().double_value
-        )
-        self.score_threshold = (
-            self.get_parameter("score_threshold").get_parameter_value().double_value
-        )
-
-        # State instance
-        self.pcl_state = PCL_State()
-        self.odom_state = Odom_State()
-
-    # String getter
-    def get_data(self):
-        return "linear: {}\tangular: {}\ti_linear_err: {}\tscore: {}".format(
-            round(self.linear_err, 3),
-            round(self.angular_err, 3),
-            round(self.i_err, 3),
-            round(self.score, 3),
-        )
-
-    # Callback Functions
-    def pcl_callback(self, msg):
-        self.pcl = msg
-
-        self.pcl_state.update_state(msg)
-
-        self.update()
-
-        self.publish_tf()
-
-        if self.logging is True:
-            self.get_logger().info(self.get_data())
-
-    def odom_callback(self, msg):
-        self.odom = msg
-
-        self.odom_state.update_state(msg)
+        self.reinitialize_time = time.time()
 
     def score_callback(self, msg):
         self.score = msg.data
 
-    # Loop function : update tf_msg with conditions
-    def update(self):
-        current_time = time.time()
-        dt = current_time - self.last_time
+    def odom_update_state(self, msg):
+        self.odom = msg
 
-        # Calculate Errors
+    def pcl_update_state(self, msg):
+        self.predicted_pcl = self.check_validation(pcl_pose=self.pcl)
 
-        temp_linear_err = self.pcl_state.state[0] - self.odom_state.state[0]
-        self.linear_err = abs(temp_linear_err)
-        self.angular_err = abs(self.pcl_state.state[1] - self.odom_state.state[1])
+        self.pcl = msg
 
-        self.i_err += temp_linear_err * dt
+        x = abs(self.predicted_pcl.pose.pose.position.x - self.pcl.pose.pose.position.x)
+        y = abs(self.predicted_pcl.pose.pose.position.y - self.pcl.pose.pose.position.y)
 
-        time_difference = abs(self.odom_state.time - self.pcl_state.time)
+        self.data = [x, y, self.score]
 
-        self.last_time = current_time
-
-        self.err_pub.publish(
-            Float32MultiArray(data=[self.linear_err, self.angular_err, self.i_err])
+        validation = (
+            self.data[0] < self.pose_threshold
+            and self.data[1] < self.pose_threshold
+            and self.score < self.score_threshold
         )
 
-        # Logic
+        self.queue.inputValue(validation)
 
-        # if time_difference > 2.0:
-        #     return
+        self.get_logger().info(
+            "Trust score: {}".format(
+                str(round(self.queue.count(True) / self.queue_length, 3))
+            )
+        )
 
-        # reinitialize i_err (To prevent drift i_err)
-        if self.linear_err < 0.1:
-            self.i_err = 0.0
-
-        # only update tf_msg with threshold
-        if (
-            self.linear_err < self.linear_err_threshold
-            and self.angular_err < self.angular_err_threshold
-            and abs(self.i_err) < self.i_err_threshold
-            and self.score < self.score_threshold
-        ):
+        if self.queue.isTrue(threshhold=self.valid_threshold):
             self.update_tf()
-            self.err_stack = 0
-            return
+            self.get_logger().info("Valid TF. Updating...")
 
-        self.get_logger().warn("Cannot trust TF data!")
-        self.err_stack += 1
+        elif self.queue.isFalse(threshhold=self.invalid_threshold):
+            reinitialize_dt = time.time() - self.reinitialize_time
 
-        if self.err_stack > 10 and self.tf_msg.header.frame_id == "map":
-            self.err_stack = 0
-            self.reinitialize()
+            if reinitialize_dt > self.reinitialize_waiting:
+                self.reinitialize()
+                self.reinitialize_time = time.time()
+
+        self.publish_tf()
+
+    def check_validation(self, pcl_pose):
+        self.current_time = time.time()
+
+        dt = self.current_time - self.last_time
+
+        odom_linear_vel = m.sqrt(
+            (self.odom.twist.twist.linear.x**2) + (self.odom.twist.twist.linear.y**2)
+        )
+        odom_angular_vel = self.odom.twist.twist.angular.z
+
+        predicted_pcl_pose = PoseWithCovarianceStamped()
+        predicted_pcl_pose.header = Header(frame_id="map", stamp=Time().to_msg())
+
+        _, _, pcl_yaw = euler_from_quaternion(
+            [
+                pcl_pose.pose.pose.orientation.x,
+                pcl_pose.pose.pose.orientation.y,
+                pcl_pose.pose.pose.orientation.z,
+                pcl_pose.pose.pose.orientation.w,
+            ]
+        )
+
+        predicted_pcl_yaw = pcl_yaw + (odom_angular_vel * dt)
+
+        predicted_pcl_quat = quaternion_from_euler(0.0, 0.0, predicted_pcl_yaw)
+
+        predicted_pcl_pose.pose.pose.position.x = pcl_pose.pose.pose.position.x + (
+            odom_linear_vel * m.cos(predicted_pcl_yaw) * dt
+        )
+        predicted_pcl_pose.pose.pose.position.y = pcl_pose.pose.pose.position.y + (
+            odom_linear_vel * m.sin(predicted_pcl_yaw) * dt
+        )
+
+        predicted_pcl_pose.pose.pose.orientation.x = predicted_pcl_quat[0]
+        predicted_pcl_pose.pose.pose.orientation.y = predicted_pcl_quat[1]
+        predicted_pcl_pose.pose.pose.orientation.z = predicted_pcl_quat[2]
+        predicted_pcl_pose.pose.pose.orientation.w = predicted_pcl_quat[3]
+
+        self.last_time = self.current_time
+
+        return predicted_pcl_pose
 
     # Update tf_msg via odom & pcl
     def update_tf(self):
         p1 = self.odom.pose.pose
         p2 = self.pcl.pose.pose
 
+        new_tf = self.calculate_transform(p1, p2)
+
+        dx = new_tf.translation.x - self.tf_msg.transform.translation.x
+        dy = new_tf.translation.y - self.tf_msg.transform.translation.y
+
+        ds = m.sqrt((dx**2) + (dy**2))
+
+        if self.tf_msg.child_frame_id == "odom":
+            if ds > self.tf_distance_threshold:
+                if self.reinitialize_count <= self.reinitialize_count_threshold:
+                    self.get_logger().warn("Detected invalid TF. Ignoring updated TF.")
+                    self.queue.inputValue(False)
+                    self.reinitialize_count += 1
+                    return
+
+                elif self.reinitialize_count > self.reinitialize_count_threshold:
+                    self.reinitialize_count = 0
+
+            else:
+                # correct tf. reinitalcount reset
+                self.reinitialize_count = 0
+
         self.tf_msg = TransformStamped(
             header=Header(frame_id="map", stamp=Time().to_msg()),
             child_frame_id="odom",
-            transform=self.calculate_transform(p1, p2),
+            transform=new_tf,
         )
 
     # Calculate Transform via odom & pcl
@@ -346,6 +368,7 @@ class Map_Odom_TF_Publisher(Node):
         )
 
     def publish_tf(self):
+        self.tf_msg.header = Header(frame_id="map", stamp=Time().to_msg())
         self.tf_publisher.sendTransform(self.tf_msg)
 
     def reinitialize(self):

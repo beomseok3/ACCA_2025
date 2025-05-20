@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, qos_profile_sensor_data, qos_profile_system_default
+from rclpy.qos import QoSProfile, qos_profile_sensor_data
 from erp42_msgs.msg import SerialFeedBack
 from geometry_msgs.msg import TwistWithCovarianceStamped, Quaternion
 from sensor_msgs.msg import Imu
@@ -16,10 +16,7 @@ class ErpTwist(Node):
         qos_profile = QoSProfile(depth=10)
 
         self.sub_erp = self.create_subscription(
-            SerialFeedBack,
-            "erp42_feedback",
-            self.callback_erp,
-            qos_profile_system_default,
+            SerialFeedBack, "erp42_feedback", self.callback_erp, qos_profile
         )
         self.sub_imu = self.create_subscription(
             Imu, "imu/data", self.callback_imu, qos_profile_sensor_data

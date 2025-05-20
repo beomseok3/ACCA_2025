@@ -9,7 +9,7 @@ from nav_msgs.msg import Odometry
 from tf_transformations import *
 import math as m
 import numpy as np
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, qos_profile_sensor_data
 
 
 def normalize_angle(angle):
@@ -31,7 +31,9 @@ class Rotate(Node):
     def __init__(self):
         super().__init__("rotate_yaw")
         qos_profile = QoSProfile(depth=1)
-        self.create_subscription(Imu, "imu/data", self.callback, qos_profile)
+        self.create_subscription(
+            Imu, "imu/data", self.callback, qos_profile_sensor_data
+        )
         self.create_subscription(
             TwistWithCovarianceStamped,
             "ublox_gps_node/fix_velocity",

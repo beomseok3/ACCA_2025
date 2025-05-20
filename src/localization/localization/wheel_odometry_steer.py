@@ -32,7 +32,7 @@ class Imu_Encoder(Node):
         # subscriber
         self.imu_sub = self.create_subscription(
             Quaternion,
-            "imu/data",
+            imu_topic,
             self.imu_callback,
             qos_profile=qos_profile_sensor_data,
         )
@@ -63,11 +63,6 @@ class Imu_Encoder(Node):
         q = [msg.x, msg.y, msg.z, msg.w]
         print(q)
         euler = euler_from_quaternion(q)
-
-        # if self.init_yaw == 0.0:
-        #     self.init_yaw = euler[2]
-
-        # self.yaw = euler[2] - self.init_yaw
         self.yaw = euler[2]
 
     def callback_erp_twist(self, msg):

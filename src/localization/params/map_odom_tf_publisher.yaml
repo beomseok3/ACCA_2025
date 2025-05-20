@@ -10,7 +10,7 @@ map_odom_tf_node:
       pcl_score: "/pcl_score"   
 
       # queue size to check tf validation. integer
-      queue_length: 15          
+      queue_length: 15 # Tune     
 
       # distance threshold between predicted pose and subscribed pose. double
       pose_threshold: 0.2     
@@ -23,11 +23,11 @@ map_odom_tf_node:
 
       # threshold for queue to determine tf is valid. int. 
       # this field must be lesser than queue_length (or same)
-      valid_threshold: 13      
+      valid_threshold: 5 # Tune  
 
       # threshold for queue to determine tf is invalid. int.
       # this field must be lesser than queue_length (or same)
-      invalid_threshold: 15
+      invalid_threshold: 15 # Tune  
 
       # tf distance threshold to prevent jumped tf.
       tf_distance_threshold: 20.0

@@ -18,7 +18,7 @@ class ImuEncoder(Node):
         self.declare_parameter("odom_topic", "/odometry/wheel")
         self.declare_parameter("twist_topic", "erp42/twist/world")
         self.declare_parameter("frame_id", "odom")
-        self.declare_parameter("child_frame_id", "base_link")
+        self.declare_parameter("child_frame_id", "base_link_2")
         self.declare_parameter("logging", True)
 
         imu_topic = self.get_parameter("imu_topic").value
@@ -59,8 +59,10 @@ class ImuEncoder(Node):
         self.yaw = euler[2]  # Yaw 값 업데이트
 
     def callback_erp_twist(self, msg):
-        current_time = rclpy.time.Time.from_msg(msg.header.stamp).seconds_nanoseconds()[0] + \
-                       rclpy.time.Time.from_msg(msg.header.stamp).seconds_nanoseconds()[1] * 1e-9
+        current_time = (
+            rclpy.time.Time.from_msg(msg.header.stamp).seconds_nanoseconds()[0]
+            + rclpy.time.Time.from_msg(msg.header.stamp).seconds_nanoseconds()[1] * 1e-9
+        )
 
         if self.last_time is None:
             self.last_time = current_time
@@ -74,11 +76,13 @@ class ImuEncoder(Node):
 
         # Yaw 값을 고려한 변위 계산 (기본 좌표계가 ROS의 오른손 좌표계임을 감안)
         self.x += (self.v_x) * dt
-        self.y += ( self.v_y ) * dt
+        self.y += (self.v_y) * dt
 
         if self.logging:
             self.get_logger().info(f"Position & Time: x={self.x}, y={self.y}, dt={dt}")
-            self.get_logger().info(f"Velocity & Orientation: vx={self.v_x}, vy={self.v_y}, yaw={self.yaw}")
+            self.get_logger().info(
+                f"Velocity & Orientation: vx={self.v_x}, vy={self.v_y}, yaw={self.yaw}"
+            )
 
         # Odometry 메시지 생성 및 발행
         odom_msg = Odometry()

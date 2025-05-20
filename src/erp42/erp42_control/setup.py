@@ -11,6 +11,7 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
+        ("share/" + package_name + "/launch", ["launch/mpc_launch.launch.py"]),
         ("lib/" + package_name, [package_name + "/stanley.py"]),
         ("lib/" + package_name, [package_name + "/stanley_cone.py"]),
         ("lib/" + package_name, [package_name + "/DB.py"]),
@@ -49,6 +50,10 @@ setup(
             "controller_delivery = erp42_control.controller_delivery:main",
             "controller_uturn = erp42_control.controller_uturn:main",
             "control_frequency_check = erp42_control.control_frequency_check:main",
+            "mpc_node = erp42_control.mpc_node:main",
+            "control_performance_eval = erp42_control.control_performance_eval:main",
+            "mpc_node2 = erp42_control.mpc_node2:main",
+            "mps2kph2 = erp42_control.mps2kph2:main",
         ],
     },
 )

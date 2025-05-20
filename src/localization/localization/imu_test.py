@@ -75,7 +75,7 @@ class Imu_test(Node):
 
     def make_txt(self, time, value):
 
-        f = open("/home/ps/imu_bias/yaw_bias_test.txt", "a")
+        f = open("/home/ps/imu_data/yaw_bias_0319.txt", "a")
         data = "{},{}\n".format(time, value)
         f.write(data)
         f.close()

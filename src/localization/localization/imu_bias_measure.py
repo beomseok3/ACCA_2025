@@ -4,8 +4,7 @@ from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Imu, Temperature
 
 import threading
-
-# TOOD: add threading to make it work efficiently
+import queue
 
 
 class ImuBiasMeasure(Node):
@@ -16,100 +15,79 @@ class ImuBiasMeasure(Node):
             Imu, "imu/data", self.listener_callback, qos_profile=qos_profile_sensor_data
         )
 
-        # self.subscription_temperature = self.create_subscription(
-        #     Temperature,
-        #     "temperature",
-        #     self.temperature_listener_callback,
-        #     qos_profile=qos_profile_sensor_data,
-        # )
+        # I/O 처리를 위한 큐와 데몬 스레드 생성
+        self.io_queue = queue.Queue()
+        self.io_thread = threading.Thread(target=self.io_worker, daemon=True)
+        self.io_thread.start()
 
         self.current_time = None
         self.last_time = None
-        self.last_anguar_velocity = None
-        self.flag = False
+        self.last_angular_velocity = None
         self.total_time = 0.0
-        self.total_temperature = 0.0
         self.bias = 0.0
 
     def listener_callback(self, msg):
-        """integrate omega and measure bias
-
-        Note:
-            the bias is calculated by integrating omega over time
-            data is assumed to be in stop
-            discrete integration method is tustin-method
         """
-
-        print(f"imu_data: {msg.angular_velocity.z}")
-
+        각속도를 시간에 따라 적분하여 편향을 측정.
+        (Tustin 적분법 적용)
+        """
+        self.get_logger().info(f"imu_data: {msg.linear_acceleration.x}")
         self.current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
 
         if self.last_time is None:
             self.last_time = self.current_time
-            print(f"{self.current_time} {self.last_time}")
-
-        if self.last_anguar_velocity is None:
-            self.last_anguar_velocity = msg.angular_velocity.z
             return
 
-        self.bias += (
-            (0.5)
-            * (msg.angular_velocity.z + self.last_anguar_velocity)
-            * (self.current_time - self.last_time)
-        )
+        if self.last_angular_velocity is None:
+            self.last_angular_velocity = msg.linear_acceleration.x
+            return
 
-        self.total_time += self.current_time - self.last_time
+        dt = self.current_time - self.last_time
 
-        self.last_anguar_velocity = msg.angular_velocity.z
+        # Tustin (trapezoidal) integration
+        self.bias += 0.5 * (msg.linear_acceleration.x + self.last_angular_velocity) * dt
+        self.total_time += dt
+
+        self.last_angular_velocity = msg.linear_acceleration.x
         self.last_time = self.current_time
 
-        time = self.total_time
-        avg_bias = self.bias / time
+        if self.total_time != 0:
+            avg_bias = self.bias / self.total_time
+        else:
+            avg_bias = 0.0
+
         self.get_logger().info(f"The average bias is: {avg_bias}")
-        self.make_txt(time, avg_bias)
+        self.make_txt(self.total_time, avg_bias)
 
-    # def temperature_listener_callback(self, msg):
+    def make_txt(self, time_val, value):
+        """
+        데이터를 큐에 넣어 I/O 스레드가 처리하도록 함.
+        """
+        data = "{},{}\n".format(time_val, value)
+        self.io_queue.put(data)
 
-    #     self.get_logger().info(f"Temperature: {msg.temperature}")
-
-    #     self.current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
-
-    #     if self.last_time is None:
-    #         self.last_time = self.current_time
-    #         print(f"{self.current_time} {self.last_time}")
-    #         return
-
-    #     self.total_temperature += msg.temperature * (self.current_time - self.last_time)
-    #     self.total_time += self.current_time - self.last_time
-
-    #     self.last_time = self.current_time
-
-    #     time = self.total_time
-    #     avg_temperature = self.total_temperature / time
-    #     self.get_logger().info(f"The average temperature is: {avg_temperature}")
-    #     self.make_txt(time, avg_temperature)
-
-    def make_txt(self, time, value):
-
-        f = open("/home/ps/imu_bias/7_bias.txt", "a")
-        data = "{},{}\n".format(time, value)
-        f.write(data)
-        f.close()
+    def io_worker(self):
+        """
+        데몬 스레드에서 실행되며, 큐에 저장된 데이터를 파일에 기록.
+        """
+        file_path = "/home/ps/imu_data/dolge_630_acc_bias.txt"
+        with open(file_path, "a") as f:
+            while True:
+                try:
+                    data = self.io_queue.get(timeout=1.0)
+                    f.write(data)
+                    f.flush()
+                except queue.Empty:
+                    continue
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = ImuBiasMeasure()
     rclpy.spin(node)
-    # thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
-    # thread.start()
-    # rate = node.create_rate(10)
-
-    # while rclpy.ok():
-    #     try:
-    #         print("!")
-    #     except Exception as ex:
-    #         print(ex)
-    #     rate.sleep()
     node.destroy_node()
     rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
