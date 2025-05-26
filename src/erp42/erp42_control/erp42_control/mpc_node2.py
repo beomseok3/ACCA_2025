@@ -71,7 +71,7 @@ class mpc_config:
 
     N_IND_SEARCH: int = 10  # Search index number
     DTK: float = 0.1  # time step [s] kinematic
-    dlk: float = 0.5  # dist step [m] kinematic
+    dlk: float = 0.25  # dist step [m] kinematic
     LENGTH: float = 2.020  # Length of the vehicle [m]
     WIDTH: float = 1.160  # Width of the vehicle [m]
     WB: float = 1.040  # Wheelbase [m]
