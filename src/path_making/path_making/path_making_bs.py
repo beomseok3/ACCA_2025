@@ -68,7 +68,7 @@ class DBWRITE(Node):
             self.path_x.append(p1[0])
             self.path_y.append(p1[1])
             self.path_yaw.append(p1[2])
-            
+            ## TODO self.path_x = p1[0] + self.path_x
             self.path = list(zip(self.path_x, self.path_y, self.path_yaw))
             self.write_db()
 
