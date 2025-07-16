@@ -7,26 +7,22 @@ from nav_msgs.msg import Odometry
 from tf_transformations import *
 import math as m
 import numpy as np
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
 
 
 class Dfilter(Node):
     def __init__(self):
         super().__init__("dfilter_yaw")
         self.create_subscription(
-            Imu, "imu/rotated", self.callback_imu, qos_profile_sensor_data
+            Imu, "imu/data", self.callback_imu, qos_profile_system_default
         )
 
         self.pub_filtered_yaw = self.create_publisher(
-            Imu, "imu/rotated_dfiltered", qos_profile_sensor_data
+            Imu, "imu/data_dfiltered", qos_profile_system_default
         )
 
         self.prev_value = 0.0
         self.value = 0.0
-        self.count = 0.0
-        self.current_x = 0.0
-        self.current_y = 0.0
-        self.list_xy = [None] * 5
 
     def dfilter(self, value):
         dvalue = value - self.prev_value
@@ -43,6 +39,7 @@ class Dfilter(Node):
         return self.value
 
     def callback_imu(self, msg):
+        print("hello")
         quaternion = [
             msg.orientation.x,
             msg.orientation.y,

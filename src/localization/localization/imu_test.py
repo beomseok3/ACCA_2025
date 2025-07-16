@@ -1,95 +1,61 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
-from std_msgs.msg import Float32
-from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
+from geometry_msgs.msg import TwistWithCovarianceStamped
+from std_msgs.msg import String, Float32
+from nav_msgs.msg import Odometry
 from tf_transformations import *
-
-import numpy as np
 import math as m
+import numpy as np
+from rclpy.qos import QoSProfile, qos_profile_sensor_data, qos_profile_system_default
 
 
-class Imu_test(Node):
+
+class Test_IMU(Node):
     def __init__(self):
-        super().__init__("imu_test")
+        super().__init__("test_imu")
+        qos_profile = QoSProfile(depth = 1)
+        self.create_subscription(Imu, "imu/data", self.callback, qos_profile)
 
-        # sub
-        self.create_subscription(
-            Imu, "imu/data", self.callback_imu, qos_profile_sensor_data
-        )
+        self.prev_roll, self.prev_pitch, self.prev_yaw = None, None, None
 
-        # pub
-        self.pub_deg_yaw = self.create_publisher(
-            Float32, "imu/yaw", qos_profile_system_default
-        )
+    def callback(self, msg):
 
-        self.total_differ = 0.0
-        self.last_time = 0.0
-        self.current_time = 0.0
-        self.total_time = 0.0
-        self.gyro_bias = 0.0
-
-        self.prev_r, self.prev_p, self.prev_y = None, None, None
-
-    def callback_imu(self, msg):
-
-        self.current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
-
-        if self.last_time == 0.0:
-            self.last_time = self.current_time
-            return
-            # print(f"{self.current_time} {self.last_time}")
-
-        self.total_time += self.current_time - self.last_time
-        self.gyro_bias += m.degrees(
-            msg.angular_velocity.z * (self.current_time - self.last_time)
-        )
-
-        r, p, y = euler_from_quaternion(
+        # initialize
+        roll, pitch, yaw = euler_from_quaternion(
             [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
         )
+        # change unit
+        roll, pitch, yaw = np.rad2deg(roll), np.rad2deg(pitch), np.rad2deg(yaw)
+        
+        self.get_logger().info(f"yaw : {yaw}")
+        self.get_logger().info(f"roll pitch : {roll, pitch}")
+        
+        if self.prev_yaw is not None:
+            dr,dp,dy = roll - self.prev_roll, pitch - self.prev_pitch, yaw - self.prev_yaw
+             
+            if abs(dy) > 0.1:
+                self.get_logger().warn(f"yaw_rate : {dy}")
+            
+            if abs(dp) > 0.1:
+                self.get_logger().warn(f"pitch_rate : {dp}")
+            
+            if abs(dr) > 0.1:
+                self.get_logger().warn(f"roll_rate : {dr}")
 
-        r = np.rad2deg(r)
-        p = np.rad2deg(p)
-        y = np.rad2deg(y)
-
-        if self.prev_r is not None:
-            print(
-                f"r: {r - self.prev_r}, p: {p - self.prev_p}, y: {y - self.prev_y}"  # heading error시 error 속도 확인하기
-            )
-            self.total_differ += y - self.prev_y
-        # self.get_logger().warn(f"r: {r}, p: {p}, y: {y}")
-        print("=====================================")
-        print(f"total_differ: {self.total_differ}")
-        print(f"gyro differ: {self.gyro_bias}")
-        print(f"total_time: {self.total_time}")
-        avg_differ = self.total_differ / self.total_time
-        print(f"yaw_bias: {avg_differ}")
-        self.prev_r = r
-        self.prev_p = p
-        self.prev_y = y
-        self.last_time = self.current_time
-
-        self.pub_deg_yaw.publish(Float32(data=y))
-        self.make_txt(self.total_time, avg_differ)
-
-    def make_txt(self, time, value):
-
-        f = open("/home/ps/imu_bias/yaw_bias_test.txt", "a")
-        data = "{},{}\n".format(time, value)
-        f.write(data)
-        f.close()
-
-
-def main(args=None):
+        # update
+        self.prev_roll, self.prev_pitch, self.prev_yaw = roll, pitch, yaw
+        
+def main(args = None):
     rclpy.init(args=args)
-    node = Imu_test()
-
-    rclpy.spin(node)
-
-    node.destroy_node()
-    rclpy.shutdown()
-
+    node = Test_IMU()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info('Keyboard Interrupt (SIGINT)')
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == "__main__":
     main()

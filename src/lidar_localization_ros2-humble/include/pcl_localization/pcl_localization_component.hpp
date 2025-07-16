@@ -26,6 +26,7 @@
 #include "sensor_msgs/msg/imu.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
+#include "std_msgs/msg/float32.hpp"
 
 #include <pclomp/ndt_omp.h>
 #include <pclomp/ndt_omp_impl.hpp>
@@ -33,8 +34,6 @@
 #include <pclomp/voxel_grid_covariance_omp_impl.hpp>
 #include <pclomp/gicp_omp.h>
 #include <pclomp/gicp_omp_impl.hpp>
-#include "sensor_msgs/msg/nav_sat_fix.hpp"  // GPS 메시지 추가
-
 
 #include "pcl_localization/lidar_undistortion.hpp"
 
@@ -62,13 +61,6 @@ public:
   void odomReceived(const nav_msgs::msg::Odometry::ConstSharedPtr msg);
   void imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg);
   void cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg);
-  void odomKinematicReceived(const nav_msgs::msg::Odometry::ConstSharedPtr msg);
-
-
-
-   // GPS 관련 함수 추가
-  void callback_gps(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
-  double computeDistance(const geometry_msgs::msg::Pose &pose1, const geometry_msgs::msg::Pose &pose2);
   // void gnssReceived();
 
   tf2_ros::TransformBroadcaster broadcaster_;
@@ -93,12 +85,8 @@ public:
   rclcpp::Subscription<sensor_msgs::msg::Imu>::ConstSharedPtr
     imu_sub_;
 
-
-  // odom_kinematic_sub_ 선언 추가
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_kinematic_sub_;
-
-   // GPS 서브스크립션 추가
-  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr score_pub_;
+  std::shared_ptr<std_msgs::msg::Float32> score_msg;
 
   boost::shared_ptr<pcl::Registration<pcl::PointXYZI, pcl::PointXYZI>> registration_;
   pcl::VoxelGrid<pcl::PointXYZI> voxel_grid_filter_;
@@ -137,12 +125,9 @@ public:
   double last_odom_received_time_;
   bool use_imu_{false};
   bool enable_debug_{false};
+  bool is_publish_tf_{false};
 
   int ndt_num_threads_;
-
-  // GPS 관련 멤버 변수 추가
-  sensor_msgs::msg::NavSatFix::SharedPtr latest_gps_msg_;  // 최신 GPS 데이터 저장
-  geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr pcl_pose_;  // NDT 결과로 얻어진 포즈 데이터 저장
 
   // imu
   LidarUndistortion lidar_undistortion_;

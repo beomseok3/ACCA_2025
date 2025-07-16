@@ -343,7 +343,7 @@ class Kalman(Node):
         P_k = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q  # Predicted Convariance
 
         # Kalman Gain
-        S_gps = inv(np.dot(np.dot(self.gps.H, P_k), self.gps.H.T) + R)
+        S_gps = inv(np.dot(np.dot(self.gps.H, P_k), self.gps.H.T) + R) #()
         K_gps = np.dot(
             np.dot(P_k, self.gps.H.T),
             S_gps,

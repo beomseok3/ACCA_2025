@@ -11,12 +11,13 @@ from std_msgs.msg import Bool
 from erp42_msgs.msg import SerialFeedBack, ControlMessage
 
 
+
 exitThread = False
 
 
 class Control:
-    def __init__(self, port_num, node):
-        qos_profile = QoSProfile(depth=10)
+    def __init__(self, port_num, node):  
+        qos_profile = QoSProfile(depth = 10)
 
         # Packet Define
 
@@ -41,16 +42,12 @@ class Control:
         self.alive = alive
 
         # Publisher
-
-        self.feedback_pub = node.create_publisher(
-            SerialFeedBack, "/erp42_feedback", qos_profile
-        )
+    
+        self.feedback_pub = node.create_publisher(SerialFeedBack, "/erp42_feedback", qos_profile)
 
         # Subscriber
 
-        self.control_sub = node.create_subscription(
-            ControlMessage, "/cmd_msg", self.cmdCallback, qos_profile
-        )
+        self.control_sub = node.create_subscription(ControlMessage, "/cmd_msg", self.cmdCallback, qos_profile)
 
         self.feedback_msg = SerialFeedBack()
         self.cmd_msg = ControlMessage()
@@ -68,6 +65,7 @@ class Control:
 
     def cmdCallback(self, msg):
         self.cmd_msg = msg
+
 
     def send_data(self, data=ControlMessage()):
 
@@ -90,10 +88,10 @@ class Control:
                 self.data[8] = int(255 - steer // 256)
                 self.data[9] = int(255 - steer % 256)
 
-            self.data[5] = data.gear  # gear
+            self.data[5] = data.gear    # gear
             self.data[6] = int(speed // 256)
             self.data[7] = int(speed % 256)
-            self.data[10] = data.brake  # BREAK
+            self.data[10] = data.brake   # BREAK
         else:
             # speed
             speed = 0
@@ -113,11 +111,11 @@ class Control:
                 self.data[8] = int(255 - steer // 256)
                 self.data[9] = int(255 - steer % 256)
 
-            self.data[5] = data.gear  # gear
+            self.data[5] = data.gear    # gear
             self.data[6] = int(speed // 256)
             self.data[7] = int(speed % 256)
-            self.data[10] = 200  # BREAK
-
+            self.data[10] = 200   # BREAK
+        
         self.data[11] = self.alive
         self.ser.write(self.data)
 
@@ -148,7 +146,7 @@ class Control:
                     if len(line) >= 18:
                         del line[:]
                         break
-
+             
             except Exception as ex:
                 print(ex)
 
@@ -167,7 +165,7 @@ class Control:
         feedback_gear = line[5]
 
         # speed (m/s)
-        feedback_KPH = (line[6] + line[7] * 256) / 10
+        feedback_KPH = (line[6] + line[7] * 256) / 10 
         feedback_speed = self.kph2mps(value=feedback_KPH)
 
         # steer (RAD)
@@ -185,12 +183,8 @@ class Control:
         feedback_brake = line[10]
 
         # Encoder
-        self.feedback_encoder = (
-            line[11]
-            + line[12] * 256
-            + line[13] * 256 * 256
-            + line[14] * 256 * 256 * 256
-        )
+        self.feedback_encoder = (line[11] + line[12] * 256 + 
+            line[13] * 256 * 256 + line[14] * 256 * 256 * 256)
 
         if self.feedback_encoder >= 2147483648:
             self.feedback_encoder -= 4294967296
@@ -205,9 +199,9 @@ class Control:
         data.brake = feedback_brake
         data.encoder = self.feedback_encoder
         data.alive = self.alive
-
+        
         self.feedback_msg = data
-
+        
         # print(data)
         self.feedback_pub.publish(self.feedback_msg)
 
@@ -223,28 +217,28 @@ class Control:
         return value * 3.6
 
 
-def main(args=None):
-    rclpy.init(args=args)
+def main(args = None):
+    rclpy.init(args = args)
     node = rclpy.create_node("erp42_serial")
 
-    port_param = node.declare_parameter(
-        "/erp42_serial/erp_port", "/dev/ttyUSB0"
-    )  # launch파일에 파라미터 정의해서 가져오기 안 됨. 다 정상적으로 되면 마지막에 이 부분 공부해보기
+    port_param = node.declare_parameter("/erp42_serial/erp_port", "/dev/ttyUSB1") #launch파일에 파라미터 정의해서 가져오기 안 됨. 다 정상적으로 되면 마지막에 이 부분 공부해보기
 
     port = port_param.value
     print(port)
     print("connected successfully!!")
 
+   
     control = Control(port_num=port, node=node)
 
-    thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
+    thread = threading.Thread(target=rclpy.spin, args = (node, ), daemon=True)
     thread.start()
-
+    
     rate = node.create_rate(20.0)
 
     while rclpy.ok():
         control.send_data(data=control.cmd_msg)
         rate.sleep()
+    
 
 
 if __name__ == "__main__":

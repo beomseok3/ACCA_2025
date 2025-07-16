@@ -30,7 +30,6 @@ add_executable(map_odom_tf_publisher_static src/map_odom_tf_publisher_static.cpp
 add_executable(odometry_map_frame src/odometry_map_frame.cpp)
 add_executable(cone_pose_transform src/cone_pose_transform.cpp)
 add_executable(localization_path_tf src/localization_path_tf.cpp)
-add_executable(odom2map src/odom2map.cpp)
 
 
 
@@ -67,13 +66,6 @@ ament_target_dependencies(localization_path_tf
   geometry_msgs
 )
 
-ament_target_dependencies(odom2map
-  rclcpp
-  tf2
-  tf2_geometry_msgs
-  nav_msgs
-  geometry_msgs
-)
 
 target_include_directories(map_odom_tf_publisher_static PRIVATE ${PROJ_INCLUDE_DIRS})
 target_link_libraries(map_odom_tf_publisher_static ${PROJ_LIBRARIES})
@@ -83,7 +75,6 @@ install(TARGETS
   odometry_map_frame
   cone_pose_transform
   localization_path_tf
-  odom2map
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

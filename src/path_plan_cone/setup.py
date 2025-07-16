@@ -22,6 +22,8 @@ setup(
     entry_points={
         'console_scripts': [
             'path_cone = path_plan_cone.path_cone:main',
+            'path_cone_mpc = path_plan_cone.path_cone_mpc:main',
+
         ],
     },
 )

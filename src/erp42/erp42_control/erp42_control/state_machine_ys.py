@@ -131,12 +131,12 @@ class SpeedSupporter():
 #kcity YS 대회용 (final - 1012)
 class State(Enum):
     A1A2 = "driving_a"  #13
-    A2A3 = "curve_b"  #8
-    A3A4 = "driving_c"  #12
-    B1B2 = "uturn_a"  #7
-    A4A5 = "driving_d"  #12
-    A5A6 = "obstacle_a"  #5
-    A6A7 = "curve_e"  #8
+    # A2A3 = "curve_b"  #8
+    # A3A4 = "driving_c"  #12
+    A2A3 = "uturn_a"  #7
+    A3A4 = "driving_d"  #12
+    # A5A6 = "obstacle_a"  #5
+    # A6A7 = "curve_e"  #8
 
 
 
@@ -153,7 +153,7 @@ class GetPath():
 
 
     def file_open_with_id(self, id):
-        self.cx, self.cy, self.cyaw, self.cv = self.db.query_from_id(id)
+        self.cx, self.cy, self.cyaw, self.cv = self.db.query_from_id(id).T
 
 
 
@@ -358,7 +358,7 @@ def main():
     # node.declare_parameter("file_name", "1006_1507_acca.db") #kcity
     # node.declare_parameter("file_name", "1003_dolge_test.db") #dolge
     # node.declare_parameter("file_name", "YS_ndt_test.db")
-    node.declare_parameter("file_name", "YS_final.db")
+    node.declare_parameter("file_name", "good.db")
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
     node.declare_parameter("pcl_topic", "/pcl_pose")
 
@@ -372,7 +372,7 @@ def main():
 
     #Declare Instance
     db = DB(file_name)
-    state = State.A5A6
+    state = State.A2A3
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic, pcl_topic)
     state_machine = StateMachine(node, odometry, path, state)
