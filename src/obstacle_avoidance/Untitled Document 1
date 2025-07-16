@@ -1,0 +1,33 @@
+path1/ob
+path1/obstacle -> path2/obstacle
+
+
+
+
+
+ros msg중 point를 활용 (point1 : x,y,z = 0,0,0 / point2 : x,y,z = 3,3,3)
+-> point1와 현재 pose 사이의 거리가 0.5m 이내일 때, 장애물 미션 구간 시작 (bool obstacle_mission = true)
+if (obstacle_mission)
+obstacle_pose와 poses1_의 첫 번째 점 사이의 거리 < obstacle_pose와 poses2_의 첫 번째 점 사이의 거리일 때, -> path1/obstacle과 speed1 publish
+그렇지 않으면 -> path2/obstacle과 speed2 publish
+-> point2와 현재 pose 사이의 거리가 0.5m 이내일 때, 장애물 미션 구간 끝 (bool obstacle_mission = false)
+
+else
+path/global과 target_speed publish
+
+
+
+bool lane change = false;
+
+
+obstacle_pose와의 거리가 1.5m 이내이면 path1이 켜져있었다면 path1 끄고 path2 키고 path2가 켜져있었다면 path2 끄고 path1을 키는 코드
+
+
+path1[0]: 31.84370044255047, 0.06384263624204323 / path2[0]:31.691658439318417, -3.887261142488569
+path1[-1]: -12.557439247175353, 5.039745985646732 / path2[-1]:-12.85208209027769, 1.1736995958490297
+
+point1: 31.767679441, −1.911709253
+point2: −12.704760669, 3.106722791
+
+
+(point1은 두 path의 첫 점의 평균값, point2는 두 path의 마지막 점의 평균값)

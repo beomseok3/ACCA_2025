@@ -49,7 +49,6 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include/
   ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/xspublic
-  /usr/local/xsens/include
 )
 
 

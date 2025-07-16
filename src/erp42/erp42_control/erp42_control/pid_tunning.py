@@ -91,7 +91,7 @@ class PID:
             f.close()
     
     def callback_erp(self, msg):
-        self.speed = msg.speed *3.6 #km/h
+        self.speed = msg.speed *3.6
 
     
     def kph2mps(value):
@@ -127,23 +127,23 @@ def main(args = None):
             pid.make_txt([pid.time[-1], current_v[-1]], flag)
             print(pid.time[-1])
 
-            if current_v[-1] >= (pid.desired_value * 0.1) and pid.rising_time_10 == 0.0:
+            if current_v[-1] >= (pid.desired_value * 0.1) and pid.rising_time_10 == 0.0: # trigger once
                 pid.rising_time_10 = pid.time[-1]
             
-            if current_v[-1] >= (pid.desired_value * 0.9) and pid.rising_time_90 == 0.0:
+            if current_v[-1] >= (pid.desired_value * 0.9) and pid.rising_time_90 == 0.0: # trigger once
                 pid.rising_time_90 = pid.time[-1]
                 pid.rising_time = pid.rising_time_90 - pid.rising_time_10
 
             # if abs(current_v[-1] - pid.desired_value) / pid.desired_value <= 0.1:
             if abs(current_v[-1] - pid.desired_value) / pid.desired_value <= 0.1:
                 count += 1
-                if count == 90 and pid.settling_time == 100.0:
-                    pid.settling_time = pid.time[-1]
+                if count == 90 and pid.settling_time == 100.0: #once
+                    pid.settling_time = pid.time[-1] # reinitialize
             else:
                 count = 0
 
 
-            if (pid.time[-1] >= pid.settling_time) :
+            if (pid.time[-1] >= pid.settling_time) : # 100초를 넘었거나 정착 했거나
 
                 pid.max_v = max(current_v)
                 pid.overshoot = pid.max_v - pid.desired_value

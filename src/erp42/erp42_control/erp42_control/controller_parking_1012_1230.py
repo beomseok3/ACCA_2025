@@ -517,7 +517,7 @@ class Pakring():
 
             # SEARCH, PARKING, RETURN
             elif self.parking_state == Parking_state.PARKING:                
-                if time.time() - self.search2parking <= 5.0:
+                if time.time() - self.search2parking <= 2.0:
                     msg = ControlMessage(mora=0, estop=1,gear=0,speed = 0*10, steer = 0,brake=200)
                     print("hellow_")
                     return msg, False                 

@@ -3,9 +3,9 @@ import os
 
 from std_msgs.msg import Header
 from nav_msgs.msg import Path
-from tf_transformations import *
+# from tf_transformations import *
 from geometry_msgs.msg import PoseStamped
-
+import numpy as np
 class DB():
     def __init__(self, db_name):
         
@@ -102,46 +102,36 @@ class DB():
     #     return rows
     
     
-    def query_from_id_to_path(self,id): #id를 통해 Path 테이블의 x,y,yaw 값을 가져온다, 반환 형태: ros2 nav_msgs/msg/Path
-        self.__cur.execute("SELECT x,y,yaw FROM Path where path_id == ",(id,))
-        rows = self.__cur.fetchall()
+    # def query_from_id_to_path(self,id): #id를 통해 Path 테이블의 x,y,yaw 값을 가져온다, 반환 형태: ros2 nav_msgs/msg/Path
+    #     self.__cur.execute("SELECT x,y,yaw FROM Path where path_id == ",(id,))
+    #     rows = self.__cur.fetchall()
         
-        path = Path()
-        path.header = Header()
-        path.header.stamp = self.get_clock().now().to_msg()
-        path.header.frame_id = "map"
-        for id, x, y, yaw in rows:
-            # if id == "b2c1":
-                pose = PoseStamped()
-                pose.header.stamp = self.get_clock().now().to_msg()
-                pose.header.frame_id = "map"
-                pose.pose.position.x = x
-                pose.pose.position.y = y
-                pose.pose.position.z = 0.0
-                quaternion = quaternion_from_euler(0, 0, yaw)
-                pose.pose.orientation.x = quaternion[0]
-                pose.pose.orientation.y = quaternion[1]
-                pose.pose.orientation.z = quaternion[2]
-                pose.pose.orientation.w = quaternion[3]
-                path.poses.append(pose)
-        return path
+    #     path = Path()
+    #     path.header = Header()
+    #     path.header.stamp = self.get_clock().now().to_msg()
+    #     path.header.frame_id = "map"
+    #     for id, x, y, yaw in rows:
+    #         # if id == "b2c1":
+    #             pose = PoseStamped()
+    #             pose.header.stamp = self.get_clock().now().to_msg()
+    #             pose.header.frame_id = "map"
+    #             pose.pose.position.x = x
+    #             pose.pose.position.y = y
+    #             pose.pose.position.z = 0.0
+    #             quaternion = quaternion_from_euler(0, 0, yaw)
+    #             pose.pose.orientation.x = quaternion[0]
+    #             pose.pose.orientation.y = quaternion[1]
+    #             pose.pose.orientation.z = quaternion[2]
+    #             pose.pose.orientation.w = quaternion[3]
+    #             path.poses.append(pose)
+    #     return path
     
     def query_from_id(self,id):
         self.__cur.execute("SELECT x,y,yaw,speed FROM Path where path_id == ?",(id,))
         rows = self.__cur.fetchall()
         
-        cx = []
-        cy = []
-        cyaw = []
-        cv = []
-
-        for x, y, yaw, v in rows:
-            cx.append(x)
-            cy.append(y)
-            cyaw.append(yaw)
-            cv.append(v)
-        
-        return cx, cy, cyaw, cv
+        # 리스트로 분리하지 않고 바로 numpy 배열로 변환
+        return np.array(rows)
 
 
     
@@ -160,7 +150,7 @@ class DB():
 
 
         
-    def __del__(self):
-        # Destructor to ensure the connection is closed when the object is deleted
-        if self.__conn:
-            self.__conn.close()
+    # def __del__(self):
+    #     # Destructor to ensure the connection is closed when the object is deleted
+    #     if self.__conn:
+    #         self.__conn.close()

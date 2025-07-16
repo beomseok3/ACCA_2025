@@ -29,8 +29,8 @@ class PurePursuit(Node):
         
         #self.k_v = 0.5
         self.old_nearest_point_index = None
-        self.k = 0.1
-        self.Lfc = 2.0
+        self.k = 0.5
+        self.Lfc = 15.0
 
 
         
@@ -90,7 +90,7 @@ class PurePursuit(Node):
                                                           cy[target_idx + 1])
                 if distance_this_index < distance_next_index:
                     break
-                target_idx = target_idx + 1 if (target_idx + 1) < len(self.cx) else target_idx
+                target_idx = target_idx + 1 if (target_idx + 1) < len(cx) else target_idx
                 distance_this_index = distance_next_index
             self.old_nearest_point_index = target_idx
         

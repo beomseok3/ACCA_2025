@@ -29,21 +29,30 @@ public:
         // map_lon_ = 126.9575076;
 
         // kcity-bs
-        map_lat_ = 37.2388925;
-        map_lon_ = 126.77293309999999;
-
+        // map_lat_ = 37.2388925;
+        // map_lon_ = 126.77293309999999;
 
         // // // // // kcity-ys
         // map_lat_ = 37.2392369;
         // map_lon_ = 126.77316379999999;
 
-
+        // 2025 school
+        // map_lat_ = 37.496432;
+        // map_lon_ = 126.9579251;
+        
+        // 0701 school
+        // map_lat_ = 37.496366099999996;
+        // map_lon_ = 126.95693019999999;
 
         threshold_ = 0.05;
         // map_qx_ = 0.15915654599666598;
         // map_qy_ = -0.0251221297644806;
         // map_qz_ = -0.23418562114238742;
         // map_qw_ = -0.9587466716766357;
+        map_lat_ = 37.4963858;
+        map_lon_ = 126.95692539999999;
+
+
 
         P = proj_create_crs_to_crs(PJ_DEFAULT_CTX, "EPSG:4326", "EPSG:2097", nullptr);
         if (P == nullptr)
@@ -83,10 +92,8 @@ public:
         double trans_x = dx_;
         double trans_y = dy_;
 
-        // tf_msg.transform.translation.x = trans_y;
-        // tf_msg.transform.translation.y = trans_x;  
-        tf_msg.transform.translation.x = 0.0;
-        tf_msg.transform.translation.y = 0.0;  
+        tf_msg.transform.translation.x = trans_y;
+        tf_msg.transform.translation.y = trans_x;  
         tf_msg.transform.translation.z = 0.0;
 
 

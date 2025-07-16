@@ -56,6 +56,11 @@ include_directories(
   ${rclcpp_lifecycle_INCLUDE_DIRS}
   ${rclcpp_INCLUDE_DIRS})
 
+
+include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
+include_directories(/opt/ros/humble/include/tf2)
+include_directories(/opt/ros/humble/include/tf2_ros)
+
 add_executable(pcl_localization_node src/pcl_localization_node.cpp)
 target_link_libraries(pcl_localization_node
   pcl_localization_component

@@ -1,5 +1,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
+
 #include <iostream>
 #include <vector>
 
@@ -20,8 +21,8 @@ public:
         float_size = 4;
 
         //Cone Tracking
-        min_x = 0;
-        max_x = 5.0;
+        min_x = -1;
+        max_x = 8;
         min_y = -3.0;
         max_y = 3.0;
         min_z = -2.0; 
