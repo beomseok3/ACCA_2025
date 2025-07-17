@@ -136,8 +136,8 @@ class State(Enum):
     A5A6 = "obstacle_a"  #5
     A6A7 = "curve_e"  #8
 
-    A2A3 = "uturn_a"  #7
-    A3A4 = "driving_d"  #12
+    # A2A3 = "uturn_a"  #7
+    # A3A4 = "driving_d"  #12
 
 
 
