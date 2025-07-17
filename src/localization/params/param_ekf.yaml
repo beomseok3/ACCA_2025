@@ -7,7 +7,7 @@ ekf_filter_node:
         base_link_frame: base_link  # Defaults to "base_link" if unspecified
         world_frame: odom            # Defaults to the value of odom_frame if unspecified
 
-        frequency: 25.
+        frequency: 20.
         two_d_mode: true
         sensor_timeout: 0.01
         
@@ -30,7 +30,7 @@ ekf_filter_node:
         # # Odometry (From Navsat):
         # # -------------------------------------
 
-        odom0: odometry/gps_var
+        odom0: odometry/gps
         odom0_config: [true, true, false,
                         false, false, false,
                         false, false, false,
@@ -101,8 +101,8 @@ ekf_filter_node:
         #                                 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.015]
 
 
-        process_noise_covariance: [1e-300, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-                                        0.0,    1e-300, 0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+        process_noise_covariance: [1.0, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                        0.0,    1.0, 0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                         0.0,    0.0,    0.0, 0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                         0.0,    0.0,    0.0,    0.03, 0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                         0.0,    0.0,    0.0,    0.0,    0.03, 0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,

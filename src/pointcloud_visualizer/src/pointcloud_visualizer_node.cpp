@@ -6,19 +6,16 @@
 
 class PointCloudVisualizer : public rclcpp::Node {
 public:
-  PointCloudVisualizer()
+  PointCloudVisualizer(const std::string &pcd_path)
   : Node("pointcloud_visualizer")
   {
     publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    if (pcl::io::loadPCDFile<pcl::PointXYZ>("/home/acca/path/본선/2023_kcity.pcd", *cloud) == -1) {
-      RCLCPP_ERROR(this->get_logger(), "Couldn't read PCD file");
+    if (pcl::io::loadPCDFile<pcl::PointXYZ>(pcd_path, *cloud) == -1) {
+      RCLCPP_ERROR(this->get_logger(), "Couldn't read PCD file: %s", pcd_path.c_str());
       return;
     }
-
-    // /home/hovin/hovin_ws/src/route_planner/resource/2023_kcity.pcd
-    // /home/hovin/hovin_ws/src/route_planner/resource/school_map.pcd
 
     // Voxel Grid Downsampling
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
@@ -32,7 +29,7 @@ public:
     output.header.frame_id = "map";
     publisher_->publish(output);
 
-    RCLCPP_INFO(this->get_logger(), "Published downsampled PointCloud2 message");
+    RCLCPP_INFO(this->get_logger(), "Published downsampled PointCloud2 from: %s", pcd_path.c_str());
   }
 
 private:
@@ -42,7 +39,15 @@ private:
 int main(int argc, char *argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<PointCloudVisualizer>());
+
+  if (argc < 2) {
+    std::cerr << "Usage: ros2 run <package> <executable> <pcd_file_path>\n";
+    return 1;
+  }
+
+  std::string pcd_path = argv[1];
+
+  rclcpp::spin(std::make_shared<PointCloudVisualizer>(pcd_path));
   rclcpp::shutdown();
   return 0;
 }

@@ -203,7 +203,6 @@ class GetOdometry():
         
     def callback_erp(self,msg):
         self.v = msg.speed
-
 class StateMachine():
     def __init__(self, node, odometry, path, state):
         self.pub = node.create_publisher(ControlMessage, "cmd_msg", qos_profile=qos_profile_system_default)

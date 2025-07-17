@@ -20,6 +20,10 @@ ACCA팀 주요 코드
 
 *전체 패키지 빌드*
 
+    colcon build
+
+    or 
+
     colcon build --symlink-install
 
 ## prerequisite

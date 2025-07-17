@@ -19,6 +19,7 @@ public:
             std::bind(&ConePoseTransformer::cone_pose_callback, this, std::placeholders::_1));
 
         cone_pose_map_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>("cone_pose_map", 10);
+
     }
 
 private:
@@ -40,10 +41,16 @@ private:
 
             try
             {
-                tf_buffer_.transform(pose_stamped, transformed_pose_stamped, "map", tf2::durationFromSec(1.0));
-                RCLCPP_INFO(this->get_logger(), "HELLO WORLD!2");
+                tf_buffer_.transform(pose_stamped, transformed_pose_stamped, "map", tf2::durationFromSec(1.0)); // duration이 너무 길다
+                rclcpp::Time tf_time(transformed_pose_stamped.header.stamp);
+                rclcpp::Time now = this->get_clock()->now();
+                auto latency_ms = (now - tf_time).nanoseconds() / 1e6;  // ms 단위
+
+                RCLCPP_INFO(this->get_logger(), "TF latency: %.3f ms", latency_ms);
+
+                // RCLCPP_INFO(this->get_logger(), "HELLO WORLD!2");
                 transformed_poses.poses.push_back(transformed_pose_stamped.pose);
-                RCLCPP_INFO(this->get_logger(), "HELLO WORLD!");
+                // RCLCPP_INFO(this->get_logger(), "HELLO WORLD!");
             }
             catch (tf2::TransformException &ex)
             {
