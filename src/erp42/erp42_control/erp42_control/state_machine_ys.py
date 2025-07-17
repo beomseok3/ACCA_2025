@@ -131,13 +131,13 @@ class SpeedSupporter():
 #kcity YS 대회용 (final - 1012)
 class State(Enum):
     A1A2 = "driving_a"  #13
-    # A2A3 = "curve_b"  #8
-    # A3A4 = "driving_c"  #12
+    A2A3 = "curve_b"  #8
+    A3A4 = "driving_c"  #12
+    A5A6 = "obstacle_a"  #5
+    A6A7 = "curve_e"  #8
+
     A2A3 = "uturn_a"  #7
     A3A4 = "driving_d"  #12
-    # A5A6 = "obstacle_a"  #5
-    # A6A7 = "curve_e"  #8
-
 
 
 
