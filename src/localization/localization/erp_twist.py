@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, qos_profile_sensor_data
+from rclpy.qos import QoSProfile, qos_profile_sensor_data, qos_profile_system_default
 from erp42_msgs.msg import SerialFeedBack
 from geometry_msgs.msg import TwistWithCovarianceStamped
 from sensor_msgs.msg import Imu
@@ -19,27 +19,27 @@ class ErpTwist(Node):
         super().__init__("erp_twist")
 
         self.sub_erp = self.create_subscription(
-            SerialFeedBack, "erp42_feedback", self.callback_erp, qos_profile_sensor_data
+            SerialFeedBack,
+            "erp42_feedback",
+            self.callback_erp,
+            qos_profile_system_default,
         )
         self.pub = self.create_publisher(
-            TwistWithCovarianceStamped, "erp42/twist", qos_profile_sensor_data
+            TwistWithCovarianceStamped, "erp42/twist", qos_profile_system_default
         )
-        self.yaw = None
         self.header = Header()
 
     def callback_erp(self, msg):
         print("!")
-        if self.yaw is not None:
-            yaw = self.yaw
-            header = self.header
-            header.stamp = self.get_clock().now().to_msg()
-            header.frame_id = "base_link"
-            gear = msg.gear
-            if gear == 2:
-                v = msg.speed
-            else:
-                v = (-1) * msg.speed
-            self.publish_twist(v, header)
+        header = self.header
+        header.stamp = self.get_clock().now().to_msg()
+        header.frame_id = "base_link"
+        gear = msg.gear
+        if gear == 2:
+            v = msg.speed
+        else:
+            v = (-1) * msg.speed
+        self.publish_twist(v, header)
 
     def publish_twist(self, v, header):
         data = TwistWithCovarianceStamped()

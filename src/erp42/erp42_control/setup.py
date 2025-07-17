@@ -39,6 +39,7 @@ setup(
             "pid_tunning_2025 = erp42_control.pid_tunning_2025:main",
             "controller_cone = erp42_control.controller_cone:main",
             "state_machine = erp42_control.state_machine:main",
+            "state_machine_mpc = erp42_control.state_machine_mpc:main",
             "state_machine_ys = erp42_control.state_machine_ys:main",
             "state_machine_ys_test = erp42_control.state_machine_ys_test:main",
             "controller_obstacle = erp42_control.controller_obstacle:main",
@@ -49,6 +50,8 @@ setup(
             "controller_delivery = erp42_control.controller_delivery:main",
             "controller_uturn = erp42_control.controller_uturn:main",
             "control_frequency_check = erp42_control.control_frequency_check:main",
+            "mpc_node = erp42_control.mpc_node:main",
+            "erp = erp42_control.erp:main",
         ],
     },
 )

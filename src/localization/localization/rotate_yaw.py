@@ -2,9 +2,9 @@
 
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Imu
+from sensor_msgs.msg import Imu, NavSatFix
 from geometry_msgs.msg import TwistWithCovarianceStamped
-from std_msgs.msg import String
+from std_msgs.msg import String, Float64
 from nav_msgs.msg import Odometry
 from tf_transformations import *
 import math as m
@@ -38,10 +38,18 @@ class Rotate(Node):
             self.callback_gps_vel,
             qos_profile,
         )
+        self.create_subscription(
+            NavSatFix,
+            "ublox_gps_node/fix",
+            self.callback_gps_pos,
+            qos_profile,
+        )
         self.create_subscription(String, "road_type", self.callback_shape, qos_profile)
         # self.create_subscription(Odometry, "odometry/navsat",self.callback_odom, qos_profile)
 
         self.pub = self.create_publisher(Imu, "imu/rotated", qos_profile)
+
+        self.pub_dyaw = self.create_publisher(Float64, "rotate_yaw/dyaw", qos_profile)
 
         self.delta_yaw = self.declare_parameter("delta_yaw", 0.0).value
         self.gps_yaw = 0.0
@@ -53,6 +61,7 @@ class Rotate(Node):
             None
         ] * 10  # 큐 사이즈 10 고려해보기 -> 아래 decision_straight함수에서 하나씩 꺼내서 다 검사하기 때문에 연산 시간 때문에 조금 줄여야 할 수도 있음 / 심지어 imu는 400hz
         self.mean = 0.0
+        self.gps_cov = 0.0
 
     def decision_straight(self):
         sum = 0.0
@@ -83,6 +92,9 @@ class Rotate(Node):
     # def callback_odom(self,msg):
     #     _,_,self.odom_yaw = euler_from_quaternion([msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w])
 
+    def callback_gps_pos(self, msg=NavSatFix()):
+        self.gps_cov = msg.position_covariance[0]
+
     def callback_shape(self, msg):
         self.path_shape = msg.data
 
@@ -94,12 +106,18 @@ class Rotate(Node):
 
         # curve에서는 보정이 안 되고 있는 것 같은데 방안 생각해보기!
         # if abs(delta) > m.radians(2) and abs(delta) < m.radians(90) and self.v > 0.30 and self.path_shape == "straight":  #self.path_shape은 path_opener에서 내보내주기 때문에 path_opener먼저 키기
-        if abs(delta) > m.radians(2) and abs(delta) < m.radians(90) and self.v > 0.30:
+        if (
+            abs(delta) > m.radians(2)
+            and abs(delta) < m.radians(90)
+            and self.v > 0.30
+            and self.gps_cov < 0.0004
+        ):
             if self.decision_straight():
                 self.delta = self.mean - yaw
         yaw_prev = yaw
         yaw = yaw + self.delta_yaw + self.delta
         x, y, z, w = quaternion_from_euler(0, 0, yaw)
+        self.pub_dyaw.publish(Float64(data=m.degrees(self.delta)))
         print(
             "%.4f   %.4f  %.4f"
             % (m.degrees(yaw_prev), m.degrees(yaw), m.degrees(self.delta))
