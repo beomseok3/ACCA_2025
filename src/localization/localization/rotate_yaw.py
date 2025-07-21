@@ -9,7 +9,7 @@ from nav_msgs.msg import Odometry
 from tf_transformations import *
 import math as m
 import numpy as np
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, qos_profile_sensor_data, qos_profile_system_default
 
 
 def normalize_angle(angle):
@@ -31,7 +31,9 @@ class Rotate(Node):
     def __init__(self):
         super().__init__("rotate_yaw")
         qos_profile = QoSProfile(depth=1)
-        self.create_subscription(Imu, "imu/data", self.callback, qos_profile)
+        self.create_subscription(
+            Imu, "imu/data", self.callback, qos_profile_system_default
+        )
         self.create_subscription(
             TwistWithCovarianceStamped,
             "ublox_gps_node/fix_velocity",
@@ -39,17 +41,11 @@ class Rotate(Node):
             qos_profile,
         )
         self.create_subscription(
-            NavSatFix,
-            "ublox_gps_node/fix",
-            self.callback_gps_pos,
-            qos_profile,
+            String, "road_type", self.callback_shape, qos_profile_system_default
         )
-        self.create_subscription(String, "road_type", self.callback_shape, qos_profile)
         # self.create_subscription(Odometry, "odometry/navsat",self.callback_odom, qos_profile)
 
-        self.pub = self.create_publisher(Imu, "imu/rotated", qos_profile)
-
-        self.pub_dyaw = self.create_publisher(Float64, "rotate_yaw/dyaw", qos_profile)
+        self.pub = self.create_publisher(Imu, "imu/rotated", qos_profile_system_default)
 
         self.delta_yaw = self.declare_parameter("delta_yaw", 0.0).value
         self.gps_yaw = 0.0
@@ -61,7 +57,10 @@ class Rotate(Node):
             None
         ] * 10  # 큐 사이즈 10 고려해보기 -> 아래 decision_straight함수에서 하나씩 꺼내서 다 검사하기 때문에 연산 시간 때문에 조금 줄여야 할 수도 있음 / 심지어 imu는 400hz
         self.mean = 0.0
-        self.gps_cov = 0.0
+        self.cov = 0.0
+        self.acc_x = 0.0
+        self.acc_y = 0.0
+        self.cov = 0.0
 
     def decision_straight(self):
         sum = 0.0
@@ -82,18 +81,17 @@ class Rotate(Node):
         return True
 
     def callback_gps_vel(self, msg):
+        self.cov = msg.twist.covariance[0]
         vx = msg.twist.twist.linear.x
         vy = msg.twist.twist.linear.y
         self.v = m.sqrt(vx**2 + vy**2)
         self.gps_yaw = m.atan2(vy, vx)
+        # self.cov = msg.twist.covariance[0]
         self.forward.append(self.gps_yaw)
         del self.forward[0]
 
     # def callback_odom(self,msg):
     #     _,_,self.odom_yaw = euler_from_quaternion([msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w])
-
-    def callback_gps_pos(self, msg=NavSatFix()):
-        self.gps_cov = msg.position_covariance[0]
 
     def callback_shape(self, msg):
         self.path_shape = msg.data
@@ -110,14 +108,13 @@ class Rotate(Node):
             abs(delta) > m.radians(2)
             and abs(delta) < m.radians(90)
             and self.v > 0.30
-            and self.gps_cov < 0.0004
+            and self.cov < 0.04
         ):
             if self.decision_straight():
                 self.delta = self.mean - yaw
         yaw_prev = yaw
         yaw = yaw + self.delta_yaw + self.delta
         x, y, z, w = quaternion_from_euler(0, 0, yaw)
-        self.pub_dyaw.publish(Float64(data=m.degrees(self.delta)))
         print(
             "%.4f   %.4f  %.4f"
             % (m.degrees(yaw_prev), m.degrees(yaw), m.degrees(self.delta))
@@ -127,6 +124,11 @@ class Rotate(Node):
         data.orientation.y = y
         data.orientation.z = z
         data.orientation.w = w
+        if self.acc_x == 0.0:
+            self.acc_x = msg.linear_acceleration.x
+            self.acc_y = msg.linear_acceleration.y
+        data.linear_acceleration.x -= self.acc_x
+        data.linear_acceleration.y -= self.acc_y
         # scale = 10 ** m.degrees(delta)
         data.orientation_covariance = [
             0.00025000000000000005,

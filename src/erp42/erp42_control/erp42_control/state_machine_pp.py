@@ -17,14 +17,14 @@ from enum import Enum
 import threading
 
 
-from controller_obstacle import Obstacle
-from controller_pickup import Pickup
-from controller_delivery import Delivery
-from controller_parking import Pakring
-from controller_traffic_light import Trafficlight
-from controller_stop_line import Stopline
+# from controller_obstacle import Obstacle
+# from controller_pickup import Pickup
+# from controller_delivery import Delivery
+# from controller_parking import Pakring
+# from controller_traffic_light import Trafficlight
+# from controller_stop_line import Stopline
 
-from Modifier_param import set_param
+# from Modifier_param import set_param
 
 
 def euler_from_quaternion(quaternion):
@@ -182,7 +182,8 @@ class GetPath:
         self.file_open_with_id(init_state.name)
 
     def file_open_with_id(self, id):
-        self.cx, self.cy, self.cyaw, self.cv = self.db.query_from_id(id)
+        rows= self.db.query_from_id(id)
+        self.cx, self.cy, self.cyaw, self.cv = rows[:, 0], rows[:, 1], rows[:, 2], rows[:, 3] 
 
 
 class GetOdometry:
@@ -241,12 +242,12 @@ class StateMachine:
         self.target_idx = 0
         self.mission_finish = False
 
-        self.obstacle = Obstacle(self.node)
-        self.pickup = Pickup(self.node)
-        self.delivery = Delivery(self.node)
-        self.parking = Pakring(self.node)
-        self.traffic_light = Trafficlight(self.node)
-        self.stop_line = Stopline(self.node)
+        # self.obstacle = Obstacle(self.node)
+        # self.pickup = Pickup(self.node)
+        # self.delivery = Delivery(self.node)
+        # self.parking = Pakring(self.node)
+        # self.traffic_light = Trafficlight(self.node)
+        # self.stop_line = Stopline(self.node)
 
         self.k = 0
 
@@ -368,7 +369,7 @@ class StateMachine:
         return msg
 
     def set_target_speed(self):
-        target_speed = self.path.cv[self.target_idx]
+        target_speed = self.path.cv[self.target_idx] * 13 / 5
         return target_speed
 
     def cacluate_brake(
@@ -419,7 +420,7 @@ def main():
     # Declare Params
     # node.declare_parameter("file_name", "1006_1507_acca.db") #kcity
     # node.declare_parameter("file_name", "global_path.db") #dolge
-    node.declare_parameter("file_name", "BS_final.db")  # bunsudae
+    node.declare_parameter("file_name", "0513_dodam_backup.db")  # bunsudae
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
     # Get Params

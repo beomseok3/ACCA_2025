@@ -38,12 +38,15 @@ class Chage_gpsvar(Node):
         #   - 0.0
         #   - 0.0
 
-        cov = np.array(msg.pose.covariance).reshape((6, 6))
-        if np.linalg.norm(cov) > 0.03:
-            cov *= 10.0
-
+        # cov = np.array(msg.pose.covariance).reshape((6, 6))
         new_msg = msg
-        new_msg.pose.covariance = cov.flatten().tolist()
+        if x_cov > 0.0004:
+            new_msg.pose.covariance[0] = 1e38
+            new_msg.pose.covariance[7] = 1e38
+        #     cov *= 10.0
+
+        # rclpy.sleep(5)
+        # new_msg.pose.covariance = cov.flatten().tolist()
 
         self.pub.publish(new_msg)
 

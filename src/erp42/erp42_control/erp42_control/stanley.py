@@ -20,8 +20,14 @@ Output: steer
 
 class Stanley:
     def __init__(self):
+<<<<<<< HEAD
         # super().__init__("stanley")
         self.__L = 1.240  # [m] Wheel base of vehicle
+=======
+        super().__init__("stanley")
+        # self.__L = 1.240  # [m] Wheel base of vehicle
+        self.__L = 1.040
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         # self.__k = self.declare_parameter("/stanley_controller/c_gain", 0.8).value
         # self.__hdr_ratio = self.declare_parameter("/stanley_controller/hdr_ratio", 0.03).value
         # self.__hdr_ratio = self.declare_parameter("/stanley_controller/hdr_ratio", 0.06).value

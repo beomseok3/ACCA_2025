@@ -80,7 +80,11 @@ class PID:
         self.p_gain = node.declare_parameter("/stanley_controller/p_gain", 2.07).value
         self.i_gain = node.declare_parameter("/stanley_controller/i_gain", 0.85).value
         # self.p_gain = node.declare_parameter("/stanley_controller/p_gain", 1.0).value
+<<<<<<< HEAD
         # self.i_gain = node.declare_parameter("/stanley_controller/i_gain", 0.0).value
+=======
+        # self.i_gain = node.declare_parameter("/stanley_controller/i_gain", 0.05).value
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
         self.p_err = 0.0
         self.i_err = 0.0
@@ -105,6 +109,7 @@ class PID:
         # self.d_err = (err - self.p_err) / dt
 
         self.p_err = err
+<<<<<<< HEAD
         self.i_err += self.p_err * dt * (0.0 if speed <= 2.5 and speed >= -2.5 else 1.0)
         # self.i_err = np.clip(self.i_err, -10, 10)
         self.node.get_logger().info(f"err : {err}")
@@ -112,6 +117,15 @@ class PID:
         print(self.i_err)
         print("----------------speed-------------------")
         print(speed)
+=======
+        self.i_err += self.p_err * dt * (0.0 if speed ==0 else 1.0)
+        # self.i_err = np.clip(self.i_err, -10, 10)
+        # self.node.get_logger().info(f"err : {err}")
+        # print("----------------i_err-------------------")
+        # print(self.i_err)
+        # print("----------------speed-------------------")
+        # print(speed)
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
         self.speed = speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err)
 
@@ -240,6 +254,10 @@ class GetOdometry:
         )
 
     def callback_erp(self, msg):
+<<<<<<< HEAD
+=======
+        self.speed = msg
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         self.v = msg.speed  # TODO speed EKF result로 받기
 
 
@@ -257,7 +275,11 @@ class StateMachine:
         self.odometry = odometry
 
         self.st = Stanley()
+<<<<<<< HEAD
         self.mpc = MPC(db, self.state)
+=======
+        self.mpc = MPC(db)
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         self.pid = PID(node)
         # self.ss = SpeedSupporter(node)
 
@@ -274,6 +296,7 @@ class StateMachine:
         self.k = 0
 
     def update_state_and_path(self):
+<<<<<<< HEAD
         print("-------------------------------------")
         print(self.target_idx, len(self.path.cx))
         print("-------------------------------------")
@@ -283,6 +306,17 @@ class StateMachine:
                 print("-------------------------------------")
                 print(self.target_idx, len(self.path.cx))
                 print("-------------------------------------")
+=======
+        # print("-------------------------------------")
+        # print(self.target_idx, len(self.path.cx))
+        # print("-------------------------------------")
+        if self.state.value[:-2] == "driving" or self.state.value[:-2] == "curve":
+            if self.target_idx >= len(self.path.cx) - 10:  # driving에서 state 전환 조건
+                states = list(State)
+                # print("-------------------------------------")
+                # print(self.target_idx, len(self.path.cx))
+                # print("-------------------------------------")
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
                 current_index = states.index(self.state)
                 try:
                     self.state = states[
@@ -294,9 +328,15 @@ class StateMachine:
                 except IndexError:
                     print("index out of range")
         else:
+<<<<<<< HEAD
             print("-------------------------------------")
             print(self.target_idx, len(self.path.cx))
             print("-------------------------------------")
+=======
+            # print("-------------------------------------")
+            # print(self.target_idx, len(self.path.cx))
+            # print("-------------------------------------")
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
             current_index = states.index(self.state)
             if self.mission_finish:  # mission에서 state 전환 조건
                 states = list(State)
@@ -317,7 +357,11 @@ class StateMachine:
         if self.state.value[:-2] == "driving" or self.state.value[:-2] == "curve":
             if self.odometry.x != 0.0:  # 10.03 수정
                 self.target_idx, steer, speed_output = self.mpc.pose_callback(
+<<<<<<< HEAD
                     self.odometry.pose
+=======
+                    self.odometry.pose, self.odometry.speed
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
                 )
                 # print(self.target_idx)
                 # # steer, self.target_idx, hdr, ctr = self.st.stanley_control(
@@ -334,7 +378,11 @@ class StateMachine:
                 # print(target_speed)
                 # adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=5, max_ value=15) # 에러(hdr, ctr) 기반 목표 속력 조정
                 speed = self.pid.PIDControl(
+<<<<<<< HEAD
                     self.odometry.v * 3.6, mspeed, min=2, max=8
+=======
+                    self.odometry.v * 3.6, mspeed, min=2, max=25
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
                 )  # speed 조정 (PI control)
                 # print(speed)
                 # print(self.odometry.v * 3.6)
@@ -433,7 +481,10 @@ class StateMachine:
         return brake
 
     def publish_cmd(self):
+<<<<<<< HEAD
         print("jpofajoiadfsjliajsdoij")
+=======
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         self.update_state_and_path()
         msg = self.update_cmd_msg()
         self.pub.publish(msg)

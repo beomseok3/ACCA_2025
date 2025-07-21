@@ -3,6 +3,7 @@ import os
 
 from std_msgs.msg import Header
 from nav_msgs.msg import Path
+<<<<<<< HEAD
 
 # from tf_transformations import *
 from geometry_msgs.msg import PoseStamped
@@ -10,6 +11,12 @@ import numpy as np
 
 
 class DB:
+=======
+# from tf_transformations import *
+from geometry_msgs.msg import PoseStamped
+import numpy as np
+class DB():
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
     def __init__(self, db_name):
 
         self.db_path = "/home/ps/8_db_file" + "/" + db_name
@@ -111,11 +118,20 @@ class DB:
     #     rows = self.__cur.fetchall()
     #     print(rows)
     #     return rows
+<<<<<<< HEAD
 
     # def query_from_id_to_path(self,id): #id를 통해 Path 테이블의 x,y,yaw 값을 가져온다, 반환 형태: ros2 nav_msgs/msg/Path
     #     self.__cur.execute("SELECT x,y,yaw FROM Path where path_id == ",(id,))
     #     rows = self.__cur.fetchall()
 
+=======
+    
+    
+    # def query_from_id_to_path(self,id): #id를 통해 Path 테이블의 x,y,yaw 값을 가져온다, 반환 형태: ros2 nav_msgs/msg/Path
+    #     self.__cur.execute("SELECT x,y,yaw FROM Path where path_id == ",(id,))
+    #     rows = self.__cur.fetchall()
+        
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
     #     path = Path()
     #     path.header = Header()
     #     path.header.stamp = self.get_clock().now().to_msg()
@@ -135,11 +151,19 @@ class DB:
     #             pose.pose.orientation.w = quaternion[3]
     #             path.poses.append(pose)
     #     return path
+<<<<<<< HEAD
 
     def query_from_id(self, id):
         self.__cur.execute("SELECT x,y,yaw,speed FROM Path where path_id == ?", (id,))
         rows = self.__cur.fetchall()
 
+=======
+    
+    def query_from_id(self,id):
+        self.__cur.execute("SELECT x,y,yaw,speed FROM Path where path_id == ?",(id,))
+        rows = self.__cur.fetchall()
+        
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         # 리스트로 분리하지 않고 바로 numpy 배열로 변환
         return np.array(rows)
 
@@ -159,7 +183,16 @@ class DB:
         self.__cur.execute(query_Node, (path_id,))
         self.__conn.commit()
 
+<<<<<<< HEAD
     # def __del__(self):
     #     # Destructor to ensure the connection is closed when the object is deleted
     #     if self.__conn:
     #         self.__conn.close()
+=======
+
+        
+    # def __del__(self):
+    #     # Destructor to ensure the connection is closed when the object is deleted
+    #     if self.__conn:
+    #         self.__conn.close()
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06

@@ -9,10 +9,17 @@ ublox_gps_node:
 
     device: /dev/ttyACM0
     frame_id: gps
+<<<<<<< HEAD
     rate: 8.0            # ⚠️ 10 Hz
     nav_rate: 1
 
     dynamic_model: portable   # ⚠️ 차량용
+=======
+    rate: 10.0            # ⚠️ 10 Hz
+    nav_rate: 1
+
+    dynamic_model: automotive   # ⚠️ 차량용
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
     fix_mode: auto
     enable_ppp: false
     dr_limit: 0
@@ -21,6 +28,11 @@ ublox_gps_node:
 
     uart1:
       baudrate: 115200
+<<<<<<< HEAD
+=======
+      in: 0              # 보정 신호 USB로만 받을 때
+      out: 0
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
     gnss:
       gps:      true

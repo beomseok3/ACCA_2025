@@ -18,6 +18,10 @@ import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from erp42_msgs.msg import ControlMessage
+<<<<<<< HEAD
+=======
+# , AckermannDriveStamped
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 from geometry_msgs.msg import Point, PoseStamped
 from sensor_msgs.msg import LaserScan
 from visualization_msgs.msg import Marker, MarkerArray
@@ -81,12 +85,17 @@ class State_mpc(Enum):
 class mpc_config:
     NXK: int = 4  # length of kinematic state vector: z = [x, y, v, yaw]
     NU: int = 2  # length of input vector: u = [steering speed, acceleration]
+<<<<<<< HEAD
     TK: int = 5  # finite time horizon length - kinematic
+=======
+    TK: int = 6  # finite time horizon length - kinematic
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
     # ---------------------------------------------------
     # TODO: you may need to tune the following matrices
     Rk: list = field(
         # default_factory=lambda: np.diag([0.01, 100.0])
+<<<<<<< HEAD
         default_factory=lambda: np.diag([0.01, 100.0])
     )  # input cost matrix, penalty for inputs - [accel, steering_speed]
     Rdk: list = field(
@@ -100,6 +109,21 @@ class mpc_config:
     Qfk: list = field(
         default_factory=lambda: np.diag([8.0, 8.0, 2000000.0, 30.0])  # levine sim
         # (x, y, v, yaw)
+=======
+        default_factory=lambda: np.diag([0.3, 100.0])
+    )  # input cost matrix, penalty for inputs - [accel, steering_speed]
+    Rdk: list = field(
+        # default_factory=lambda: np.diag([0.01, 100.0])
+        default_factory=lambda: np.diag([0.3, 100.0])
+    )  # input difference cost matrix, penalty for change of inputs - [accel, steering_speed]
+    Qk: list = field(
+        default_factory=lambda: np.diag([12.0, 12.0, 5.0, 30.0])  # levine sim
+        # default_factory=lambda: np.diag([50., 50., 5.5, 13.0])
+    )  # state error cost matrix, for the the next (T) prediction time steps [x, y, delta, v, yaw, yaw-rate, beta]
+    Qfk: list = field(
+        default_factory=lambda: np.diag([12.0, 12.0, 5.0, 30.0])  # levine sim
+                                        # (x, y, v, yaw)
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         # default_factory=lambda: np.diag([50., 50., 5.5, 13.0])
     )  # final state error matrix, penalty  for the final state constraints: [x, y, delta, v, yaw, yaw-rate, beta]
     # ---------------------------------------------------
@@ -133,8 +157,13 @@ class State:
 class PID:
     def __init__(self, node):
         self.node = node
+<<<<<<< HEAD
         self.p_gain = node.declare_parameter("/stanley_controller/p_gain", 2.07).value
         self.i_gain = node.declare_parameter("/stanley_controller/i_gain", 0.85).value
+=======
+        self.p_gain = self.node.declare_parameter("/stanley_controller/p_gain", 2.07).value
+        self.i_gain = self.node.declare_parameter("/stanley_controller/i_gain", 0.85).value
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
         self.p_err = 0.0
         self.i_err = 0.0
@@ -172,15 +201,25 @@ class MPC(Node):
     This is just a template, you are free to implement your own node!
     """
 
+<<<<<<< HEAD
     def __init__(self, db, id):
+=======
+    def __init__(self, db):
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         super().__init__(f"mpc_node_{uuid.uuid4().int % 100000}")
         # use the MPC as a tracker (similar to pure pursuit)
         self.is_real = False
         # self.map_name = 'levine_2nd'
         self.db = db
+<<<<<<< HEAD
         print(id.value)
         a = id.value
         a = str(a)
+=======
+        # print(id.value)
+        # a = id.value
+        # a = str(a)
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
         self.state = State_mpc.A1A2
 
@@ -255,10 +294,17 @@ class MPC(Node):
     def file_open_with_id(self, id):
         return self.db.query_from_id(id)
 
+<<<<<<< HEAD
     def pose_callback(self, pose_msg):
         # extract pose from ROS msg
         # self.update_rotation_matrix(pose_msg)
         self.vehicle_state = self.update_vehicle_state(pose_msg)
+=======
+    def pose_callback(self, pose_msg, speed_msg):
+        # extract pose from ROS msg
+        # self.update_rotation_matrix(pose_msg)
+        self.vehicle_state = self.update_vehicle_state(pose_msg, speed_msg)
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
         if self.is_real:
             self.vehicle_state.v = (
@@ -299,12 +345,17 @@ class MPC(Node):
             state_predict,
         ) = self.linear_mpc_control(self.ref_path, x0, self.oa, self.odelta_v)
 
+<<<<<<< HEAD
         if (
             self.oa is None
             or self.odelta_v is None
             or len(self.oa) == 0
             or len(self.odelta_v) == 0
         ):
+=======
+        if (self.oa is None or self.odelta_v is None or len(self.oa) == 0 or len(self.odelta_v) == 0 ):
+            print('--------------------------stanly-----------------------------------')
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
             steer, self.target_idx, _, _ = self.st.stanley_control(
                 self.vehicle_state,
@@ -328,8 +379,20 @@ class MPC(Node):
         steer_output = self.odelta_v[0]
         # print(self.odelta_v[0])
         speed_output = self.vehicle_state.v + self.oa[0] * self.config.DTK
+<<<<<<< HEAD
         self.get_logger().info(f"a : {self.oa[0]}")
         self.get_logger().info(f"id : {self.state.name}")
+=======
+        # self.get_logger().info(f"a : {self.oa[0]}")
+        # self.get_logger().info(f"speed : {self.vehicle_state.v}")
+        print(f"입력 speed: {self.vehicle_state.v}")
+        # MPC 내부 예측 궤적, 상태값, 제어입력 출력
+        print(f"목표 속도 벡터: {self.ref_traj_k.value[2, :]}")
+        print(f"최적화 결과 가속도 uk[0]: {self.uk.value[0, :]}")
+        # 결과 속도값 (speed_output) 출력
+        print(f"pose_callback 최종 speed_output: {speed_output}")
+
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
         # self.drive_msg.steering_angle = steer_output
         # self.drive_msg.speed = (-1.0 if self.is_real else 1.0) * speed_output
@@ -338,11 +401,16 @@ class MPC(Node):
 
         self.vis_waypoints_pub.publish(self.vis_waypoints_msg)
 
+<<<<<<< HEAD
         return (
             self.target_idx,
             steer_output,
             (-1.0 if self.is_real else 1.0) * speed_output,
         )
+=======
+        return self.target_idx, steer_output, (-1.0 if self.is_real else 1.0) * speed_output
+        
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
 
     # toolkits
     def update_rotation_matrix(self, pose_msg):
@@ -356,7 +424,11 @@ class MPC(Node):
         self.rot_mat = (transform.Rotation.from_quat(quat)).as_matrix()
         # print("rotation matrix = {}".format(self.rot_mat))
 
+<<<<<<< HEAD
     def update_vehicle_state(self, pose_msg):
+=======
+    def update_vehicle_state(self, pose_msg, speed_msg):
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         """
         written by Derek, not from the template, != update state
         """
@@ -369,7 +441,11 @@ class MPC(Node):
         )
         # vehicle_state.v = self.drive_msg.drive.speed
         vehicle_state.v = (
+<<<<<<< HEAD
             pose_msg.twist.twist.linear.x
+=======
+            speed_msg.speed
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         )  # 0609 수정//실제 속도 반영을 통한 속도 안정화
         # print(vehicle_state.v)
         # self.get_logger().info(f'speed : {vehicle_state.v * 3.6}')
@@ -642,7 +718,11 @@ class MPC(Node):
 
         # dind = int(np.clip(round(travel / self.config.dlk) + 1, 1, MAX_DIND))
         # self.get_logger().info(f'travel : {dind}')
+<<<<<<< HEAD
         dind = 6
+=======
+        dind = 4
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         rest_idx_num = len(cx) - ind  # pose당
         rest_idx_num = max(len(cx) - ind - 1, 1)  # 최소 1 확보
         max_dind = int(rest_idx_num / self.config.TK)
@@ -656,6 +736,7 @@ class MPC(Node):
         ref_traj[0, :] = cx[ind_list]
         ref_traj[1, :] = cy[ind_list]
         ref_traj[2, :] = sp[ind_list]
+<<<<<<< HEAD
         print("4")
         if ind >= len(cx) - 10:  # driving에서 state 전환 조건
             states = list(State_mpc)
@@ -664,10 +745,22 @@ class MPC(Node):
             print
             try:
                 print("4")
+=======
+        
+        if ind >= len(cx) - 10:  # driving에서 state 전환 조건
+            states = list(State_mpc)
+            current_index = states.index(self.state)
+            print
+            try:
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
                 self.state = states[
                     current_index + 1
                 ]  # state update (driving -> mission)
                 self.waypoints = self.file_open_with_id(self.state.name)  # path update
+<<<<<<< HEAD
+=======
+                self.waypoints[:, 3] = self.waypoints[:, 3] / 3.6
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
             except IndexError:
                 print("index out of range")
 

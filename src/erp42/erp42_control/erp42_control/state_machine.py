@@ -97,6 +97,7 @@ class PID():
         err = desired_value - speed
         # self.d_err = (err - self.p_err) / dt 
         self.p_err = err
+        print(speed)
         self.i_err += self.p_err * dt  * (0.0 if speed == 0 else 1.0)
 
         self.speed = speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err)
@@ -116,7 +117,7 @@ class SpeedSupporter():
         self.he_thr = node.declare_parameter("/speed_supporter/he_thr",0.001).value
         self.ce_thr = node.declare_parameter("/speed_supporter/ce_thr",0.002).value
 
-
+        
     def func(self, x, a, b):
         return a * (x - b)
 
@@ -167,6 +168,34 @@ class State(Enum):
     A33A34 = "parking_E"  #6
     A34A35 = "driving_E"  #15
 
+    # A1A2 = "driving_a"
+    # A2A3 = "pickup_b"
+    # A3A4 = "curve_c"
+    # A4A5 = "obstacle_d"
+    # A5A6 = "driving_e"
+    # A6A7 = "stop_line_f"
+    # A7A8 = "curve_g"
+    # A8A9 = "parking_h"
+    # A9A10 = "driving_j"
+    # A10A11 = "delivery_i"
+    # A11A12 = "curve_k"
+    # A12A13 = "driving_l"
+
+## Parking test 용
+    # A1A2 = "parking_a"
+    # A2A3 = "driving_b"
+
+    # A1A2 = "driving_a"  #13
+    # A2A3 = "obstacle_b"  #9
+    # A3A4 = "driving_c"  #8
+    # A4A5 = "driving_d"  #8
+    # A5A6 = "driving_e"  #6
+    # A6A7 = "curve_f"  #8
+    # A7A8 = "driving_s"  #8
+    # A8A9 = "curve_c"  #8
+    # A9A10 = "driving_h"  #8
+    # A10A11 = "driving_i"  #8
+   
 
 class GetPath():
     def __init__(self, db, init_state):
@@ -180,7 +209,7 @@ class GetPath():
 
 
     def file_open_with_id(self, id):
-        self.cx, self.cy, self.cyaw, self.cv = self.db.query_from_id(id)
+        self.cx, self.cy, self.cyaw, self.cv = self.db.query_from_id(id).T
 
 
 
@@ -227,7 +256,7 @@ class StateMachine():
         self.traffic_light = Trafficlight(self.node)
         self.stop_line = Stopline(self.node)
 
-        self.k = 0
+        self.trial = 0
 
 
 
@@ -263,7 +292,7 @@ class StateMachine():
 
         if self.state.value[:-2] == "driving":
             if self.odometry.x != 0.: #10.03 수정
-                steer, self.target_idx, hdr, ctr = self.st.stanley_control(self.odometry, self.path.cx, self.path.cy, self.path.cyaw, h_gain=0.5, c_gain=0.24)
+                steer, self.target_idx, hdr, ctr = self.st.stanley_control(self.odometry, self.path.cx, self.path.cy, self.path.cyaw, h_gain=1.0, c_gain=1.0)
                 target_speed = self.set_target_speed()
                 adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=5, max_value=15) # 에러(hdr, ctr) 기반 목표 속력 조정
                 speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed, min=5, max=15) # speed 조정 (PI control) 
@@ -279,10 +308,10 @@ class StateMachine():
 
         elif self.state.value[:-2] == "curve":
             if self.odometry.x != 0.: #10.03 수정
-                steer, self.target_idx, hdr, ctr = self.st.stanley_control(self.odometry, self.path.cx, self.path.cy, self.path.cyaw, h_gain=0.5, c_gain=0.24)
+                steer, self.target_idx, hdr, ctr = self.st.stanley_control(self.odometry, self.path.cx, self.path.cy, self.path.cyaw, h_gain=1.0, c_gain=1.0)
                 target_speed = self.set_target_speed()
-                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=6, max_value=10) # 에러(hdr, ctr) 기반 목표 속력 조정
-                speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed,  min=6, max=10) # speed 조정 (PI control) 
+                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=10) # 에러(hdr, ctr) 기반 목표 속력 조정
+                speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed,  min=4, max=10) # speed 조정 (PI control) 
                 brake = self.cacluate_brake(adapted_speed) # brake 조정
 
                 # msg.speed = int(adapted_speed) * 10
@@ -294,14 +323,16 @@ class StateMachine():
                 pass
         
         elif self.state.value[:-2] == "parking":
-            if self.k < 1:
+            if self.trial < 1: # 초기 시도 횟수 1
                 try:
                     set_param("bs_cropbox_filter","detection_area","[-2.,4.,-4.,0.]")
 
                 except:
-                    self.k -=1
+                    print("set param Fail")
                 else:
-                    self.k +=1
+                    print("set param Success")
+                    self.trial +=1 
+
             msg, self.mission_finish = self.parking.control_parking(self.odometry)
 
         elif self.state.value[:-2] == "obstacle":
@@ -374,9 +405,9 @@ def main():
     node = rclpy.create_node("state_machine_node")
 
     # Declare Params
-    # node.declare_parameter("file_name", "1006_1507_acca.db") #kcity
+    node.declare_parameter("file_name", "1006_1507_acca.db") #kcity
     # node.declare_parameter("file_name", "global_path.db") #dolge
-    node.declare_parameter("file_name", "BS_final.db") #bunsudae
+    # node.declare_parameter("file_name", "good.db") #bunsudae
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
 
@@ -397,7 +428,7 @@ def main():
 
     thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
     thread.start()
-    rate = node.create_rate(10)
+    rate = node.create_rate(20)
 
     while rclpy.ok():
         try:

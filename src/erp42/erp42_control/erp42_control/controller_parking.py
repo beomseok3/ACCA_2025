@@ -113,10 +113,19 @@ class Pakring():
         self.node = node
         
         # search_path
+<<<<<<< HEAD
         # self.search_path_db = DB("1012_1344_bs_search_path.db") #kcity
         # self.search_path_db = DB("1006_search_path_acca.db") #kcity
         # self.search_path_db = DB("1006_search_path_acca.db") #dolge
         self.search_path_db = DB("0710_parking_test.db")
+=======
+        #kcity-bs
+        self.search_path_db = DB("1012_1344_bs_search_path.db") #kcity
+        # self.search_path_db = DB("1006_search_path_acca.db") #kcity
+        # self.search_path_db = DB("1006_search_path_acca.db") #dolge
+        #school-bunsudae
+        # self.search_path_db = DB("0710_parking_test.db")
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06
         self.search_path = self.search_path_db.read_db_n("Path", "x", "y", "yaw")
         rows = self.search_path
         self.path_cx = [row[0] for row in rows]

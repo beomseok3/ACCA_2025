@@ -60,6 +60,7 @@ class DBWRITE(Node):
             # self.path_yaw.append(p1[2])
             
             # parking
+<<<<<<< HEAD:src/path_making/src/global_path_planning/global_path_planning/path_making_bs.py
             self.path_x = [p1[0]] + self.path_x
             self.path_y = [p1[1]] + self.path_y
             self.path_yaw = [p1[2]] + self.path_yaw
@@ -68,6 +69,16 @@ class DBWRITE(Node):
             # self.path_x.append(p1[0])
             # self.path_y.append(p1[1])
             # self.path_yaw.append(p1[2])
+=======
+            # self.path_x = [p1[0]] + self.path_x
+            # self.path_y = [p1[1]] + self.path_y
+            # self.path_yaw = [p1[2]] + self.path_yaw
+            
+            #return
+            self.path_x.append(p1[0])
+            self.path_y.append(p1[1])
+            self.path_yaw.append(p1[2])
+>>>>>>> 7cb2f3f7415bf105aa3505aa0c79254747affe06:src/path_making/path_making/path_making_bs.py
             ## TODO self.path_x = p1[0] + self.path_x
             self.path = list(zip(self.path_x, self.path_y, self.path_yaw))
             self.write_db()

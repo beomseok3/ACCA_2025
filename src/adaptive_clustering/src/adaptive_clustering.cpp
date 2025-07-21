@@ -31,7 +31,7 @@
 
 //#define LOG
 
-const int region_max_ = 10; // Change this value to match how far you want to detect.
+const int region_max_ = 20; // Change this value to match how far you want to detect.
 
 
 class AdaptiveClustering : public rclcpp::Node {
@@ -40,9 +40,9 @@ public:
     : Node("adaptive_clustering"),
         print_fps_(false),
         leaf_(1),
-        z_axis_min_(-1.0),
+        z_axis_min_(-1.2),
         z_axis_max_(1.0),
-        cluster_size_min_(20),
+        cluster_size_min_(5),
         cluster_size_max_(100),
         x_threshold_(0.5),
         y_threshold_(0.5),
@@ -52,14 +52,14 @@ public:
       
         this->declare_parameter<std::string>("sensor_model", "VLP-32");
         this->declare_parameter<bool>("print_fps", false);
-        this->declare_parameter<int>("leaf", 1);
-        this->declare_parameter<float>("z_axis_min", -1.);
+        this->declare_parameter<int>("leaf", 3);
+        this->declare_parameter<float>("z_axis_min", -0.8);
         this->declare_parameter<float>("z_axis_max", 2.0);
         this->declare_parameter<float>("x_threshold", 0.5);
         this->declare_parameter<float>("y_threshold", 0.5);
         this->declare_parameter<float>("cone_position_z", -0.6);
         this->declare_parameter<int>("cluster_size_min", 3);
-        this->declare_parameter<int>("cluster_size_max", 500); 
+        this->declare_parameter<int>("cluster_size_max", 20000); 
 
         // print_fps_(false),
         // leaf_(1),
