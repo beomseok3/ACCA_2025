@@ -25,7 +25,7 @@ ublox_gps_node:
       out: 32                   # RTCM 3
 
     # TMODE3 Config
-    tmode3: 0                   # Survey-In Mode
+    tmode3:                    # Survey-In Modes
     sv_in:
       reset: true               # True: disables and re-enables survey-in (resets)
                                 # False: Disables survey-in only if TMODE3 is
