@@ -27,6 +27,7 @@ include_directories(
 )
 
 add_executable(map_odom_tf_publisher_static src/map_odom_tf_publisher_static.cpp)
+add_executable(map_odom_tf_publisher_static_bs src/map_odom_tf_publisher_static_bs.cpp)
 add_executable(odometry_map_frame src/odometry_map_frame.cpp)
 add_executable(cone_pose_transform src/cone_pose_transform.cpp)
 add_executable(localization_path_tf src/localization_path_tf.cpp)
@@ -40,7 +41,13 @@ ament_target_dependencies(map_odom_tf_publisher_static
   sensor_msgs
   Eigen3
 )
-
+ament_target_dependencies(map_odom_tf_publisher_static_bs
+  rclcpp
+  tf2_ros
+  nav_msgs
+  sensor_msgs
+  Eigen3
+)
 
 ament_target_dependencies(odometry_map_frame
   rclcpp
@@ -70,8 +77,12 @@ ament_target_dependencies(localization_path_tf
 target_include_directories(map_odom_tf_publisher_static PRIVATE ${PROJ_INCLUDE_DIRS})
 target_link_libraries(map_odom_tf_publisher_static ${PROJ_LIBRARIES})
 
+target_include_directories(map_odom_tf_publisher_static_bs PRIVATE ${PROJ_INCLUDE_DIRS})
+target_link_libraries(map_odom_tf_publisher_static_bs ${PROJ_LIBRARIES})
+
 install(TARGETS
   map_odom_tf_publisher_static
+  map_odom_tf_publisher_static_bs
   odometry_map_frame
   cone_pose_transform
   localization_path_tf

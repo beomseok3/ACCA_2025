@@ -88,8 +88,8 @@ private:
     /* 2) 샘플 버퍼에 push */
     lat_buf_.push_back(msg->latitude);
     lon_buf_.push_back(msg->longitude);
-    cout << "sample_num: " << lat_buf_.size() << endl;
 
+    RCLCPP_INFO(get_logger(), "sample_num: %zu", lat_buf_.size());  // 추천
 
     /* 3) 100 개 쌓이면 평균 → dx,dy 계산 */
     if (!transform_ready_ && lat_buf_.size() >= samples_needed_) {

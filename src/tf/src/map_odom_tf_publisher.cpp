@@ -17,25 +17,42 @@ public:
         tf_publisher_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
         gps_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
             "ublox_gps_node/fix", 10, std::bind(&MapOdomTFPublisherStatic::callback_gps, this, std::placeholders::_1));
-
+            
         odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
             "odometry/navsat", 10, std::bind(&MapOdomTFPublisherStatic::callback_odom, this, std::placeholders::_1));
 
         dx_ = 0.0;
         dy_ = 0.0;
+        
+        // school
+        // map_lat_ = 37.4966945;
+        // map_lon_ = 126.9575076;
 
-        // 기준점 (K-City BS)
-        map_lat_ = 37.2388925;
-        map_lon_ = 126.77293309999999;
+        // kcity-bs
+        // map_lat_ = 37.2388925;
+        // map_lon_ = 126.77293309999999;
+
+        // // // // // kcity-ys
+        // map_lat_ = 37.2392369;
+        // map_lon_ = 126.77316379999999;
+
+        // 2025 school
+        // map_lat_ = 37.496432;
+        // map_lon_ = 126.9579251;
+        
+        // 0701 school
+        // map_lat_ = 37.496366099999996;
+        // map_lon_ = 126.95693019999999;
 
         threshold_ = 0.05;
+        // map_qx_ = 0.15915654599666598;
+        // map_qy_ = -0.0251221297644806;
+        // map_qz_ = -0.23418562114238742;
+        // map_qw_ = -0.9587466716766357;
+        map_lat_ = 37.4963858;
+        map_lon_ = 126.95692539999999;
 
-        // ✅ Molodensky-Badekas 변환 설정 (Proj7 이상)
-        const char *helmert_def = 
-            "+proj=helmert +x=-115.8 +y=-54.3 +z=-79.6 "
-            "+rx=-0.000001004 +ry=-0.000001887 +rz=-0.000005103 "
-            "+s=-0.00000001116 "
-            "+convention=coordinate_frame";
+
 
         P = proj_create_crs_to_crs(PJ_DEFAULT_CTX, "EPSG:4326", "EPSG:2097", nullptr);
         if (P == nullptr)
@@ -44,31 +61,21 @@ public:
             throw std::runtime_error("Failed to create projection.");
         }
 
-        P_helmert = proj_create(PJ_DEFAULT_CTX, helmert_def);
-        if (P_helmert == nullptr)
-        {
-            RCLCPP_ERROR(this->get_logger(), "Failed to create Helmert transformation.");
-            throw std::runtime_error("Failed to create Helmert transformation.");
-        }
-
         PJ_COORD origin = proj_coord(map_lat_, map_lon_, 0, 0);
-        PJ COORD transformed = proj_trans(P_helmert, PJ_FWD, origin);
-        PJ_COORD result = proj_trans(P, PJ_FWD, transformed);
+        PJ_COORD result = proj_trans(P, PJ_FWD, origin);
         map_x_ = result.xy.x;
         map_y_ = result.xy.y;
+
     }
 
-    ~MapOdomTFPublisherStatic()origin
+    ~MapOdomTFPublisherStatic()
     {
         if (P)
         {
             proj_destroy(P);
         }
-        if (P_helmert)
-        {
-            proj_destroy(P_helmert);
-        }
     }
+
 
     void publish_tf()
     {
@@ -76,17 +83,19 @@ public:
             return;
 
         geometry_msgs::msg::TransformStamped tf_msg;
-
+        
         tf_msg.header.frame_id = "map";
         tf_msg.header.stamp = odom_->header.stamp;
         tf_msg.child_frame_id = "odom";
 
+      
         double trans_x = dx_;
         double trans_y = dy_;
 
         tf_msg.transform.translation.x = trans_y;
-        tf_msg.transform.translation.y = trans_x;
+        tf_msg.transform.translation.y = trans_x;  
         tf_msg.transform.translation.z = 0.0;
+
 
         tf_msg.transform.rotation.x = 0.;
         tf_msg.transform.rotation.y = 0.;
@@ -99,19 +108,13 @@ public:
 private:
     void callback_gps(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
     {
-        if (dx_ == 0.0 && dy_ == 0.0)
-        {
-            if (msg->position_covariance[0] < threshold_ && msg->position_covariance[4] < threshold_)
+        if (dx_ == 0.0 && dy_ == 0.0) {
+         if (msg->position_covariance[0] < threshold_ && msg->position_covariance[4] < threshold_)
             {
                 PJ_COORD latlon = proj_coord(msg->latitude, msg->longitude, 0, 0);
-                
-                // ✅ Molodensky-Badekas 변환 적용
-                PJ_COORD transformed = proj_trans(P_helmert, PJ_FWD, latlon);
-                PJ_COORD xy = proj_trans(P, PJ_FWD, transformed);
-                
+                PJ_COORD xy = proj_trans(P, PJ_FWD, latlon);
                 dx_ = xy.xy.x - map_x_;
                 dy_ = xy.xy.y - map_y_;
-                
                 RCLCPP_INFO(this->get_logger(), "Map origin: x = %f, y = %f", map_x_, map_y_);
                 RCLCPP_INFO(this->get_logger(), "odom origin: x = %f, y = %f", xy.xy.x, xy.xy.y);
                 RCLCPP_INFO(this->get_logger(), "Origin calculated: dx = %f, dy = %f", dx_, dy_);
@@ -119,7 +122,7 @@ private:
         }
     }
 
-    void callback_odom(const nav_msgs::msg::Odometry::SharedPtr msg)
+     void callback_odom(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
         odom_ = msg;
     }
@@ -129,8 +132,7 @@ private:
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_publisher_;
     nav_msgs::msg::Odometry::SharedPtr odom_;
 
-    PJ *P;
-    PJ *P_helmert;  // Molodensky-Badekas 변환용
+    PJ* P;
     double map_lat_, map_lon_;
     double map_x_, map_y_;
     double dx_, dy_;
@@ -153,3 +155,5 @@ int main(int argc, char *argv[])
     rclcpp::shutdown();
     return 0;
 }
+
+이 코드에서 gps 를 받을 때 0.000196의 position cov 를 가진 샘플 100개를 평균내서 타원체 변환하고 tf를 발행하게 해줘
