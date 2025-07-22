@@ -369,7 +369,8 @@ class Pakring():
                     print(f"{e}: stanley")
                 return msg, False
             
-            # elif self.parking_state == Parking_state.PARKING:                
+            # Kcity 경사로 때문에 생긴 설정                
+            # elif self.parking_state == Parking_state.PARKING:
             #     if time.time() - self.parking_stop_time <= 5.0:
             #         msg = ControlMessage(mora=0, estop=1,gear=0,speed = 0*10, steer = 0,brake=200)
             #         return msg, False                 
