@@ -1,0 +1,1 @@
+ros2 launch avt_vimba_camera mono_camera.launch.py     ip:=192.168.1.5 
