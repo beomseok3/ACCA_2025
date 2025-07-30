@@ -64,7 +64,7 @@ class PID():
         self.current = node.get_clock().now().seconds_nanoseconds()[0] + (node.get_clock().now().seconds_nanoseconds()[1] / 1e9)
         self.last = node.get_clock().now().seconds_nanoseconds()[0] + (node.get_clock().now().seconds_nanoseconds()[1] / 1e9)
 
-    def PIDControl(self, speed, desired_value):
+    def PIDControl(self, speed, desired_value, min = 0, max = 25):
 
         self.current = self.node.get_clock().now().seconds_nanoseconds()[0] + (self.node.get_clock().now().seconds_nanoseconds()[1] / 1e9)
         dt = self.current - self.last
@@ -76,7 +76,8 @@ class PID():
         self.i_err += self.p_err * dt  * (0.0 if speed == 0 else 1.0)
 
         self.speed = speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err)
-        return int(np.clip(self.speed, 4, 10))
+        return int(np.clip(self.speed, min, max))
+    
 
 class Parking_state(Enum):
     SEARCH = 0
@@ -114,7 +115,7 @@ class Pakring():
         
         # search_path
         #kcity-bs
-        self.search_path_db = DB("1012_1344_bs_search_path.db") #kcity
+        self.search_path_db = DB("search_path_bunsudae.db") #kcity
         # self.search_path_db = DB("1006_search_path_acca.db") #kcity
         # self.search_path_db = DB("1006_search_path_acca.db") #dolge
         #school-bunsudae
@@ -126,15 +127,15 @@ class Pakring():
         self.path_cyaw = [row[2] for row in rows]
         self.search_path = np.array(self.search_path)
         
-        # parking_path
-        self.parking_path_db = DB("1012_1438_parking_path.db")
+        #### parking_path ####
+        self.parking_path_db = DB("parking_path_bunsudae.db")
         # self.parking_path_db = DB("1003_1758_parking_path.db") #kcity
         self.parking_path = self.parking_path_db.read_db_n(
             "Path", "x", "y", "yaw"
         )
         self.parking_path = np.array(self.parking_path)
 
-        # return_path
+        ##### return_path ####
         # self.return_path_db = DB("1009_2243_return_path.db")
         # self.return_path = self.return_path_db.read_db_n(
         #     "Path","x","y","yaw"
@@ -149,13 +150,13 @@ class Pakring():
         # visualization = self.node.declare_parameter("/parking/visualization", True)
         visualization = True
         self.reference_pose = Pose(
-            self.search_path[0][0], self.search_path[0][1], self.search_path[0][2]
+            self.search_path[1][0], self.search_path[1][1], self.search_path[1][2]
         )  
         # ROI(rectangular form)
-        self.min_x = self.reference_pose.x +0.0 +13.89150679316159 - 6.0- 4.5
-        self.max_x = self.reference_pose.x + 28.0 +13.89150679316159 -6.0 - 5.0-4.5
-        self.min_y = self.reference_pose.y -2.5 -0.49272527596502247
-        self.max_y = self.reference_pose.y  -1.0 -0.49272527596502247 
+        self.min_x = self.reference_pose.x + 0.0 + 13.89150679316159 - 6.0- 4.5 - 5.0
+        self.max_x = self.reference_pose.x + 28.0 + 13.89150679316159 -6.0 - 5.0-4.5 -5.0 -2.5
+        self.min_y = self.reference_pose.y -2.5 - 0.49272527596502247 -0.8
+        self.max_y = self.reference_pose.y  -1.0 - 0.49272527596502247 -0.5
         
         # class variable
         self.parking_area_detected = False
@@ -260,7 +261,7 @@ class Pakring():
         
         goal_pose = self.rotate_points(
             np.array(
-                [self.roi_cone[self.idx][0] + 2.0, self.roi_cone[self.idx][1] - 1.0]
+                [self.roi_cone[self.idx][0] + 2.9, self.roi_cone[self.idx][1] - 1.0]
             ),
             -self.reference_pose.yaw,
             np.array([self.reference_pose.x, self.reference_pose.y]),
@@ -322,7 +323,7 @@ class Pakring():
                 return msg, False
             
             elif self.parking_state == Parking_state.RETURN:
-                msg = ControlMessage(mora=0, estop=1,gear=2,speed = 0*10, steer = 0,brake=200)
+                msg = ControlMessage(mora=0, estop=1,gear=2,speed = 0*10, steer = 0,brake=200) #TODO 이부분 제거 가능?
                 return msg,True
             
 
@@ -334,9 +335,10 @@ class Pakring():
             if self.parking_state == Parking_state.STOP:
 
                 if time.time() - self.stop_start_time >= 5.0:
+                    self.node.get_logger().info("STOP state finished, moving to RETURN state")
                     self.parking_state = Parking_state(self.parking_state.value + 1)
                     self.target_idx = 0  # STOP -> RETURN
-                
+                self.node.get_logger().info(f"estop time_stop {time.time() - self.stop_start_time}")
                 self.search_path = np.array(self.search_path)
                 self.path_cx = self.parking_path[::1, 0]  # 첫 번째 열 (cx 값들)
                 self.path_cy = self.parking_path[::1, 1]  # 두 번째 열 (cy 값들)
@@ -360,16 +362,16 @@ class Pakring():
                     )
 
 
-                    target_speed = 8.0
+                    target_speed = 6.0
                     adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6)
-                    speed = self.pid.PIDControl(State.v * 3.6, adapted_speed)
+                    speed = self.pid.PIDControl(State.v * 3.6, adapted_speed, min=4, max=6)
                     msg = ControlMessage(mora=0, estop=0,gear=2,speed = speed*10, steer = int(m.degrees(-1* steer)),brake=0)
 
                 except Exception as e:
                     print(f"{e}: stanley")
                 return msg, False
             
-            # Kcity 경사로 때문에 생긴 설정                
+            # Kcity 경사로 setting                
             # elif self.parking_state == Parking_state.PARKING:
             #     if time.time() - self.parking_stop_time <= 5.0:
             #         msg = ControlMessage(mora=0, estop=1,gear=0,speed = 0*10, steer = 0,brake=200)
@@ -395,10 +397,10 @@ class Pakring():
             #     return msg, False
             
             elif self.parking_state == Parking_state.PARKING:                
-                if time.time() - self.parking_stop_time <= 1.0:
+                if time.time() - self.parking_stop_time <= 0.2:
                     msg = ControlMessage(mora=0, estop=1,gear=0,speed = 0*10, steer = 0,brake=200)
-                    return msg, False                 
-                    
+                    self.node.get_logger().info(f"estop time_stop {time.time() - self.stop_start_time}")                 
+                    return msg, False                    
                 try:
                     steer, self.target_idx, hdr,ctr = self.st.stanley_control(
                         State,
@@ -412,10 +414,11 @@ class Pakring():
                     # target_speed = 3.0
                     target_speed = 5.0
 
-                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=2, max_value=5
+                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6
                     )
+                    speed = self.pid.PIDControl(State.v * 3.6, adapted_speed,min=4, max=6)
                     brake = self.cacluate_brake(adapted_speed)
-                    msg = ControlMessage(mora=0, estop=0,gear=0,speed = int(adapted_speed)*10, steer = int(m.degrees(-1* steer)),brake= int(brake))
+                    msg = ControlMessage(mora=0, estop=0,gear=0,speed = speed*10, steer = int(m.degrees(-1* steer)),brake= int(brake))
                 except Exception as e:
                     print(f"Stanley:{e}\n",f"{State}")
                 return msg, False
@@ -433,8 +436,8 @@ class Pakring():
                     )
 
 
-                    target_speed = 7.0
-                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=6, max_value=8
+                    target_speed = 5.0
+                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6
                     )
                     speed = self.pid.PIDControl(State.v * 3.6, adapted_speed)
                     msg = ControlMessage(mora=0, estop=0,gear=2,speed = speed*10, steer = int(m.degrees(-1* steer)),brake=0)

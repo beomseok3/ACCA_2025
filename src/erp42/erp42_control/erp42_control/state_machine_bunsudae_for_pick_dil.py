@@ -17,8 +17,8 @@ import threading
 
 
 from controller_obstacle import Obstacle
-from controller_pickup import Pickup
-from controller_delivery import Delivery
+from controller_pickup_mj import Pickup
+from controller_delivery_mj import Delivery
 from controller_parking import Pakring
 # from controller_traffic_light import Trafficlight
 # from controller_stop_line import Stopline
@@ -134,14 +134,14 @@ class State(Enum):
     A2A3 = "pickup_b"      # 8
     A3A4 = "curve_c"       # 8
     A4A5 = "driving_d"     # 13
-    A5A6 = "obstacle_e"   # 8
+    A5A6 = "delivery_e"   # 8
     A6A7 = "driving_f"     # 13
-    A7A8 = "curve_g"       # 8
+    A7A8 = "driving_g"       # 8
     A8A9 = "driving_h"     # 13
-    A9A10 = "delivery_i"   # 8
-    A10A11 = "curve_j"     # 8
+    A9A10 = "driving_i"   # 8
+    A10A11 = "driving_j"     # 8
     # A11A12 = "driving_k"   # 13
-    A11A12 = "parking_l"   # 8
+    A11A12 = "driving_l"   # 8
     A12A13 = "driving_m"   # 13
 
 
@@ -286,10 +286,10 @@ class StateMachine():
             msg, self.mission_finish = self.obstacle.control_obstacle(self.odometry, self.path)
 
         elif self.state.value[:-2] == "pickup":
-            msg, self.mission_finish = self.pickup.control_pickup(self.odometry, self.path)
+            msg, self.abs_var, self.pickup_finished = self.pickup.control_pickup(self.odometry, self.path)
         
         elif self.state.value[:-2] == "delivery":
-            msg, self.mission_finish = self.delivery.control_delivery(self.odometry, self.path)
+            msg, self.mission_finish = self.delivery.control_delivery(self.odometry, self.abs_var)
 
         elif self.state.value[:-2] == "traffic_light":
             msg, self.mission_finish = self.traffic_light.control_traffic_light(self.odometry, self.path)

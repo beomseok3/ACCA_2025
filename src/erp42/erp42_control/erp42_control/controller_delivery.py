@@ -72,29 +72,29 @@ class Delivery:
 
         # DB 속성들을 먼저 초기화
         self.abs1_path_db = DB("B1.db")
-        self.abs2_path_db = DB("B2.db")
-        self.abs3_path_db = DB("B3.db")
+        # self.abs2_path_db = DB("B2.db")
+        # self.abs3_path_db = DB("B3.db")
 
         # 추가: abs_back 경로를 위한 DB 초기화
         self.abs1_back_path_db = DB("B1_back.db")
-        self.abs2_back_path_db = DB("B2_back.db")
-        self.abs3_back_path_db = DB("B3_back.db")
+        # self.abs2_back_path_db = DB("B2_back.db")
+        # self.abs3_back_path_db = DB("B3_back.db")
 
         # 데이터베이스에서 모든 경로를 한 번에 읽어옴
         self.abs1_path = np.array(self.abs1_path_db.read_db_n("Path", "x", "y", "yaw"))
-        self.abs2_path = np.array(self.abs2_path_db.read_db_n("Path", "x", "y", "yaw"))
-        self.abs3_path = np.array(self.abs3_path_db.read_db_n("Path", "x", "y", "yaw"))
+        # self.abs2_path = np.array(self.abs2_path_db.read_db_n("Path", "x", "y", "yaw"))
+        # self.abs3_path = np.array(self.abs3_path_db.read_db_n("Path", "x", "y", "yaw"))
 
         # 추가: abs_back 경로 로드
         self.abs1_back_path = np.array(
             self.abs1_back_path_db.read_db_n("Path", "x", "y", "yaw")
         )
-        self.abs2_back_path = np.array(
-            self.abs2_back_path_db.read_db_n("Path", "x", "y", "yaw")
-        )
-        self.abs3_back_path = np.array(
-            self.abs3_back_path_db.read_db_n("Path", "x", "y", "yaw")
-        )
+        # self.abs2_back_path = np.array(
+        #     self.abs2_back_path_db.read_db_n("Path", "x", "y", "yaw")
+        # )
+        # self.abs3_back_path = np.array(
+        #     self.abs3_back_path_db.read_db_n("Path", "x", "y", "yaw")
+        # )
 
         # 경로 선택 (abs1, abs2, abs3 중 하나 선택)
         self.abs_var = "abs1"  # "abs1" or "abs2" or "abs3"

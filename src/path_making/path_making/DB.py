@@ -9,7 +9,7 @@ from geometry_msgs.msg import PoseStamped
 class DB():
     def __init__(self, db_name):
         
-        self.db_path = "/home/ps/db_file"+"/"+db_name
+        self.db_path = "/home/acca/db_file"+"/"+db_name
         
         already_exist = os.path.isfile(self.db_path) #파일이 이미 존재했는지 확인
         

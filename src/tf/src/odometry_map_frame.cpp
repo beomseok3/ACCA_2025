@@ -17,7 +17,7 @@ public:
           tf_listener_(tf_buffer_)
     {
         odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-            "/odometry/wheel", 10, std::bind(&OdometryTransformer::odom_callback, this, std::placeholders::_1));
+            "/odometry/navsat", 10, std::bind(&OdometryTransformer::odom_callback, this, std::placeholders::_1));
         
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/localization/kinematic_state", 10);
     }
@@ -28,8 +28,7 @@ private:
         geometry_msgs::msg::TransformStamped transform_stamped;
         try
         {
-            // Look up the transform from the "odom" frame to the "map" frame
-            transform_stamped = tf_buffer_.lookupTransform("map", "odom", tf2::TimePointZero);
+            transform_stamped = tf_buffer_.lookupTransform("map", msg->header.frame_id, tf2::TimePointZero);
         }
         catch (tf2::TransformException &ex)
         {
@@ -39,18 +38,15 @@ private:
 
         nav_msgs::msg::Odometry transformed_msg = *msg;
         transformed_msg.header.frame_id = "map";
-
-        // Transform pose from odom frame to map frame
         tf2::doTransform(msg->pose.pose, transformed_msg.pose.pose, transform_stamped);
 
-        // Transform twist (linear and angular velocities) from odom frame to map frame
+        // Twist 변환
         tf2::Quaternion q(
             transform_stamped.transform.rotation.x,
             transform_stamped.transform.rotation.y,
             transform_stamped.transform.rotation.z,
             transform_stamped.transform.rotation.w);
         tf2::Matrix3x3 m(q);
-
         tf2::Vector3 linear(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z);
         tf2::Vector3 angular(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z);
 

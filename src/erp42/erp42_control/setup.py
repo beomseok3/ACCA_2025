@@ -19,8 +19,10 @@ setup(
         ("lib/" + package_name, [package_name + "/controller_obstacle.py"]),
         ("lib/" + package_name, [package_name + "/controller_obstacle_ys.py"]),
         ("lib/" + package_name, [package_name + "/controller_pickup.py"]),
+        ("lib/" + package_name, [package_name + "/controller_pickup_mj.py"]),
         ("lib/" + package_name, [package_name + "/controller_parking.py"]),
         ("lib/" + package_name, [package_name + "/controller_delivery.py"]),
+        ("lib/" + package_name, [package_name + "/controller_delivery_mj.py"]),
         ("lib/" + package_name, [package_name + "/controller_traffic_light.py"]),
         ("lib/" + package_name, [package_name + "/controller_uturn.py"]),
         ("lib/" + package_name, [package_name + "/controller_stop_line.py"]),
@@ -39,6 +41,9 @@ setup(
             "pid_tunning_2025 = erp42_control.pid_tunning_2025:main",
             "controller_cone = erp42_control.controller_cone:main",
             "state_machine = erp42_control.state_machine:main",
+            "state_machine_mpc = erp42_control.state_machine_mpc:main",
+            "state_machine_bunsudae_for_pick_dil = erp42_control.state_machine_mpc:main",
+            "state_machine_bunsudae = erp42_control.state_machine_bunsudae_for_pick_dil:main",
             "state_machine_ys = erp42_control.state_machine_ys:main",
             "state_machine_ys_test = erp42_control.state_machine_ys_test:main",
             "controller_obstacle = erp42_control.controller_obstacle:main",
@@ -49,6 +54,7 @@ setup(
             "controller_delivery = erp42_control.controller_delivery:main",
             "controller_uturn = erp42_control.controller_uturn:main",
             "control_frequency_check = erp42_control.control_frequency_check:main",
+            
         ],
     },
 )

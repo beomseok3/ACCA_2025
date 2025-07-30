@@ -34,7 +34,7 @@ class DBWRITE(Node):
         self.euclidean_list = []
         self.distance = 0
         self.ds = 0.1
-        self.db = DB("B1_back.db")
+        self.db = DB("parking_path_bunsudae.db")
         for i in range(1,31,1):
             self.db.write_db_Node([(f"A{i}",f"A{i+1}",f"A{i}A{i+1}"),])
         
@@ -51,23 +51,16 @@ class DBWRITE(Node):
 
         
         if not self.euclidean_duplicate(p1):
-            # self.path_x = [x,] + self.path_x
-            # self.path_y =[y,] + self.path_y
-            # self.path_yaw = [yaw,] + self.path_yaw
             
+            # parking
+            self.path_x = [p1[0]] + self.path_x
+            self.path_y = [p1[1]] + self.path_y
+            self.path_yaw = [p1[2]] + self.path_yaw
+            
+            #return
             # self.path_x.append(p1[0])
             # self.path_y.append(p1[1])
             # self.path_yaw.append(p1[2])
-            
-            # parking
-            # self.path_x = [p1[0]] + self.path_x
-            # self.path_y = [p1[1]] + self.path_y
-            # self.path_yaw = [p1[2]] + self.path_yaw
-            
-            #return
-            self.path_x.append(p1[0])
-            self.path_y.append(p1[1])
-            self.path_yaw.append(p1[2])
             
             self.path = list(zip(self.path_x, self.path_y, self.path_yaw))
             self.write_db()

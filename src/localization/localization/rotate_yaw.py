@@ -113,7 +113,7 @@ class Rotate(Node):
         mean = sum / len(self.forward)
         for f in self.forward:
             dyaw = mean - f
-            if abs(m.degrees(dyaw)) > 5:
+            if abs(m.degrees(dyaw)) > 2:
                 print("no!")
                 return False
             else:
@@ -129,8 +129,8 @@ class Rotate(Node):
         self.v = m.sqrt(vx**2 + vy**2)
         print(self.v)
         self.gps_yaw = m.atan2(vy, vx)
-        self.forward.append(self.gps_yaw)
-        del self.forward[0]
+        # self.forward.append(self.gps_yaw)
+        # del self.forward[0]
 
     # def callback_odom(self,msg):
     #     _,_,self.odom_yaw = euler_from_quaternion([msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w])
@@ -146,7 +146,7 @@ class Rotate(Node):
 
         # curve에서는 보정이 안 되고 있는 것 같은데 방안 생각해보기!
         # if abs(delta) > m.radians(2) and abs(delta) < m.radians(90) and self.v > 0.30 and self.path_shape == "straight":  #self.path_shape은 path_opener에서 내보내주기 때문에 path_opener먼저 키기
-        if abs(delta) > m.radians(2) and abs(delta) < m.radians(90) and self.v > 0.30 and self.cov < 0.0004:
+        if abs(delta) > m.radians(2) and abs(delta) < m.radians(90) and self.v > 0.50 and self.cov < 0.0004:
             if self.decision_straight():
                 self.delta = self.mean - yaw
                 qx, qy, qz, qw = quaternion_from_euler(0,0,self.gps_yaw)
