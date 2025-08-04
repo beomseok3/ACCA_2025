@@ -275,4 +275,7 @@ COLCON_IGNORE
 AMENT_IGNORE
 
 *.zip
+
+YOLOs-CPP/
 # End of https://www.toptal.com/developers/gitignore/api/python,c,c++,ros2
+

@@ -130,19 +130,33 @@ class SpeedSupporter():
 
 class State(Enum):    
 #   # State Enum for Bunsudae Path
+    # A1A2 = "driving_a"     # 13
+    # A2A3 = "pickup_b"      # 8
+    # A3A4 = "curve_c"       # 8
+    # A4A5 = "driving_d"     # 13
+    # A5A6 = "delivery_e"   # 8
+    # A6A7 = "driving_f"     # 13
+    # A7A8 = "driving_g"       # 8
+    # A8A9 = "driving_h"     # 13
+    # A9A10 = "driving_i"   # 8
+    # A10A11 = "driving_j"     # 8
+    # # A11A12 = "driving_k"   # 13
+    # A11A12 = "driving_l"   # 8
+    # A12A13 = "driving_m"   # 13
     A1A2 = "driving_a"     # 13
     A2A3 = "pickup_b"      # 8
     A3A4 = "curve_c"       # 8
     A4A5 = "driving_d"     # 13
-    A5A6 = "delivery_e"   # 8
+    A5A6 = "obstacle_e"   # 8
     A6A7 = "driving_f"     # 13
-    A7A8 = "driving_g"       # 8
+    A7A8 = "curve_g"       # 8
     A8A9 = "driving_h"     # 13
-    A9A10 = "driving_i"   # 8
-    A10A11 = "driving_j"     # 8
+    A9A10 = "delivery_i"   # 8
+    A10A11 = "curve_j"     # 8
     # A11A12 = "driving_k"   # 13
-    A11A12 = "driving_l"   # 8
+    A11A12 = "parking_l"   # 8
     A12A13 = "driving_m"   # 13
+
 
 
 class GetPath():
@@ -286,10 +300,10 @@ class StateMachine():
             msg, self.mission_finish = self.obstacle.control_obstacle(self.odometry, self.path)
 
         elif self.state.value[:-2] == "pickup":
-            msg, self.abs_var, self.pickup_finished = self.pickup.control_pickup(self.odometry, self.path)
+            msg, self.abs_var, self.mission_finish = self.pickup.control_pickup(self.odometry, self.path)
         
         elif self.state.value[:-2] == "delivery":
-            msg, self.mission_finish = self.delivery.control_delivery(self.odometry, self.abs_var)
+            msg, self.mission_finish = self.delivery.control_delivery(self.odometry, 6)
 
         elif self.state.value[:-2] == "traffic_light":
             msg, self.mission_finish = self.traffic_light.control_traffic_light(self.odometry, self.path)
@@ -366,7 +380,7 @@ def main():
 
     #Declare Instance
     db = DB(file_name)
-    state = State.A11A12
+    state = State.A9A10
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
     state_machine = StateMachine(node, odometry, path, state)

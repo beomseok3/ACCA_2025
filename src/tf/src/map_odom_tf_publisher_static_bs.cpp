@@ -20,10 +20,12 @@ public:
       throw std::runtime_error("Failed to create projection");
 
     /*-------------- 현장 고정 map 앵커 ----------------*/
-    // school-bunsudae
-    map_lat_ = 37.49644169;
-    map_lon_ = 126.9569352;
+    // // school-bunsudae and bs 0802
+    // map_lat_ = 37.49644169;
+    // map_lon_ = 126.9569352;
 
+    map_lat_ = 37.23880921;
+    map_lon_ = 126.7728822;
 
     // kcity-bs
     // map_lat_ = 37.2388925;

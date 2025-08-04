@@ -102,7 +102,7 @@ private:
     double abs_deg = std::abs(delta) * 180.0 / M_PI;
 
     if (abs_deg > 2.0 && abs_deg < 90.0            // 2° < |Δ| < 90°
-        && v_ > 0.30                               // 최소 속도
+        && v_ > 0.50                               // 최소 속도
         && cov_ < 0.0004)                          // GPS 분산
     {
       if (decisionStraight()) {

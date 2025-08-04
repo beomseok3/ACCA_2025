@@ -18,9 +18,9 @@ Output: steer
 
 """
 
-class Stanley(Node):
+class Stanley():
     def __init__(self):
-        super().__init__("stanley")
+        # super().__init__("stanley")
         self.__L = 1.240  # [m] Wheel base of vehicle
         # self.__k = self.declare_parameter("/stanley_controller/c_gain", 0.8).value
         # self.__hdr_ratio = self.declare_parameter("/stanley_controller/hdr_ratio", 0.03).value

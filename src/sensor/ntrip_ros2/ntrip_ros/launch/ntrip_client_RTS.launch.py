@@ -14,7 +14,7 @@ def generate_launch_description():
                 {'useragent': 'NTRIP u-blox'},
                 # Sometimes connection can rejected because of useragent
                 # Then, change it to below one.
-                # {'useragent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36'},
+                {'useragent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36'},
                 {'user': 'tge1375@naver.com:ngii'},
                 {'verbose': True},
             ],

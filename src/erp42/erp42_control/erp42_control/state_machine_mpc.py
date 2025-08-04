@@ -18,7 +18,7 @@ from enum import Enum
 import threading
 
 
-# from controller_obstacle import Obstacle
+from controller_obstacle_ys import Obstacle
 from controller_pickup import Pickup
 # from controller_delivery import Delivery
 # from controller_parking import Pakring
@@ -107,6 +107,10 @@ class PID:
 
         self.p_err = err
         self.i_err += self.p_err * dt * (0.0 if speed ==0 else 1.0)
+        if self.i_err > 5.0:
+            self.i_err = 5.0
+        if self.i_err < -5.0:
+            self.i_err = -5.0
         # self.i_err = np.clip(self.i_err, -10, 10)
         # self.node.get_logger().info(f"err : {err}")
         # print("----------------i_err-------------------")
@@ -121,29 +125,29 @@ class PID:
         return int(np.clip(self.speed, min, max))
 
 
-# class SpeedSupporter:
-#     def __init__(self, node):
-#         # self.he_gain = node.declare_parameter("/speed_supporter/he_gain", 30.0).value
-#         # self.ce_gain = node.declare_parameter("/speed_supporter/ce_gain", 20.0).value
+class SpeedSupporter:
+    def __init__(self, node):
+        # self.he_gain = node.declare_parameter("/speed_supporter/he_gain", 30.0).value
+        # self.ce_gain = node.declare_parameter("/speed_supporter/ce_gain", 20.0).value
 
-#         # self.he_thr = node.declare_parameter("/speed_supporter/he_thr",0.01).value
-#         # self.ce_thr = node.declare_parameter("/speed_supporter/ce_thr",0.02).value
+        # self.he_thr = node.declare_parameter("/speed_supporter/he_thr",0.01).value
+        # self.ce_thr = node.declare_parameter("/speed_supporter/ce_thr",0.02).value
 
-#         self.he_gain = node.declare_parameter("/speed_supporter/he_gain", 50.0).value
-#         self.ce_gain = node.declare_parameter("/speed_supporter/ce_gain", 30.0).value
+        self.he_gain = node.declare_parameter("/speed_supporter/he_gain", 50.0).value
+        self.ce_gain = node.declare_parameter("/speed_supporter/ce_gain", 30.0).value
 
-#         self.he_thr = node.declare_parameter("/speed_supporter/he_thr", 0.001).value
-#         self.ce_thr = node.declare_parameter("/speed_supporter/ce_thr", 0.002).value
+        self.he_thr = node.declare_parameter("/speed_supporter/he_thr", 0.001).value
+        self.ce_thr = node.declare_parameter("/speed_supporter/ce_thr", 0.002).value
 
-#     def func(self, x, a, b):
-#         return a * (x - b)
+    def func(self, x, a, b):
+        return a * (x - b)
 
-#     def adaptSpeed(self, value, hdr, ctr, min_value, max_value):
-#         hdr = self.func(abs(hdr), -self.he_gain, self.he_thr)
-#         ctr = self.func(abs(ctr), -self.ce_gain, self.ce_thr)
-#         err = hdr + ctr
-#         res = np.clip(value + err, min_value, max_value)
-#         return res
+    def adaptSpeed(self, value, hdr, ctr, min_value, max_value):
+        hdr = self.func(abs(hdr), -self.he_gain, self.he_thr)
+        ctr = self.func(abs(ctr), -self.ce_gain, self.ce_thr)
+        err = hdr + ctr
+        res = np.clip(value + err, min_value, max_value)
+        return res
 
 
 class State(Enum):
@@ -193,20 +197,53 @@ class State(Enum):
     # A8A9 = "driving_s"  # 8
     # A9A10 = "driving_h"  # 8
 
-    #   # State Enum for Bunsudae Path
-    A1A2 = "driving_a"     # 13
-    A2A3 = "pickup_b"      # 8
-    A3A4 = "curve_c"       # 8
-    A4A5 = "driving_d"     # 13
-    A5A6 = "driving_e"   # 8
-    A6A7 = "driving_f"     # 13
-    A7A8 = "curve_g"       # 8
-    A8A9 = "driving_h"     # 13
-    A9A10 = "delivery_i"   # 8
-    A10A11 = "curve_j"     # 8
-    # A11A12 = "driving_k"   # 13
-    A11A12 = "parking_l"   # 8
-    A12A13 = "driving_m"   # 13
+    # #   # State Enum for Bunsudae Path
+    # """ A1A2 = "driving_a"     # 13
+    # A2A3 = "pickup_b"      # 8
+    # A3A4 = "curve_c"       # 8
+    # A4A5 = "driving_d"     # 13
+    # A5A6 = "pickup_e"   # 8
+    # A6A7 = "driving_f"     # 13
+    # A7A8 = "curve_g"       # 8
+    # A8A9 = "driving_h"     # 13
+    # # A9A10 = "delivery_i"   # 8
+    # A9A10 = "driving_i"   # 8
+    # A10A11 = "curve_j"     # 8
+    # # A11A12 = "driving_k"   # 13
+    # A11A12 = "parking_l"   # 8
+    # A12A13 = "driving_m"   # 13 """
+
+    # A1A2 = "driving_a"     # 13
+    # A2A3 = "pickup_b"      # 8
+    # A3A4 = "driving_c"       # 8
+    # A4A5 = "pick_up_a"     # 13
+    # A5A6 = "driving_e"   # 8
+    # A6A7 = "pickup_f"     # 13
+    # A7A8 = "driving_g"       # 8
+    # A8A9 = "pick_up_h"     # 13
+    # # A9A10 = "delivery_i"   # 8
+    # A9A10 = "driving_i"   # 8
+    ############### YS 0801 ###########################
+    A1A2 = "driving_A" # old(15) new(20)
+    # A2A3 = "parking_B" # 사선 주차 old(5)
+    A2A3 = "driving_stanley_B" # 사선 주차 old(5)
+    A3A4 = "driving_B"
+    # A3A4 = "curve_C" # old(8) new(11)
+    # A4A5 = "driving_D" # old(15) new(20)
+
+    A4A5 = "driving_stanley_E" # 방지턱 old(12) new(12)
+
+    A5A6 = "driving_F" # old(8) new(11)
+    A6A7 = "obstacle_G" # old(12) new(20)
+    
+
+    B1B2 = "uturn_H" # old(7) 
+    A8A9 = "driving_I" # old(12) new(15)
+    A9A10 = "curve_I" # old(12) new(15)
+    A10A11 = "obstacle_J" # old(5) new(8)
+    ###################  YS ###########################
+
+
 class GetPath:
     def __init__(self, db, init_state):
         self.cx = []
@@ -290,12 +327,12 @@ class StateMachine:
         self.st = Stanley()
         self.mpc = MPC(self.db)
         self.pid = PID(node)
-        # self.ss = SpeedSupporter(node)
+        self.ss = SpeedSupporter(node)
 
         self.target_idx = 0
         self.mission_finish = False
 
-        # self.obstacle = Obstacle(self.node)
+        self.obstacle = Obstacle(self.node)
         self.pickup = Pickup(self.node)
         # self.delivery = Delivery(self.node)
         # self.parking = Pakring(self.node)
@@ -308,7 +345,7 @@ class StateMachine:
         # print("-------------------------------------")
         # print(self.target_idx, len(self.path.cx))
         # print("-------------------------------------")
-        if self.state.value[:-2] == "driving" or self.state.value[:-2] == "curve":
+        if self.state.value[:-2] == "driving" or self.state.value[:-2] == "curve" or self.state.value[:-2] == "driving_stanley":
             if self.target_idx >= len(self.path.cx) - 10:  # driving에서 state 전환 조건
                 states = list(State)
                 # print("-------------------------------------")
@@ -355,7 +392,7 @@ class StateMachine:
 
         if self.state.value[:-2] == "driving" or self.state.value[:-2] == "curve":
             if self.odometry.x != 0.0:  # 10.03 수정
-                self.min = 2
+                self.min = 0
                 self.max = 25
                 
 
@@ -403,6 +440,12 @@ class StateMachine:
                 self.db_speed_pub.publish(self.db_speed_msg)
                 self.idx_pub.publish(self.idx_msg)
 
+            elif self.state.value[:-2] == "driving_stanley":
+                steer, self.target_idx, hdr, ctr = self.st.stanley_control(self.odometry, self.path.cx, self.path.cy, self.path.cyaw, h_gain=0.5, c_gain=0.24)
+                target_speed = self.set_target_speed()
+                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=5, max_value=15) # 에러(hdr, ctr) 기반 목표 속력 조정
+                speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed, min=5, max=15) # speed 조정 (PI control) 
+                brake = self.cacluate_brake(adapted_speed) # brake 조정
 
             else:
                 pass
@@ -531,7 +574,7 @@ def main():
     # Declare Params
     # node.declare_parameter("file_name", "1006_1507_acca.db") #kcity
     # node.declare_parameter("file_name", "global_path.db") #dolge
-    node.declare_parameter("file_name", "bunsudae_v1"
+    node.declare_parameter("file_name", "k_city_ys_v1"
     ".db")  # bunsudae
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
@@ -541,7 +584,7 @@ def main():
 
     # Declare Instance
     db = DB(file_name)
-    state = State.A1A2
+    state = State.A5A6
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
     state_machine = StateMachine(node, odometry, path, state, db)

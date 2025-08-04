@@ -128,15 +128,29 @@ class SpeedSupporter():
 
 
 
-#kcity YS 대회용 (final - 1012)
 class State(Enum):
-    A1A2 = "driving_a"  #13
-    A2A3 = "curve_b"  #8
-    A3A4 = "driving_c"  #12
-    B1B2 = "uturn_a"  #7
-    A4A5 = "driving_d"  #12
-    A5A6 = "obstacle_a"  #5
-    A6A7 = "curve_e"  #8
+############### YS 0801 ###########################
+    A1A2 = "drinving_A" # old(15) new(20)
+    A2A3 = "parking_B" # 사선 주차 old(5)
+    A3A4 = "curve_C" # old(8) new(11)
+    A4A5 = "driving_D" # old(15) new(20)
+    A5A6 = "slow_E" # 방지턱 old(12) new(12)
+    A6A7 = "curve_F" # old(8) new(11)
+    A7A8 = "driving_G" # old(12) new(20)
+    B1B2 = "uturn_H" # old(7) 
+    A8A9 = "driving_I" # old(12) new(15)
+    A9A10 = "curve_I" # old(12) new(15)
+    A10A11 = "obstacle_J" # old(5) new(8)
+###################  YS ###########################
+
+# 2024 kcity YS 대회용 (final - 1012)
+    # A1A2 = "driving_a"  #13
+    # A2A3 = "curve_b"  #8
+    # A3A4 = "driving_c"  #12
+    # B1B2 = "uturn_a"  #7
+    # A4A5 = "driving_d"  #12
+    # A5A6 = "obstacle_a"  #5
+    # A6A7 = "curve_e"  #8
 
 
 
@@ -262,9 +276,9 @@ class StateMachine():
         if self.state.value[:-2] == "driving":
             if self.odometry.x != 0.: #10.03 수정
                 steer, self.target_idx, hdr, ctr = self.st.stanley_control(self.odometry, self.path.cx, self.path.cy, self.path.cyaw, h_gain=0.5, c_gain=0.24)
-                target_speed = self.set_target_speed()
-                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=8, max_value=15) # 에러(hdr, ctr) 기반 목표 속력 조정
-                speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed, min=8, max=15) # speed 조정 (PI control) 
+                target_speed = self.set_target_speed() # TODO min : 5이하로 줄임 (0801 내가함)
+                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=5, max_value=15) # 에러(hdr, ctr) 기반 목표 속력 조정
+                speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed, min=5, max=15) # speed 조정 (PI control) 
                 brake = self.cacluate_brake(adapted_speed) # brake 조정
 
                 # msg.speed = int(adapted_speed) * 10

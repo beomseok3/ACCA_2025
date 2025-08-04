@@ -132,41 +132,73 @@ class SpeedSupporter():
 
 class State(Enum):    
 #kcity 본선 대회용 (final - 1012)
-    A1A2 = "driving_a"  #13
-    A2A3 = "pickup_b"  #9
-    A3A4 = "curve_c"  #8
-    A4A5 = "curve_d"  #8
-    A5A6 = "obstacle_e"  #6
-    A6A7 = "curve_f"  #8
-    A7A8 = "stop_line_a"  #8
-    A8A9 = "stop_line_b"  #8
-    A9A10 = "curve_h"  #8
-    A10A11 = "traffic_light_i"  #8
-    A11A12 = "curve_j"  #8
-    A12A13 = "traffic_light_k"  #8
-    A13A14 = "driving_l"  #15
-    A14A15 = "obstacle_m"  #6
-    A15A16 = "curve_n"  #8
-    A16A17 = "traffic_light_o"  #8
-    A17A18 = "driving_p"  #10
-    A18A19 = "delivery_q"  #7 #delivery
-    A19A20 = "driving_r"  #8
-    A20A21 = "traffic_light_s"  #8
-    A21A22 = "driving_t"  #10
-    A22A23 = "traffic_light_u"  #8
-    A23A24 = "curve_v"  #10
-    A24A25 = "driving_w"  #15
-    A25A26 = "curve_x"  #11
-    A26A27 = "stop_line_c"  #8
-    A27A28 = "curve_y"  #8
-    A28A29 = "driving_z"  #13
-    A29A30 = "traffic_light_A"  #8
-    A30A31 = "driving_B"  #16
-    A31A32 = "traffic_light_C"  #8
-    A32A33 = "driving_D"  #15
-    A33A34 = "parking_E"  #6
-    A34A35 = "driving_E"  #15
+    # A1A2 = "driving_a"  #13
+    # A2A3 = "pickup_b"  #9
+    # A3A4 = "curve_c"  #8
+    # A4A5 = "curve_d"  #8
+    # A5A6 = "obstacle_e"  #6
+    # A6A7 = "curve_f"  #8
+    # A7A8 = "stop_line_a"  #8
+    # A8A9 = "stop_line_b"  #8
+    # A9A10 = "curve_h"  #8
+    # A10A11 = "traffic_light_i"  #8
+    # A11A12 = "curve_j"  #8
+    # A12A13 = "traffic_light_k"  #8
+    # A13A14 = "driving_l"  #15
+    # A14A15 = "obstacle_m"  #6
+    # A15A16 = "curve_n"  #8
+    # A16A17 = "traffic_light_o"  #8
+    # A17A18 = "driving_p"  #10
+    # A18A19 = "delivery_q"  #7 #delivery
+    # A19A20 = "driving_r"  #8
+    # A20A21 = "traffic_light_s"  #8
+    # A21A22 = "driving_t"  #10
+    # A22A23 = "traffic_light_u"  #8
+    # A23A24 = "curve_v"  #10
+    # A24A25 = "driving_w"  #15
+    # A25A26 = "curve_x"  #11
+    # A26A27 = "stop_line_c"  #8
+    # A27A28 = "curve_y"  #8
+    # A28A29 = "driving_z"  #13
+    # A29A30 = "traffic_light_A"  #8
+    # A30A31 = "driving_B"  #16
+    # A31A32 = "traffic_light_C"  #8
+    # A32A33 = "driving_D"  #15
+    # A33A34 = "parking_E"  #6
+    # A34A35 = "driving_E"  #15
 
+############### BS 0801 ###########################
+    A1A2 = "driving_a"  # st(13) mpc(20) -- 40까지?
+    A2A3 = "pickup_b"  # st(9)
+    A3A4 = "driving_c"  # st(13) mpc(20)
+    A4A5 = "traffic_light_d" # st(8) mpc(8)
+    A5A6 = "driving_e"  # st(13) mpc(20)
+    A6A7 = "traffic_light_f"  # st(8) mpc(8)
+    A7A8 = "driving_A"  # st(13) mpc(20)
+    A8A9 = "obstacle_b"  # 대형 장애물 # st(6) mpc(6)
+    A9A10 = "curve_h" #차선 변경 # st(8) mpc(10)
+    A10A11 = "traffic_light_j"  # st(8) mpc(8)
+    A11A12 = "driving_k"  # st(13) mpc(20)
+    A12A13 = "stop_line_l"  # st(10) mpc(10)
+    A13A14 = "curve_m"  # st(8) mpc(10)
+    A14A15 = "stop_line_n"  # st(10) mpc(10)
+    A15A16 = "curve_o"  # st(8) mpc(10)
+    A16A17 = "driving_p"  # st(13) mpc(20)
+    A17A18 = "traffic_light_d"  # st(8) mpc(8)
+    A18A19 = "curve_r"  # st(13) mpc(20)
+    A19A20 = "delivery_s"  # st(10) mpc(10)
+    A20A21 = "curve_t"  # st(10) mpc(15)
+    A21A22 = "traffic_light_u"  # st(8) mpc(8)
+    A22A23 = "driving_v"  # st(10) mpc(15)
+    A23A24 = "traffic_light_w"  # st(8) mpc(8)
+    A24A25 = "driving_x"  # st(10) mpc(15)
+    A25A26 = "curve_c"  # st(8) mpc(10)
+    A26A27 = "obstacle_y"  # 소형 # st(8) mpc(8)
+    A27A28 = "curve_z"  # st(8) mpc(10)
+    A28A29 = "driving_C"  # st(13) mpc(20)
+    A29A30 = "parking_A"  # st(5) mpc(5)
+    A30A31 = "driving_B"  # st(13) mpc(20)
+###################  BS ###########################
 
 class GetPath():
     def __init__(self, db, init_state):

@@ -5,7 +5,7 @@ from geometry_msgs.msg import PointStamped, PoseStamped
 from tf_transformations import *
 import math
 import numpy as np
-from darknet_ros_msgs.msg import BoundingBoxes
+from yolo_msg.msg import TrafficSign
 
 
 from rclpy.qos import qos_profile_system_default
@@ -82,55 +82,51 @@ class Pickup():
         self.st = Stanley()
         self.pid = PID(node)
         self.ss = SpeedSupporter(node)
-        
-        
+
+
         self.yolo_sub = self.node.create_subscription(
-            BoundingBoxes, #??
-            "/yolo_msg", #?? 뭘까요
+            TrafficSign,
+            "/traffic_sign_map",
             self.yolo_callback,
             10
         )
-        
+
 
 
         self.estop = 0
         self.target_speed = 6
         self.count = 0
         self.queue = []
-        self.abs_var = None  # "abs1", "abs2", "abs3" 중 하나로 설정될 예정
-        
+        self.abs_var = None  # abs_var A1, A2, A3으로 들어왔기 때문에, +3 해서 들어와 B1, B2, B3과 맞춰줌 
+
     def yolo_callback(self, msg):
-        # 1) 감지된 모든 클래스 레이블(class_name)을 queue에 추가
-        for bb in msg.boxes:
-            # bb.class_name은 "B1", "B2", "B3"
-            if bb.class_name in ("B1", "B2", "B3"):
-                self.queue.append(bb.class_name)
-        # 2) queue가 10개 이상이면 오래된 것부터 버리기 (슬라이딩 윈도우)
+        if msg.class_id in (1,2,3):
+            self.queue.append(msg.class_id)
         if len(self.queue) > 10:
             self.queue.pop(0)
         # 3) 가장 많이 검출된 클래스가 6번 이상이면 abs_var 설정
-        for label in ("B1", "B2", "B3"):
+        for label in (1,2,3):
             if self.queue.count(label) >= 6:
-                idx = label[1]    # "1", "2", "3"
-                self.abs_var = f"abs{idx}"
+                idx = label    # "1", "2", "3"
+                self.abs_var = int(label+3)
                 # 딱 한 번만 하고 끝내고 싶으면 return 추가
                 return
 
-            
+
     def control_pickup(self, odometry, path):
-        
+
         msg = ControlMessage()
 
         steer, self.target_idx, hdr, ctr = self.st.stanley_control(odometry, path.cx, path.cy, path.cyaw, h_gain=0.6, c_gain=0.35)
-        self.get_logger().info(self.target_idx)
+        # self.get_logger().info(self.target_idx)
 
         if self.target_idx >= len(path.cx) - 2 : # distance가 0.5m 이내
-            self.get_logger().info(self.target_idx, len(path.cx), self.count)
+            # self.get_logger().info(self.target_idx, len(path.cx), self.count)
             if self.count <= 50:
                 self.estop = 1
                 self.count += 1
                 if self.abs_var is not None:
-                    self.node.get_logger().info(f"Pickup: {self.abs_var} detected, estop engaged.")
+                    print(f"Pickup: {self.abs_var} detected, estop engaged.")
             else:
                 self.estop = 0
                 self.pickup_finished = True
@@ -149,7 +145,7 @@ class Pickup():
 
 
         msg.steer = int(math.degrees((-1) * steer))
-        msg.speed = int(speed) * 10 
+        msg.speed = int(speed) * 10
         msg.gear = 2
         msg.estop = self.estop
 
