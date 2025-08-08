@@ -228,7 +228,7 @@ def main(args=None):
     node = rclpy.create_node("erp42_serial")
 
     port_param = node.declare_parameter(
-        "/erp42_serial/erp_port", "/dev/ttyUSB1"
+        "/erp42_serial/erp_port", "/dev/ttyUSB0"
     )  # launch파일에 파라미터 정의해서 가져오기 안 됨. 다 정상적으로 되면 마지막에 이 부분 공부해보기
 
     port = port_param.value

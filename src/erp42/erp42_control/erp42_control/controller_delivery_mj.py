@@ -49,7 +49,7 @@ class Delivery:
         # 제어 파라미터
         self.v_search = 5.0          # 추종 속도(프로젝트 스펙 단위에 맞게 조정)
         self.max_steer_deg = 28.0     # 조향 제한(deg)
-        self.stop_radius = 1.0        # [m] sign까지 거리 임계값 (1 m 내면 즉시 정지)
+        self.stop_radius = 3.0        # [m] sign까지 거리 임계값 (1 m 내면 즉시 정지)
 
         # 내부
         self.current_path = None      # (xs, ys, yaws)
@@ -137,6 +137,7 @@ class Delivery:
         # 상태 갱신
         self.x, self.y, self.yaw = odometry.x, odometry.y, odometry.yaw
         self.abs_var = abs_var
+        print(self.abs_var, )
 
         # 1) 외부 제공 path → 현재 경로로 사용
         xs = list(path.cx)
@@ -155,12 +156,16 @@ class Delivery:
 
         # 2) sign이 잡혔고, 목표 좌표가 있으며, 1 m 이내면 즉시 e-stop
         if self.find_sign and (self.place_x is not None) and (self.place_y is not None):
+
             dist = m.hypot(self.place_x - self.x, self.place_y - self.y)
+            print(dist)
             if dist <= self.stop_radius and self.count >= 50:
                 return self._safe_stop(), True
             elif dist <= self.stop_radius:
                 self.count += 1
                 return self._safe_stop(), False
+        
+  
 
         # 3) 그 외에는 계속 추종
         return self._compute_control(self.current_path, odometry, speed_cmd=self.v_search), False

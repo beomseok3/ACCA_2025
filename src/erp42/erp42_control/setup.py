@@ -21,6 +21,7 @@ setup(
         ("lib/" + package_name, [package_name + "/controller_pickup.py"]),
         ("lib/" + package_name, [package_name + "/controller_pickup_mj.py"]),
         ("lib/" + package_name, [package_name + "/controller_parking.py"]),
+         ("lib/" + package_name, [package_name + "/controller_parking_ys.py"]),
         ("lib/" + package_name, [package_name + "/controller_delivery.py"]),
         ("lib/" + package_name, [package_name + "/controller_delivery_mj.py"]),
         ("lib/" + package_name, [package_name + "/controller_traffic_light.py"]),

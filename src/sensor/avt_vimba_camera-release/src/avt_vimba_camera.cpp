@@ -674,7 +674,16 @@ void AvtVimbaCamera::initConfig()
     return;
   }
 
-  VmbErrorType err;
+  // ✅ 픽셀 포맷을 컬러로 설정
+  std::string pixel_format = "BGR8";
+  VmbErrorType err = setFeatureValue("PixelFormat", pixel_format.c_str());
+
+  if (err == VmbErrorSuccess) {
+    RCLCPP_INFO(nh_->get_logger(), "PixelFormat set to %s", pixel_format.c_str());
+  } else {
+    RCLCPP_WARN(nh_->get_logger(), "Failed to set PixelFormat to %s", pixel_format.c_str());
+  }
+
   uint32_t writable_count = 0;
 
   // Fetch all features of our cam
@@ -706,6 +715,7 @@ void AvtVimbaCamera::initConfig()
               writable_features_.size(), writable_count);
   on_init_config_ = false;
 }
+
 
 bool AvtVimbaCamera::createParamFromFeature(const FeaturePtr feature, std::string& feature_name, bool& is_writable)
 {

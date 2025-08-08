@@ -22,6 +22,7 @@ import threading
 
 from controller_obstacle_ys import Obstacle
 from controller_uturn import Uturn
+from controller_parking_ys import Parking
 
 
 
@@ -141,6 +142,7 @@ class State(Enum):
     A8A9 = "driving_I" # old(12) new(15)
     A9A10 = "curve_I" # old(12) new(15)
     A10A11 = "obstacle_J" # old(5) new(8)
+    A12A13 = "parking_J" # old(5) new(8)
 ###################  YS ###########################
 
 # 2024 kcity YS 대회용 (final - 1012)
@@ -236,6 +238,7 @@ class StateMachine():
 
         self.obstacle = Obstacle(self.node)
         self.uturn = Uturn(self.node)
+        self.parking = Parking(self.node)
 
         self.k = 0
 
@@ -314,6 +317,9 @@ class StateMachine():
         elif self.state.value[:-2] == "uturn":
             if self.odometry.x != 0.:
                 msg, self.mission_finish = self.uturn.control_uturn(self.odometry)
+        elif self.state.value[:-2] == "parking":
+            if self.odometry.x != 0.:
+                msg, self.mission_finish = self.parking.control_parking(self.odometry)
         else:
             print("error: ", self.state.value)
 
@@ -372,7 +378,7 @@ def main():
     # node.declare_parameter("file_name", "1006_1507_acca.db") #kcity
     # node.declare_parameter("file_name", "1003_dolge_test.db") #dolge
     # node.declare_parameter("file_name", "YS_ndt_test.db")
-    node.declare_parameter("file_name", "YS_final.db")
+    node.declare_parameter("file_name", "bunsudae_v1.db")
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
     node.declare_parameter("pcl_topic", "/pcl_pose")
 
@@ -386,7 +392,7 @@ def main():
 
     #Declare Instance
     db = DB(file_name)
-    state = State.A5A6
+    state = State.A12A13
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic, pcl_topic)
     state_machine = StateMachine(node, odometry, path, state)

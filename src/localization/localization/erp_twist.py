@@ -61,6 +61,7 @@ class ErpTwist(Node):
         data.twist.twist.angular.y = 0.0
         data.twist.twist.angular.z = 0.0
 
+          
         data.twist.covariance = [
             0.1,
             0.0,
@@ -99,6 +100,47 @@ class ErpTwist(Node):
             0.0,
             0.0,
         ]
+        if v > 0.1:
+             data.twist.covariance = [
+            0.0001,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0001,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ]
+
+
         self.pub.publish(data)
 
 

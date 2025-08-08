@@ -86,7 +86,7 @@ class Pickup():
 
         self.yolo_sub = self.node.create_subscription(
             TrafficSign,
-            "/traffic_sign_map",
+            "/traffic_sign",
             self.yolo_callback,
             10
         )
@@ -114,6 +114,7 @@ class Pickup():
 
 
     def control_pickup(self, odometry, path):
+        print(self.abs_var)
 
         msg = ControlMessage()
 

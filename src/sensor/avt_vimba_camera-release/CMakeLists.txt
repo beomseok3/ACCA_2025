@@ -13,10 +13,13 @@ find_package(ament_cmake_auto REQUIRED)
 
 ament_auto_find_build_dependencies()
 
+
 # Get architecture
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-include(TargetArchitecture)
-target_architecture(ARCH)
+# include(TargetArchitecture)
+# target_architecture(ARCH)
+set(ARCH x86_64)
+
 
 ###########
 ## Build ##
