@@ -4,7 +4,8 @@
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/quaternion.hpp>
-#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/odometry.hpp>  // 추가
+
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -32,16 +33,17 @@ public:
       "ublox_gps_node/fix_velocity", qos,
       std::bind(&Rotate::gpsVelCallback, this, std::placeholders::_1));
 
-    // sub_gps_fix_ = create_subscription<sensor_msgs::msg::NavSatFix>(
-    //   "ublox_gps_node/fix", qos,
-    //   std::bind(&Rotate::gpsFixCallback, this, std::placeholders::_1));
+    sub_gps_fix_ = create_subscription<sensor_msgs::msg::NavSatFix>(
+      "ublox_gps_node/fix", qos,
+      std::bind(&Rotate::gpsFixCallback, this, std::placeholders::_1));
+    // ★ 추가: GPS 재밍 오도메트리 구독
+    sub_gps_jam_ = create_subscription<nav_msgs::msg::Odometry>(
+      "odometry/gps_jaming", qos,
+      std::bind(&Rotate::gpsJammingCallback, this, std::placeholders::_1));
 
-      sub_gps_fix_ = create_subscription<nav_msgs::msg::Odometry>(
-        "odometry/gps_jamming", qos,
-        std::bind(&Rotate::gpsFixCallback, this, std::placeholders::_1));
 
     pub_imu_rotated_ = create_publisher<sensor_msgs::msg::Imu>("imu/rotated", qos);
-    pub_delta_quat_  = create_publisher<geometry_msgs::msg::Quaternion>("delta", qos);
+    pub_mean_quat_  = create_publisher<geometry_msgs::msg::Quaternion>("mean", qos);
   }
 
 private:
@@ -76,9 +78,14 @@ private:
   }
 
   /* ---------- 콜백 ---------- */
-  void gpsFixCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+  void gpsFixCallback(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
   {
-    cov_ = msg->pose.covariance[0];
+    cov_ = msg->position_covariance[0];
+  }
+  void gpsJammingCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+  {
+    // cov[0] 사용 가정: pose.covariance[0]
+    jamming_cov0_ = msg->pose.covariance[0];
   }
 
   void gpsVelCallback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg)
@@ -108,17 +115,19 @@ private:
 
     if (abs_deg > 2.0 && abs_deg < 90.0            // 2° < |Δ| < 90°
         && v_ > 0.50                               // 최소 속도
-        && cov_ < 0.0004)                          // GPS 분산
+        && cov_ < 0.0004
+        && jamming_cov0_ < 0.0004
+      )                          // GPS 분산
     {
       if (decisionStraight()) {
         delta_ = mean_ - yaw;
 
         // GPS 평균 방향을 별도 topic으로 publish
-        tf2::Quaternion q_gps = quatFromEuler(0,0,delta_);
+        tf2::Quaternion q_gps = quatFromEuler(0,0,gps_yaw_);
         geometry_msgs::msg::Quaternion q_msg;
         q_msg.x = q_gps.x(); q_msg.y = q_gps.y();
         q_msg.z = q_gps.z(); q_msg.w = q_gps.w();
-        pub_delta_quat_->publish(q_msg);
+        pub_mean_quat_->publish(q_msg);
       }
     }
 
@@ -152,12 +161,12 @@ private:
   /* ---------- 멤버 변수 ---------- */
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr   sub_imu_;
   rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr sub_gps_vel_;
-  // rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr sub_gps_fix_;
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr sub_gps_fix_;
+  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr sub_gps_fix_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr sub_gps_jam_; // 추가
 
 
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu_rotated_;
-  rclcpp::Publisher<geometry_msgs::msg::Quaternion>::SharedPtr pub_delta_quat_;
+  rclcpp::Publisher<geometry_msgs::msg::Quaternion>::SharedPtr pub_mean_quat_;
 
   /* 상태 저장 */
   std::deque<double> forward_;   // 최근 10 개의 GPS yaw
@@ -168,6 +177,7 @@ private:
   double gps_yaw_{0.0};
   double v_{0.0};
   double cov_{0.0};
+  double jamming_cov0_{0.0};
 };
 
 /* ---------- main ---------- */

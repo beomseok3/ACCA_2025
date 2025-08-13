@@ -119,20 +119,32 @@ class Parking:
         #### parking_path ####
         self.parking_path_db_1 = DB("P_parking_path_1.db")
         self.parking_path_db_2 = DB("P_parking_path_2.db")
-     
+        self.parking_path_db_3 = DB("P_parking_path_3.db")
+        self.parking_path_db_4 = DB("P_parking_path_4.db")
+        self.parking_path_db_5 = DB("P_parking_path_5.db")
+        self.parking_path_db_6 = DB("P_parking_path_6.db")
 
         self.parking_path_1 = self.parking_path_db_1.read_db_n("Path", "x", "y", "yaw")
         self.parking_path_2 = self.parking_path_db_2.read_db_n("Path", "x", "y", "yaw")
-      
+        self.parking_path_3 = self.parking_path_db_3.read_db_n("Path", "x", "y", "yaw")
+        self.parking_path_4 = self.parking_path_db_4.read_db_n("Path", "x", "y", "yaw")
+        self.parking_path_5 = self.parking_path_db_5.read_db_n("Path", "x", "y", "yaw")
+        self.parking_path_6 = self.parking_path_db_6.read_db_n("Path", "x", "y", "yaw")
 
         #### return_path ####
         self.return_path_db_1 = DB("P_return_path_1.db")
         self.return_path_db_2 = DB("P_return_path_2.db")
-
+        self.return_path_db_3 = DB("P_return_path_3.db")
+        self.return_path_db_4 = DB("P_return_path_4.db")
+        self.return_path_db_5 = DB("P_return_path_5.db")
+        self.return_path_db_6 = DB("P_return_path_6.db")
 
         self.return_path_1 = self.return_path_db_1.read_db_n("Path", "x", "y", "yaw")
         self.return_path_2 = self.return_path_db_2.read_db_n("Path", "x", "y", "yaw")
-     
+        self.return_path_3 = self.return_path_db_3.read_db_n("Path", "x", "y", "yaw")
+        self.return_path_4 = self.return_path_db_4.read_db_n("Path", "x", "y", "yaw")
+        self.return_path_5 = self.return_path_db_5.read_db_n("Path", "x", "y", "yaw")
+        self.return_path_6 = self.return_path_db_6.read_db_n("Path", "x", "y", "yaw")
 
         # instance
         self.state = Parking_state.SEARCH
@@ -219,7 +231,10 @@ class Parking:
             path = [
                 self.parking_path_1,
                 self.parking_path_2,
-            
+                self.parking_path_3,
+                self.parking_path_4,
+                self.parking_path_5,
+                self.parking_path_6,
             ][self.goal - 1]
             path_x = [p[0] for p in path]
             path_y = [p[1] for p in path]
@@ -269,7 +284,10 @@ class Parking:
             path = [
                 self.return_path_1,
                 self.return_path_2,
-                
+                self.return_path_3,
+                self.return_path_4,
+                self.return_path_5,
+                self.return_path_6,
             ][self.goal - 1]
             path_x = [p[0] for p in path]
             path_y = [p[1] for p in path]
@@ -321,7 +339,10 @@ class Parking:
             paths = [
                 self.parking_path_1,
                 self.parking_path_2,
-              
+                self.parking_path_3,
+                self.parking_path_4,
+                self.parking_path_5,
+                self.parking_path_6,
             ]
 
             min_dist_threshold = 1.0  # 장애물과의 최소 거리

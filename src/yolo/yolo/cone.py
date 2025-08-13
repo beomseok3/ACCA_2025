@@ -78,7 +78,7 @@ class YoloSegNode(Node):
             cy_box = height // 2
 
             # 중심 보정 (가중 평균)
-            alpha = 0.7
+            alpha = 0.0
             cx_local = int(alpha * cx_mask + (1 - alpha) * cx_box)
             cy_local = int(alpha * cy_mask + (1 - alpha) * cy_box)
 

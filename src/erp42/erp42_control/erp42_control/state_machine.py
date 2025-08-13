@@ -409,7 +409,7 @@ def main():
     # Declare Params
     # node.declare_parameter("file_name", "1006_1507_acca.db") #kcity
     # node.declare_parameter("file_name", "global_path.db") #dolge
-    node.declare_parameter("file_name", "BS_final.db") #bunsudae
+    node.declare_parameter("file_name", "bunsudae_v1.db") #bunsudae
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
 

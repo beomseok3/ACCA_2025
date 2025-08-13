@@ -21,7 +21,7 @@ import threading
 
 
 from controller_obstacle_ys import Obstacle
-from controller_uturn import Uturn
+from controller_uturn_ys import Uturn
 from controller_parking_ys import Parking
 
 
@@ -131,18 +131,15 @@ class SpeedSupporter():
 
 class State(Enum):
 ############### YS 0801 ###########################
-    A1A2 = "drinving_A" # old(15) new(20)
+    A1A2 = "driving_A" # old(15) new(20)
     A2A3 = "parking_B" # 사선 주차 old(5)
     A3A4 = "curve_C" # old(8) new(11)
-    A4A5 = "driving_D" # old(15) new(20)
-    A5A6 = "slow_E" # 방지턱 old(12) new(12)
-    A6A7 = "curve_F" # old(8) new(11)
+    A4A5 = "curve__D" # old(15) new(20)
+    A5A6 = "curve_E" # 방지턱 old(12) new(12)
+    A6A7 = "uturn_F" # old(8) new(11)
     A7A8 = "driving_G" # old(12) new(20)
-    B1B2 = "uturn_H" # old(7) 
-    A8A9 = "driving_I" # old(12) new(15)
-    A9A10 = "curve_I" # old(12) new(15)
-    A10A11 = "obstacle_J" # old(5) new(8)
-    A12A13 = "parking_J" # old(5) new(8)
+    A8A9 = "parking_I" # old(12) new(15)
+   
 ###################  YS ###########################
 
 # 2024 kcity YS 대회용 (final - 1012)
@@ -378,7 +375,7 @@ def main():
     # node.declare_parameter("file_name", "1006_1507_acca.db") #kcity
     # node.declare_parameter("file_name", "1003_dolge_test.db") #dolge
     # node.declare_parameter("file_name", "YS_ndt_test.db")
-    node.declare_parameter("file_name", "bunsudae_v1.db")
+    node.declare_parameter("file_name", "k_city_ys_v1_new.db")
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
     node.declare_parameter("pcl_topic", "/pcl_pose")
 
@@ -392,7 +389,7 @@ def main():
 
     #Declare Instance
     db = DB(file_name)
-    state = State.A12A13
+    state = State.A1A2
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic, pcl_topic)
     state_machine = StateMachine(node, odometry, path, state)

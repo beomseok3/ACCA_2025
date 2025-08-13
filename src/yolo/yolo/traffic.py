@@ -13,6 +13,7 @@ import time
 
 from yolo_msg.msg import BoundingBox, BoundingBoxArray
 
+##traffic sign
 class YOLOv8InferenceNode(Node):
     def __init__(self):
         super().__init__('yolov8_inference_node')
@@ -30,6 +31,25 @@ class YOLOv8InferenceNode(Node):
         self.publisher = self.create_publisher(BoundingBox, 'yolo/detections', 10)
 
         self.get_logger().info("YOLOv8 Inference Node is running...")
+
+##traffic light
+# class YOLOv8InferenceNode(Node):
+#     def __init__(self):
+#         super().__init__('yolov8_inference_node')
+
+#         self.model = YOLO('/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/traffic_light.pt')
+#         self.bridge = CvBridge()
+
+#         self.subscription = self.create_subscription(
+#             Image,
+#             '/camera2/image_raw',
+#             self.listener_callback,
+#             10
+#         )
+
+#         self.publisher = self.create_publisher(BoundingBox, 'yolo/detections', 10)
+
+#         self.get_logger().info("YOLOv8 Inference Node is running...")
 
     def listener_callback(self, msg):
         try:

@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy, qos_profile_system_default
 from erp42_msgs.msg import ControlMessage
 from std_msgs.msg import Float32
 
@@ -10,10 +10,12 @@ class MPCNode(Node):
         self.get_logger().info("MPC Node has been started.")
         
         # Define QoS profile for the publisher
-        qos_profile = QoSProfile(
-            depth=10,
-            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL
-        )
+        # qos_profile = QoSProfile(
+        #     depth=10,
+        #     durability=QoSDurabilityPolicy.TRANSIENT_LOCAL
+        # )
+        qos_profile = QoSProfile(depth=10)
+
         
         self.create_subscription(ControlMessage, "cmd_msg",self.callback, qos_profile)
         # Create a publisher with the defined QoS profile

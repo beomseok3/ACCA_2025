@@ -77,22 +77,26 @@ class Control:
             # steer
             steer = data.steer * 71
 
+            # 제한
             if steer > 1999:
                 steer = 1999
-            if steer < -1999:
+            elif steer < -1999:
                 steer = -1999
 
             if steer >= 0:
                 self.data[8] = int(steer // 256)
                 self.data[9] = int(steer % 256)
+                print(self.data[8], self.data[9])
             else:
                 steer = -steer
                 self.data[8] = int(255 - steer // 256)
                 self.data[9] = int(255 - steer % 256)
 
+            
             self.data[5] = data.gear  # gear
             self.data[6] = int(speed // 256)
             self.data[7] = int(speed % 256)
+
             self.data[10] = data.brake  # BREAK
         else:
             # speed
@@ -228,7 +232,7 @@ def main(args=None):
     node = rclpy.create_node("erp42_serial")
 
     port_param = node.declare_parameter(
-        "/erp42_serial/erp_port", "/dev/ttyUSB0"
+        "/erp42_serial/erp_port", "/dev/ttyUSB1"
     )  # launch파일에 파라미터 정의해서 가져오기 안 됨. 다 정상적으로 되면 마지막에 이 부분 공부해보기
 
     port = port_param.value
