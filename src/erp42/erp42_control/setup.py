@@ -61,6 +61,7 @@ setup(
             "steer_viewer = erp42_control.steer_viewer:main",
             "steer_logger = erp42_control.steer_logger:main",
             "cmd_publisher_20hz = erp42_control.cmd_publisher_20hz:main",
+            "controller_cone_mpc_curve_real = erp42_control.controller_cone_mpc_curve_real:main",
             
         ],
     },
