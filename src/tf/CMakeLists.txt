@@ -28,6 +28,7 @@ include_directories(
 
 add_executable(map_odom_tf_publisher_static src/map_odom_tf_publisher_static.cpp)
 add_executable(map_odom_tf_publisher_static_bs src/map_odom_tf_publisher_static_bs.cpp)
+# add_executable(map_odom_tf_publisher_00 src/map_odom_tf_publisher_00.cpp)
 add_executable(odometry_map_frame src/odometry_map_frame.cpp)
 add_executable(cone_pose_transform src/cone_pose_transform.cpp)
 add_executable(localization_path_tf src/localization_path_tf.cpp)
@@ -54,6 +55,13 @@ ament_target_dependencies(map_odom_tf_publisher_static_bs
   sensor_msgs
   Eigen3
 )
+# ament_target_dependencies(map_odom_tf_publisher_00
+#   rclcpp
+#   tf2_ros
+#   nav_msgs
+#   sensor_msgs
+#   Eigen3
+# )
 
 
 ament_target_dependencies(odometry_map_frame

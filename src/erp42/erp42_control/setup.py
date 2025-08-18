@@ -41,6 +41,7 @@ setup(
         "console_scripts": [
             "pid_tunning = erp42_control.pid_tunning:main",
             "pid_tunning_2025 = erp42_control.pid_tunning_2025:main",
+            "mpc_tuner = erp42_control.mpc_tuner:main",
             "controller_cone = erp42_control.controller_cone:main",
             "state_machine = erp42_control.state_machine:main",
             "state_machine_mpc = erp42_control.state_machine_mpc:main",

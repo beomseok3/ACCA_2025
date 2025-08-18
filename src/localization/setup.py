@@ -45,6 +45,7 @@ setup(
             "dfilter_yaw = localization.dfilter_yaw:main",
             "imu_test = localization.imu_test:main",
             "erp_twist_world = localization.erp_twist_world:main",
+            "bicycle_erp_twist_world = localization.bicycle_erp_twist_world:main",
             "position_filter_yaw = localization.position_filter_yaw:main",
             "magnet_heading = localization.magnet_heading:main",
             "orientation_source_3 = localization.orientation_source_3:main",
@@ -53,6 +54,9 @@ setup(
             "gps_variance_filter = localization.gps_variance_filter:main",
             "fake_feedback = localization.fake_feedback:main",
             "vibration_anlyzer = localization.vibration_anlyzer:main",
+            "bicycle_mod_heading_estimate = localization.bicycle_mod_heading_estimate:main",
+            "gps_odom_dummy = localization.gps_odom_dummy:main",
+
         ],
     },
 )

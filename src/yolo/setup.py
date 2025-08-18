@@ -22,7 +22,8 @@ setup(
         'console_scripts': [
             'cone = yolo.cone:main',
             'traffic = yolo.traffic:main',
-            'light = yolo.traffic_light:main',
+            'light_manta = yolo.traffic_light:main',
+            'light_logitech = yolo.traffic_light_logitech:main'
         ],
     },
 )

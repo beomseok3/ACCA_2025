@@ -25,13 +25,13 @@ public:
         yellow_publisher = this->create_publisher<geometry_msgs::msg::PointStamped>("point/yellow", 10);
         blue_publisher = this->create_publisher<geometry_msgs::msg::PointStamped>("point/blue", 10);
 
-        R_RTlc << -0.258213671681845, -0.964342407567990, 0.058046711556751, -0.246695652137148,
-                  -0.324116745139498, 0.029870691462926, -0.945545386172290, -0.119482435620032,
-                  0.910095618754842, -0.262966657121200, -0.320272543259242, -0.167583798275389,
-                  0.0, 0.0, 0.0, 1.0;
+        R_RTlc << -0.281817835135859,	-0.959159956569860,	0.024308136749690,	-0.225730494890862,
+                    -0.245390341164270,	0.047561256307933,	-0.968256942841978,	-0.139140276331998,
+                    0.927557161722457,	-0.278837057457066,	-0.248772199262828,	0.019980886445306,
+                    0.0,	0.0,	0.0,	1.000000000000000;
 
-        R_Mc << 520.7113714280379,	0.0,	 308.8513561709799, 0.0,
-                0.0,	521.4439302987403,	236.2402544548886, 0.0,
+        R_Mc << 532.5769782427712,	0.0,	306.8365465098084, 0.0,
+                0.0,	531.9526386746585,	251.4871088011509, 0.0,
                 0.0,	0.0,	1.0, 0.0;
 
         L_RTlc <<  0.363452501928163,	-0.931015506651510,	0.033352739266673,	0.218154602864188,
@@ -108,7 +108,7 @@ private:
                         //           << ", C_ymin=" << ymin << ", C_ymax=" << ymax 
                         //           << ", class_name=" << box.class_name << std::endl;
 
-                        if (projected_LiDAR_C(0) >= xmin - 640 - offset && projected_LiDAR_C(0) <= xmax - 640 + offset &&
+                        if (projected_LiDAR_C(0) -15 >= xmin - 640 - offset && projected_LiDAR_C(0) -15 <= xmax - 640 + offset &&
                             projected_LiDAR_C(1) >= ymin - offset && projected_LiDAR_C(1) <= ymax + offset)
                         {
                             if (box.class_name == "blue") blue_matching = true;
@@ -131,8 +131,8 @@ private:
                         //           << ", R_ymin=" << ymin << ", R_ymax=" << ymax 
                         //           << ", class_name=" << box.class_name << std::endl;
 
-                        if (projected_LiDAR_R(0) >= xmin - 1280 - offset && projected_LiDAR_R(0) <= xmax - 1280 + offset &&
-                            projected_LiDAR_R(1) >= ymin - offset && projected_LiDAR_R(1) <= ymax + offset)
+                        if (projected_LiDAR_R(0) +10 >= xmin - 1280 - offset && projected_LiDAR_R(0) +10 <= xmax - 1280 + offset &&
+                            projected_LiDAR_R(1) +90 >= ymin - offset && projected_LiDAR_R(1) +90 <= ymax + offset)
                         {
                             if (box.class_name == "blue") blue_matching = true;
                             else if (box.class_name == "yellow") yellow_matching = true;
@@ -154,7 +154,7 @@ private:
                         //           << ", L_ymin=" << ymin << ", L_ymax=" << ymax 
                         //           << ", class_name=" << box.class_name << std::endl;
 
-                        if (projected_LiDAR_L(0) >= xmin - offset && projected_LiDAR_L(0) <= xmax + offset &&
+                        if (projected_LiDAR_L(0) -3 >= xmin - offset && projected_LiDAR_L(0) -3 <= xmax + offset &&
                             projected_LiDAR_L(1) >= ymin - offset && projected_LiDAR_L(1) <= ymax + offset)
                         {
                             if (box.class_name == "yellow") yellow_matching = true;

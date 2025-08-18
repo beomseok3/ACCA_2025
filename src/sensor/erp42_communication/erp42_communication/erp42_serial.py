@@ -86,7 +86,7 @@ class Control:
             if steer >= 0:
                 self.data[8] = int(steer // 256)
                 self.data[9] = int(steer % 256)
-                print(self.data[8], self.data[9])
+                # print(self.data[8], self.data[9])
             else:
                 steer = -steer
                 self.data[8] = int(255 - steer // 256)
@@ -96,7 +96,7 @@ class Control:
             self.data[5] = data.gear  # gear
             self.data[6] = int(speed // 256)
             self.data[7] = int(speed % 256)
-
+            print(self.data[6], self.data[7])
             self.data[10] = data.brake  # BREAK
         else:
             # speed
