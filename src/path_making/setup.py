@@ -28,6 +28,7 @@ setup(
             'path_making_bs = path_making.path_making_bs:main',
             'path_making_estop = path_making.path_making_estop:main',
             "db_read = path_making.db_read:main",
+            "db_read_2 = path_making.db_read_2:main",
             "db_write = path_making.db_write:main",
             "path_collector = path_making.path_collector:main",
 

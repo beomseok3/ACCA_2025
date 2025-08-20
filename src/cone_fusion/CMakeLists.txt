@@ -24,8 +24,8 @@ ament_target_dependencies(fusion_node rclcpp geometry_msgs yolo_msg Eigen3 senso
 add_executable(new_fusion_node src/new_fusion_onecam.cpp)
 ament_target_dependencies(new_fusion_node rclcpp geometry_msgs yolo_msg Eigen3 sensor_msgs)
 
-add_executable(newnew_node src/newnew.cpp)
-ament_target_dependencies(newnew_node rclcpp geometry_msgs yolo_msg Eigen3 sensor_msgs)
+add_executable(cone src/newnew.cpp)
+ament_target_dependencies(cone rclcpp geometry_msgs yolo_msg Eigen3 sensor_msgs)
 
 add_executable(traffic src/traffic_fusion.cpp)
 ament_target_dependencies(traffic
@@ -51,7 +51,7 @@ ament_target_dependencies(tf
 install(TARGETS 
 fusion_node
 new_fusion_node
-newnew_node
+cone
 traffic
 tf
   DESTINATION lib/${PROJECT_NAME}

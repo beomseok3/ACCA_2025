@@ -16,10 +16,10 @@ from tf_transformations import quaternion_from_euler
 
 class DB_READER(Node):
     def __init__(self, input_file: str, table: str):
-        super().__init__("db_reader")
+        super().__init__("db_reader_2")
         qos_profile = QoSProfile(depth=10)
-        self.pub_path = self.create_publisher(Path, "db_path", qos_profile)
-        self.pub_markers = self.create_publisher(MarkerArray, "db_markers", qos_profile)
+        self.pub_path = self.create_publisher(Path, "db_path_2", qos_profile)
+        self.pub_markers = self.create_publisher(MarkerArray, "db_markers_2", qos_profile)
         self.db_read(input_file, table)
 
     def db_read(self, file_path: str, table: str):

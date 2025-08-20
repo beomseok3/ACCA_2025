@@ -34,7 +34,7 @@ class DBWRITE(Node):
         self.euclidean_list = []
         self.distance = 0
         self.ds = 0.1
-        self.db = db("parking_path_bunsudae.db")
+        self.db = db("test_old.db")
         for i in range(1,31,1):
             self.db.write_db_Node([(f"A{i}",f"A{i+1}",f"A{i}A{i+1}"),])
         
@@ -49,15 +49,6 @@ class DBWRITE(Node):
         if not self.euclidean_duplicate(p1):
             self.path_x.append(p1[0])
             self.path_y.append(p1[1])
-            
-        # else:
-            
-        #     euc_dup_list = sorted(self.euclidean_list, key=lambda point: point[2])
-        #     low_cov_point = euc_dup_list[0]
-            
-        #     if low_cov_point == p1:
-        #         self.update_path_with_low_cov_point(euc_dup_list)
-        #     self.euclidean_list.clear()
             
         if len(self.path_x) >= 3:
             self.interpolate_path()
