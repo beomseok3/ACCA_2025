@@ -17,7 +17,7 @@ from enum import Enum
 import threading
 
 # from controller_obstacle_ys import Obstacle
-# from controller_uturn import Uturn
+from controller_uturn_ys import Uturn
 
 
 def euler_from_quaternion(quaternion):
@@ -136,12 +136,13 @@ class SpeedSupporter:
 
 class State(Enum):
     # ############### YS 0802 ###########################
-    # A1A2  = "driving_a"       # st(13) mpc(20)
-    # A2A3  = "parking_b"       # st(5)  mpc(5)
-    # A3A4  = "driving_c"       # st(13) mpc(20)
-    # A4A5  = "slow_d"     # st(8)  mpc(8)
-    # A5A6  = "driving_e"       # st(13) mpc(20)
-    # A6A7  = "obstacle_f"      # st(8)  mpc(8)
+    A1A2  = "uturn_a"       # st(13) mpc(20)
+    A2A3  = "parking_b"       # st(5)  mpc(5)
+    A3A4  = "driving_c"       # st(13) mpc(20)
+    A4A5  = "slow_d"     # st(8)  mpc(8)
+    # B1B2  = "uturn_e"
+    A5A6  = "driving_e"       # st(13) mpc(20)
+    A6A7  = "obstacle_f"      # st(8)  mpc(8)
     # ###################  YS ###########################
 
     ############### YS 0801 ###########################
@@ -163,15 +164,15 @@ class State(Enum):
 
     # ###################  YS ###########################
     # Bunsudae Path
-    A1A2 = "driving_a"  # 13
-    A2A3 = "pickup_b"  # 8
-    A3A4 = "curve_c"  # 13
-    A4A5 = "driving_d"  # 20
-    A5A6 = "curve_e"  # 13
-    A6A7 = "driving_f"  # 20
-    A7A8 = "curve_g"  # 13
-    A8A9 = "driving_h"  # 20
-    A9A10 = "driving_i"  # 20
+    # A1A2 = "driving_a"  # 13
+    # A2A3 = "pickup_b"  # 8
+    # A3A4 = "curve_c"  # 13
+    # A4A5 = "driving_d"  # 20
+    # A5A6 = "curve_e"  # 13
+    # A6A7 = "driving_f"  # 20
+    # A7A8 = "curve_g"  # 13
+    # A8A9 = "driving_h"  # 20
+    # A9A10 = "driving_i"  # 20
 
 
     # # Bunsudae Path
@@ -286,10 +287,11 @@ class StateMachine:
         self.mission_finish = False
 
         # self.obstacle = Obstacle(self.node)
-        # self.uturn = Uturn(self.node)
+        self.uturn = Uturn(self.node)
 
         self.min = 0
         self.max = 25
+        self.first = True
 
     def update_state_and_path(self):
         print(f"{'-'*37}\n{self.target_idx}  /  {len(self.path.cx)}\n{'-'*37}")
@@ -397,7 +399,10 @@ class StateMachine:
                 msg.brake = int(brake)
 
         elif self.state.value[:-2] == "obstacle":
-            self.pc.set_gps_jamming(True)
+            if self.first:
+                self.pc.set_detection_area([0.,20.,-2.5,2.5])
+                self.pc.set_gps_jamming(True)
+                self.firts = False
             ## 항상 parking이 마지막이므로 set detection area는 한번만 실행
             msg, self.mission_finish = self.obstacle.control_obstacle(
                 self.odometry, self.path

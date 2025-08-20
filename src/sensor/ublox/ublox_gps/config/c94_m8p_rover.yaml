@@ -38,7 +38,7 @@ ublox_gps_node:
 
     gnss:
       glonass: true             # Supported by C94-M8P
-      beidou: false             # Supported by C94-M8P
+      beidou: false # 0820 돌계에서 바꿈 원래 false             # Supported by C94-M8P
       qzss: true
       # galileo : true # 절대 키지 마시오                # Supported by C94-M8P
 

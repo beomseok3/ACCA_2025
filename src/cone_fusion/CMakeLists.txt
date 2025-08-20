@@ -21,10 +21,9 @@ include_directories(
 add_executable(fusion_node src/fusion_node.cpp)
 ament_target_dependencies(fusion_node rclcpp geometry_msgs yolo_msg Eigen3 sensor_msgs)
 
-add_executable(new_fusion_node src/new_fusion_onecam.cpp)
-ament_target_dependencies(new_fusion_node rclcpp geometry_msgs yolo_msg Eigen3 sensor_msgs)
 
-add_executable(cone src/newnew.cpp)
+
+add_executable(cone src/fusion_conetracking.cpp)
 ament_target_dependencies(cone rclcpp geometry_msgs yolo_msg Eigen3 sensor_msgs)
 
 add_executable(traffic src/traffic_fusion.cpp)
@@ -49,11 +48,10 @@ ament_target_dependencies(tf
 )
 
 install(TARGETS 
-fusion_node
-new_fusion_node
 cone
 traffic
 tf
+fusion_node
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()

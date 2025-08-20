@@ -16,6 +16,7 @@ import numpy as np
 import math as m
 import threading
 # from pyproj import *
+from random import randint
 import os
 import sqlite3
 from DB import DB
@@ -47,6 +48,47 @@ def euler_from_quaternion(quaternion):
 
     return roll, pitch, yaw
 
+class PID:
+    def __init__(self, node):
+        self.node = node
+        self.p_gain = node.declare_parameter("/stanley_controller/p_gain", 2.07).value
+        self.i_gain = node.declare_parameter("/stanley_controller/i_gain", 0.85).value
+        # self.p_gain = node.declare_parameter("/stanley_controller/p_gain", 1.0).value
+        # self.i_gain = node.declare_parameter("/stanley_controller/i_gain", 0.05).value
+
+        self.p_err = 0.0
+        self.i_err = 0.0
+        self.speed = 0.0
+
+        self.current = node.get_clock().now().seconds_nanoseconds()[0] + (
+            node.get_clock().now().seconds_nanoseconds()[1] / 1e9
+        )
+        self.last = node.get_clock().now().seconds_nanoseconds()[0] + (
+            node.get_clock().now().seconds_nanoseconds()[1] / 1e9
+        )
+
+    def PIDControl(self, speed, desired_value, min, max):
+
+        self.current = self.node.get_clock().now().seconds_nanoseconds()[0] + (
+            self.node.get_clock().now().seconds_nanoseconds()[1] / 1e9
+        )
+        dt = self.current - self.last
+        self.last = self.current
+
+        err = desired_value - speed
+        # self.d_err = (err - self.p_err) / dt
+
+        self.p_err = err
+        self.i_err += self.p_err * dt * (0.0 if speed == 0 else 1.0)
+        if self.i_err > 5.0:
+            self.i_err = 5.0
+        if self.i_err < -5.0:
+            self.i_err = -5.0
+
+        self.speed = speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err)
+
+        return int(np.clip(self.speed, min, max))
+
 class PathHandler():
     def __init__(self, node, path_topic, one_topic):
         self.node = node
@@ -58,7 +100,7 @@ class PathHandler():
         self.cy = []
         self.cyaw = []
 
-        self.db_path = os.path.expanduser("/home/acca/db_file/path_data.db")
+        self.db_path = os.path.expanduser("/home/acca/db_file/mpc/path_data.db")
         self.init_db()
         self.path = False
         self.one = False
@@ -109,8 +151,8 @@ class PathHandler():
         return np.array(kappa)
 
     def kappa_to_speed(self, kappa):
-        max_speed = 5.0  # km/h
-        min_speed = 2.0
+        max_speed = 15.0  # km/h
+        min_speed = 8.0
         kappa = np.clip(kappa, 0.0, 0.5)
         alpha = 5.0
         speed = min_speed + (max_speed - min_speed) * np.exp(-alpha * kappa)
@@ -373,6 +415,7 @@ class Drive():
  
         self.st = Stanley()
         self.ss = SpeedSupporter()
+        self.pid = PID(node)
         self.mpc = None
 
         self.first_lap = True
@@ -407,6 +450,7 @@ class Drive():
                     input_brake = 0
 
                 print("close last idx", adapted_speed)
+                speed = adapted_speed
 
             else:
                 
@@ -425,8 +469,10 @@ class Drive():
                         input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                     else:
                         input_brake = 0
+                    speed = adapted_speed
 
                     print("straight", adapted_speed)
+
 
                 else:
                     h_gain_curve = 0.8
@@ -439,6 +485,7 @@ class Drive():
                         input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                     else:
                         input_brake = 0
+                    speed = adapted_speed
 
 
                     print("curve", adapted_speed)
@@ -452,7 +499,7 @@ class Drive():
                 # target_speed = 15.0
 #######################################################################################################################################################
                 # steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_straight, c_gain_straight, target_idx, error)
-                _, steer, speed_output = self.mpc.pose_callback(self.state.pose, self.state.speed)
+                _, steer, speed_output = self.mpc.pose_callback(self.state.pose, self.state.v )
                 # adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=13, max_value=15, he_gain=40.0, ce_gain=20.0, he_thr=0.03, ce_thr=0.05)
                 kspeed = speed_output * 3.6
                 # adapted_speed = -50.0
@@ -471,6 +518,8 @@ class Drive():
                     else:
                         input_brake = 0
                     speed = kspeed
+
+                speed = self.pid.PIDControl(self.state.v * 3.6, speed, 0, 25)
                 # if adapted_speed == -50.0:
                 #     speed = self.pid.PIDControl(
                 #         self.odometry.v * 3.6, kspeed, 0, 25
@@ -488,7 +537,7 @@ class Drive():
 
                 # steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_curve, c_gain_curve, target_idx, error)
                 # adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=5, max_value=8, he_gain=50.0, ce_gain=30.0, he_thr=0.001, ce_thr=0.002)
-                _, steer, speed_output = self.mpc.pose_callback(self.state.pose)
+                _, steer, speed_output = self.mpc.pose_callback(self.state.pose , self.state.v)
                 kspeed = speed_output * 3.6
                 # adapted_speed = -50.0
                 if self.hdr != 0 and self.ctr != 0:
@@ -506,11 +555,13 @@ class Drive():
                     else:
                         input_brake = 0
                     speed = kspeed
+                speed = self.pid.PIDControl(self.state.v * 3.6, speed, 0, 25)
 
                 # print("curve", adapted_speed)
 
         msg = ControlMessage()
-        msg.speed = max(0, min(65535, int(round(speed)) * 10)) #int(adapted_speed)*10 
+        # msg.speed = max(0, min(65535, int(round(speed)) * 10)) 
+        msg.speed = int(speed)*10 
         msg.steer = int(m.degrees((-1)*steer))
         msg.gear = 2
         msg.brake = int(input_brake)
@@ -556,13 +607,13 @@ def main(args = None):
     thread.start()
 
     rate = node.create_rate(8)
-    rate_sleep = node.create_rate(1)
+    # rate_sleep = node.create_rate(1)
 
     # first_rap_done = False
     mpc_ready = False
     first = True
     db = None
-    db_path = "path_data.db"
+    db_path = "/mpc/path_data.db"
     # if not mpc_ready and path_tracking.path and first:                        
     #     db_path = "path_data.db"
     #     db = DB(db_path)

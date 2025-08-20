@@ -42,7 +42,7 @@ ekf_filter_node:
         permit_corrected_publication: false
 
         # Whether to publish the acceleration state. Defaults to false if unspecified.
-        publish_acceleration: true
+        publish_acceleration: false
 
         # Whether to broadcast the transformation over the /tf topic. Defaults to true if unspecified.
         publish_tf: true

@@ -41,7 +41,7 @@ class PathMaker(Node):
     # P_parking_path_2
     # P_return_path_1
     def init_db(self):
-        db_path = os.path.join(os.path.dirname(__file__), "P_return_path_2.db")
+        db_path = os.path.join(os.path.dirname(__file__), "U-turn_OUT.db")
         self.conn = sqlite3.connect(db_path)
         self.cursor = self.conn.cursor()
 

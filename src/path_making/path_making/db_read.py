@@ -38,13 +38,13 @@ class DB_READER(Node):
         path = Path()
         path.header = Header()
         path.header.stamp = self.get_clock().now().to_msg()
-        path.header.frame_id = "map"
+        path.header.frame_id = "odom"
 
         markers = MarkerArray()
         now = self.get_clock().now().to_msg()
 
         delete_all = Marker()
-        delete_all.header.frame_id = "map"
+        delete_all.header.frame_id = "odom"
         delete_all.header.stamp = now
         delete_all.ns = "db_visual"
         delete_all.id = 0
@@ -57,7 +57,7 @@ class DB_READER(Node):
         for i, (path_id, idx, x, y, yaw, speed) in enumerate(rows):
             pose = PoseStamped()
             pose.header.stamp = self.get_clock().now().to_msg()
-            pose.header.frame_id = "map"
+            pose.header.frame_id = "odom"
             pose.pose.position.x = float(x)
             pose.pose.position.y = float(y)
             pose.pose.position.z = 0.0
@@ -70,7 +70,7 @@ class DB_READER(Node):
 
             if last_path_id is None or path_id != last_path_id:
                 m = Marker()
-                m.header.frame_id = "map"
+                m.header.frame_id = "odom"
                 m.header.stamp = now
                 m.ns = "db_visual/path_change"
                 m.id = marker_id
@@ -92,7 +92,7 @@ class DB_READER(Node):
                 markers.markers.append(m)
 
                 t = Marker()
-                t.header.frame_id = "map"
+                t.header.frame_id = "odom"
                 t.header.stamp = now
                 t.ns = "db_visual/path_change_text"
                 t.id = marker_id
@@ -118,7 +118,7 @@ class DB_READER(Node):
             if i % 5 == 0:
                 spd_val = 0.0 if speed is None else float(speed)
                 s = Marker()
-                s.header.frame_id = "map"
+                s.header.frame_id = "odom"
                 s.header.stamp = now
                 s.ns = "db_visual/speed"
                 s.id = marker_id

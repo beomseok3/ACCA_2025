@@ -132,7 +132,7 @@ private:
                         //           << ", class_name=" << box.class_name << std::endl;
 
                         if (projected_LiDAR_R(0) +10 >= xmin - 1280 - offset && projected_LiDAR_R(0) +10 <= xmax - 1280 + offset &&
-                            projected_LiDAR_R(1) +90 >= ymin - offset && projected_LiDAR_R(1) +90 <= ymax + offset)
+                            projected_LiDAR_R(1) +80 >= ymin - offset && projected_LiDAR_R(1) +80 <= ymax + offset)
                         {
                             if (box.class_name == "blue") blue_matching = true;
                             else if (box.class_name == "yellow") yellow_matching = true;

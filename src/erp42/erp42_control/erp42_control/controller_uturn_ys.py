@@ -208,7 +208,7 @@ class Uturn:
             msg.steer = int(m.degrees((-1) * steer))
             msg.gear = 2
             if flag:
-                if target_idx >= len(path_x) // 2:
+                if target_idx >= len(path_x) // 4:
                     self.state = Uturn_state.Out
                 else:
                     self.state = Uturn_state.In
@@ -275,7 +275,7 @@ class Uturn:
             px, py = path_point[0] + dx, path_point[1] + dy
             for cone in self.cones:
                 dist = np.hypot(px - cone.x, py - cone.y)
-                if dist < 2.0:
+                if dist < 1.5:
                     return True
         return False
 

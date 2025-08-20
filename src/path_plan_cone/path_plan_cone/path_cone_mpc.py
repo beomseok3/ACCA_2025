@@ -427,8 +427,47 @@ class PathPublisher(Node):
         return np.array(waypoints)
     
     # UnivariateSpline을 사용하여 경로를 부드럽게 연결하는 함수
-    def spline_interpolation(self, points, s=5, k=3, spacing=0.1):
+    def spline_interpolation(self, points, s=1, k=3, spacing=0.1):
+        # if len(points) < 2:
+        #     return points[:, 0], points[:, 1]
         
+        # # x, y 좌표 분리
+        # x = points[:, 0]
+        # y = points[:, 1]
+
+        # # 경로의 시작점과 마지막 점이 가까우면 원형으로 이어서 부드럽게 보간
+        # if self.flag_3:
+        #     print("마지막")
+        #     x = np.append(x, x[0])  # 첫 번째 점을 끝에 추가
+        #     y = np.append(y, y[0])  # 첫 번째 점을 끝에 추가
+        #     # CubicSpline을 사용하여 주기적 경로 생성
+        #     cs_x = CubicSpline(range(len(x)), x, bc_type='periodic')  # 주기적 경계 조건 설정
+        #     cs_y = CubicSpline(range(len(y)), y, bc_type='periodic')
+        # else:
+        #     cs_x = CubicSpline(range(len(x)), x)
+        #     cs_y = CubicSpline(range(len(y)), y)
+        # # 스플라인 보간법 적용
+        # # us_x = UnivariateSpline(range(len(x)), x, s=s, k=k)
+        # # us_y = UnivariateSpline(range(len(y)), y, s=s, k=k)
+        
+        # # 각 점 사이의 거리(유클리드 거리)를 계산하여 누적 거리를 구함
+        # distances = np.sqrt(np.diff(x)**2 + np.diff(y)**2)
+        # cumulative_distances = np.insert(np.cumsum(distances), 0, 0)  # 누적 거리
+        # total_distance = cumulative_distances[-1]
+
+        # # 일정한 간격으로 보간할 점들의 누적 거리 설정
+        # num_points = int(total_distance / spacing)
+        # uniform_distances = np.linspace(0, total_distance, num_points)
+        
+        # # 스플라인 보간에 사용할 새로운 파라미터 t 생성 (누적 거리 기반)
+        # t = np.linspace(0, len(x) - 1, len(x))  # 원래 파라미터
+        # interpolated_t = np.interp(uniform_distances, cumulative_distances, t)
+
+        # # 새로운 t 값으로 보간된 x, y 좌표 계산
+        # interpolated_x = cs_x(interpolated_t)
+        # interpolated_y = cs_y(interpolated_t)
+        
+        # return interpolated_x, interpolated_y  
         if len(points) < 2:
             return points[:, 0], points[:, 1]
         
@@ -439,22 +478,8 @@ class PathPublisher(Node):
         # 경로의 시작점과 마지막 점이 가까우면 원형으로 이어서 부드럽게 보간
         if self.flag_3:
             # 시작과 끝을 자연스럽게 연결하기 위해 CubicSpline을 사용
-            n_edge = 2
-            x_edge = np.concatenate([x[-n_edge:], x[:n_edge]])
-            y_edge = np.concatenate([y[-n_edge:], y[:n_edge]])
-
-            distances = [0.0]
-            for i in range(1, len(x_edge)):
-                dx = x_edge[i] - x_edge[i - 1]
-                dy = y_edge[i] - y_edge[i - 1]
-                distances.append(distances[-1] + np.hypot(dx, dy))
-            t_edge = np.array(distances) / distances[-1]
-            # t_edge = np.linspace(0, 1, len(x_edge))
-
-            cs_x = CubicSpline(t_edge, x_edge, bc_type='natural')
-            cs_y = CubicSpline(t_edge, y_edge, bc_type='natural')
-            # cs_x = CubicSpline([0, 1], [x[-1], x[0]])  # 끝점과 첫점 보간
-            # cs_y = CubicSpline([0, 1], [y[-1], y[0]])  # 끝점과 첫점 보간
+            cs_x = CubicSpline([0, 1], [x[-1], x[0]])  # 끝점과 첫점 보간
+            cs_y = CubicSpline([0, 1], [y[-1], y[0]])  # 끝점과 첫점 보간
 
             # 끝점과 첫점 사이를 일정한 간격으로 추가
             t = np.linspace(0, 1, num=10)  # 더 부드러운 연결을 위해 10개의 보간 점 추가
@@ -462,8 +487,8 @@ class PathPublisher(Node):
             cubic_y = cs_y(t)
 
             # 기존 점에 CubicSpline으로 보간된 구간 추가
-            x = np.append(x, cubic_x)  # 기존 점 끝에 추가된 CubicSpline 점 연결
-            y = np.append(y, cubic_y)
+            x = np.append(x[:-1], cubic_x)  # 기존 점 끝에 추가된 CubicSpline 점 연결
+            y = np.append(y[:-1], cubic_y)
 
         # 스플라인 보간에 사용할 새로운 파라미터 t 생성 (누적 거리 기반)
         distances = np.sqrt(np.diff(x)**2 + np.diff(y)**2)
@@ -486,7 +511,7 @@ class PathPublisher(Node):
         interpolated_x = us_x(interpolated_t)
         interpolated_y = us_y(interpolated_t)
         
-        return interpolated_x, interpolated_y   
+        return interpolated_x, interpolated_y
     
         
     def add_triangles_to_marker_array(self, marker_array, points, triangles):
