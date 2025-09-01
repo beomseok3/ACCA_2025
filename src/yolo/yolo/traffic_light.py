@@ -1,70 +1,83 @@
-#!/usr/bin/env python3
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy  # ✅ QoS 관련 import 추가
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 from cv_bridge import CvBridge
-
 import cv2
-import time
+import numpy as np
 from ultralytics import YOLO
 
-class YOLOv8InferenceNode(Node):
+# YOLO 모델 경로
+MODEL_PATH = '/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/best.pt'
+model = YOLO(MODEL_PATH)
+CLASS_NAMES = model.names  # 예: {0: 'red', 1: 'green', ...}
+
+class TrafficLightDetector7Class(Node):
     def __init__(self):
-        super().__init__('yolov8_inference_node')
-
-        self.model = YOLO('/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/traffic_light.pt')
+        super().__init__('traffic_light_detector_class')
+        self.subscription = self.create_subscription(Image, '/camera1/image_raw', self.image_callback, 10)
+        self.signal_pub = self.create_publisher(String, '/traffic_light_signal', 10)
         self.bridge = CvBridge()
+        self.get_logger().info("🚦 YOLO Traffic Light Detector Started")
 
-        # ✅ RELIABLE QoS 설정
-        qos_profile = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            depth=10
-        )
-
-        self.subscription = self.create_subscription(
-            Image,
-            '/image_color',
-            self.listener_callback,
-            qos_profile
-        )
-
-        cv2.startWindowThread()
-        self.get_logger().info("YOLOv8 Inference Node is running (using ROS image topic)...")
-
-    def listener_callback(self, msg):
-        print("🟢 callback 진입")
+    def image_callback(self, msg):
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-
-            start = time.perf_counter()
-            results = self.model(cv_image)[0]
-            latency = (time.perf_counter() - start) * 1000.0
-            self.get_logger().info(f"Inference latency: {latency:.2f} ms")
-
-            annotated = results.plot()
-            cv2.imshow("YOLOv8 + MantaCam", annotated)
-            key = cv2.waitKey(1)
-            if key == 27:
-                self.get_logger().info("ESC pressed. Shutting down...")
-                rclpy.shutdown()
-
+            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         except Exception as e:
-            self.get_logger().error(f"Callback error: {e}")
+            self.get_logger().error(f"CVBridge error: {e}")
+            return
+
+        # YOLO 추론
+        results = model(frame)
+        detections = results[0].boxes.data.cpu().numpy()
+
+        # ✅ 가로형 신호등 + unknown 제외 + 가장 큰 ROI 찾기
+        valid_detections = []
+        for det in detections:
+            x1, y1, x2, y2, conf, class_id = det
+            x1, y1, x2, y2, class_id = map(int, [x1, y1, x2, y2, class_id])
+
+            width = x2 - x1
+            height = y2 - y1
+            area = width * height
+
+            # 가로형만
+            if width <= height:
+                continue
+
+            class_name = CLASS_NAMES[class_id]
+
+            # unknown 제외
+            if class_name.lower() == "unknown":
+                continue
+
+            valid_detections.append((area, class_name))
+
+        # 가장 큰 ROI 결과만 퍼블리시
+        if valid_detections:
+            largest = max(valid_detections, key=lambda x: x[0])
+            _, class_name = largest
+            msg = String()
+            msg.data = class_name
+            self.signal_pub.publish(msg)
+            self.get_logger().info(f"Detected Signal: {class_name}")
+        else:
+            # 아무것도 없으면 "none" 발행
+            msg = String()
+            msg.data = "none"
+            self.signal_pub.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)
-    node = YOLOv8InferenceNode()
+    node = TrafficLightDetector7Class()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     finally:
         node.destroy_node()
-        cv2.destroyAllWindows()
-        if rclpy.ok():
-            rclpy.shutdown()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

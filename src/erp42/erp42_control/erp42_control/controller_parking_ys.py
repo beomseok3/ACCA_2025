@@ -115,8 +115,10 @@ class Parking:
         self.search_path_db = DB("P_search_path.db")  # kcity
         self.search_path = self.search_path_db.read_db_n("Path", "x", "y", "yaw")
 
-        print(self.search_path)
+        # print(self.search_path)
         #### parking_path ####
+        dx, dy = 1.172, 2.6
+
         self.parking_path_db_1 = DB("P_parking_path_1.db")
         self.parking_path_db_2 = DB("P_parking_path_2.db")
         self.parking_path_db_3 = DB("P_parking_path_3.db")
@@ -131,20 +133,21 @@ class Parking:
         self.parking_path_5 = self.parking_path_db_5.read_db_n("Path", "x", "y", "yaw")
         self.parking_path_6 = self.parking_path_db_6.read_db_n("Path", "x", "y", "yaw")
 
-        #### return_path ####
-        self.return_path_db_1 = DB("P_return_path_1.db")
-        self.return_path_db_2 = DB("P_return_path_2.db")
-        self.return_path_db_3 = DB("P_return_path_3.db")
-        self.return_path_db_4 = DB("P_return_path_4.db")
-        self.return_path_db_5 = DB("P_return_path_5.db")
-        self.return_path_db_6 = DB("P_return_path_6.db")
+        def shift_path(path, n):
+            return [(x + n * dx, y + n * dy, yaw) for (x, y, yaw) in path]
 
-        self.return_path_1 = self.return_path_db_1.read_db_n("Path", "x", "y", "yaw")
-        self.return_path_2 = self.return_path_db_2.read_db_n("Path", "x", "y", "yaw")
-        self.return_path_3 = self.return_path_db_3.read_db_n("Path", "x", "y", "yaw")
-        self.return_path_4 = self.return_path_db_4.read_db_n("Path", "x", "y", "yaw")
-        self.return_path_5 = self.return_path_db_5.read_db_n("Path", "x", "y", "yaw")
-        self.return_path_6 = self.return_path_db_6.read_db_n("Path", "x", "y", "yaw")
+        # self.parking_path_2 = shift_path(self.parking_path_1, 1)
+        # self.parking_path_3 = shift_path(self.parking_path_1, 2)
+        # self.parking_path_4 = shift_path(self.parking_path_1, 3)
+        # self.parking_path_5 = shift_path(self.parking_path_1, 4)
+        # self.parking_path_6 = shift_path(self.parking_path_1, 5)
+
+        self.return_path_1 = self.parking_path_1[::-1]
+        self.return_path_2 = self.parking_path_2[::-1]
+        self.return_path_3 = self.parking_path_3[::-1]
+        self.return_path_4 = self.parking_path_4[::-1]
+        self.return_path_5 = self.parking_path_5[::-1]
+        self.return_path_6 = self.parking_path_6[::-1]
 
         # instance
         self.state = Parking_state.SEARCH
@@ -166,7 +169,7 @@ class Parking:
 
         # publisher (visualization)
         self.pub_path = self.node.create_publisher(
-            Path, "parking_path", qos_profile_system_default
+            Path, "mission/parking", qos_profile_system_default
         )
 
     def cone_callback(self, msg):
@@ -180,6 +183,7 @@ class Parking:
 
     def control_parking(self, odometry):
         self.odometry = odometry
+        
         msg = ControlMessage()
 
         if self.state == Parking_state.SEARCH:
@@ -197,9 +201,17 @@ class Parking:
                 h_gain=0.5,
                 c_gain=0.24,
             )
+            adapted_speed = self.ss.adaptSpeed(
+                10, hdr, ctr, min_value=5, max_value=10
+            )  # 에러(hdr, ctr) 기반 목표 속력 조정
+            speed = self.pid.PIDControl(
+                self.odometry.v * 3.6, adapted_speed, min=7, max=10
+            )  # speed 조정 (PI control)
+            brake = self.cacluate_brake(adapted_speed)  # brake 조정
 
-            msg.speed = int(15) * 10
+            msg.speed = int(speed) * 10
             msg.steer = int(m.degrees((-1) * steer))
+            msg.brake = int(brake)
             msg.gear = 2
 
             if self.timer is None:
@@ -250,10 +262,18 @@ class Parking:
                 c_gain=1.2,
                 reverse=False,  # 전진 주차
             )
+            adapted_speed = self.ss.adaptSpeed(
+                5, hdr, ctr, min_value=3, max_value=8
+            )  # 에러(hdr, ctr) 기반 목표 속력 조정
+            speed = self.pid.PIDControl(
+                self.odometry.v * 3.6, adapted_speed, min=3, max=8
+            )  # speed 조정 (PI control)
+            brake = self.cacluate_brake(adapted_speed)  # brake 조정
 
-            msg.speed = int(5) * 10
+            msg.speed = int(speed) * 10
             msg.steer = int(m.degrees((-1) * steer))
             msg.gear = 2  # 전진 주차
+            msg.brake = int(brake)
 
             if target_idx >= len(path_x) - 3:
                 self.state = Parking_state.STOP
@@ -299,39 +319,27 @@ class Parking:
                 path_x,
                 path_y,
                 path_yaw,
-                h_gain=1.5,
-                c_gain=1.2,
+                h_gain=2.0,
+                c_gain=1.5,
                 reverse=True,  # 후진
             )
+            adapted_speed = self.ss.adaptSpeed(
+                5, hdr, ctr, min_value=3, max_value=8
+            )  # 에러(hdr, ctr) 기반 목표 속력 조정
+            speed = self.pid.PIDControl(
+                self.odometry.v * 3.6, adapted_speed, min=3, max=8
+            )  # speed 조정 (PI control)
+            brake = self.cacluate_brake(adapted_speed)  # brake 조정
 
-            msg.speed = int(5) * 10
+            msg.speed = int(speed) * 10
             msg.steer = int(m.degrees((-1) * steer))
-            msg.gear = 0  #
+            msg.gear = 0  # 후진
+            msg.brake = int(brake)
 
             if target_idx >= len(path_x) - 3:
-                self.state = Parking_state.FINISH
-        elif self.state == Parking_state.FINISH:
-            print("[FINISH] 리턴 경로 종료,  경로 복귀 중...")
-            path_x = [p[0] for p in self.search_path]
-            path_y = [p[1] for p in self.search_path]
-            path_yaw = [p[2] for p in self.search_path]
-            self.publish_path_msg(path_x, path_y, path_yaw)
-
-            steer, target_idx, hdr, ctr = self.st.stanley_control(
-                odometry,
-                path_x,
-                path_y,
-                path_yaw,
-                h_gain=0.5,
-                c_gain=0.24,
-            )
-
-            msg.speed = int(15) * 10
-            msg.steer = int(m.degrees((-1) * steer))
-            msg.gear = 2
-
-            if target_idx >= len(path_x) - 10:
                 return msg, True
+            
+        print(target_idx)
         return msg, False
 
     def find_parking_path(self):
@@ -345,7 +353,7 @@ class Parking:
                 self.parking_path_6,
             ]
 
-            min_dist_threshold = 1.0  # 장애물과의 최소 거리
+            min_dist_threshold = 0.3  # 장애물과의 최소 거리
             over_threshold = []
 
             for idx, path in enumerate(paths, 1):
@@ -380,7 +388,7 @@ class Parking:
                     if path:
                         px, py, _ = path[0]
                         dist = ((cur_x - px) ** 2 + (cur_y - py) ** 2) ** 0.5
-                        if dist <= 0.3:
+                        if dist <= 1.0:
                             selected = idx
                             break
 
@@ -401,6 +409,16 @@ class Parking:
                 self.timer.cancel()
                 self.state = Parking_state.PARKING
                 print(f"주차 경로 {self.goal}을 선택했습니다.")
+
+    def cacluate_brake(
+        self, adapted_speed
+    ):  # brake 값 정하는 알고리즘 좀 더 정교하게 생각
+        if self.odometry.v * 3.6 >= adapted_speed:
+            brake = (abs(self.odometry.v * 3.6 - adapted_speed) / 20.0) * 200
+            brake = np.clip(brake, 0, 100)
+        else:
+            brake = 0
+        return brake
 
     def publish_path_msg(self, path_x, path_y, path_yaw):
         path_msg = Path()

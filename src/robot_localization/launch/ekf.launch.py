@@ -33,10 +33,4 @@ def generate_launch_description():
             remappings=[('odometry/filtered', '/odometry/navsat')],
             parameters=[os.path.join(get_package_share_directory("robot_localization"), 'params', 'ekf.yaml')],
         ),
-        launch_ros.actions.Node(
-            package='localization',
-            executable='erp_twist',
-            name='erp_twist',
-            output='screen',
-        ),
     ])

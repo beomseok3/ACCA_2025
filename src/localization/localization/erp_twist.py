@@ -22,23 +22,16 @@ class ErpTwist(Node):
             SerialFeedBack, "erp42_feedback", self.callback_erp, qos_profile_sensor_data
         )
 
-        # self.create_subscription(
-        #     Imu, "imu/rotated", self.callback_imu,  qos_profile_sensor_data
-        # )
         self.pub = self.create_publisher(
             TwistWithCovarianceStamped, "erp42/twist", qos_profile_sensor_data
         )
         self.header = Header()
     
-    # def callback_imu(self,msg):
-    #     self.header.stamp = msg.header.stamp
+        
     def callback_erp(self, msg):
-        # if self.header.stamp:
-        # self.header.stamp = msg.header.stamp
-        print("!")
+        self.get_logger().info("erp_callback_ok")
         header = self.header
         header.stamp = self.get_clock().now().to_msg()
-        # header.stamp = self.header.stamp 
         header.frame_id = "base_link"
         gear = msg.gear
         if gear == 2:

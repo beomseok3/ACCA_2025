@@ -43,7 +43,7 @@ class Estop_collector(Node):
                     MarkerArray,"estop_point",qos_profile_system_default
                 )
           
-        # self.db = db("1006_1140_acca.db")
+        self.db = db("0827_ssupark_ys.db")
         self.feedback = Feedback_from_erp(self)
         self.count = 0
         self.marker_id = 0

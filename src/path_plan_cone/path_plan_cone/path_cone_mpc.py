@@ -16,9 +16,6 @@ sys.path.append('/home/ps/ros2_ws/src/global_path/global_path')
 from cubic_spline_planner import calc_spline_course
 import time
 
-################## 해야할 것 #####################
-
-
 
 class PathPublisher(Node):
     def __init__(self):
@@ -33,8 +30,6 @@ class PathPublisher(Node):
         # Subscribers
         self.yellow_sub = self.create_subscription(PointStamped, 'yellow_odom', self.yellow_callback, 10)
         self.blue_sub = self.create_subscription(PointStamped, 'blue_odom', self.blue_callback, 10)
-        # self.yellow_sub = self.create_subscription(PointStamped, 'yellow_odom', self.blue_callback, 10)
-        # self.blue_sub = self.create_subscription(PointStamped, 'blue_odom', self.yellow_callback, 10)
         self.odom_sub = self.create_subscription(Odometry, "/odometry/navsat", self.odom_callback, 10)
 
         # Publishers
@@ -168,7 +163,6 @@ class PathPublisher(Node):
                 print("섞임")
                 return
             
-        # self.f.write(f"blue, {msg.point.x}, {msg.point.y}\n")
         self.blue_points.append(b_point)
     
     def odom_callback(self, msg):
@@ -178,30 +172,13 @@ class PathPublisher(Node):
             self.first_point = [self.current_x,self.current_y]
             self.flag_1 = True
 
-    # def filter_close_waypoints(self, waypoints, min_distance=0.2):
-    #     """지나치게 가까운 waypoint 제거"""
-    #     if len(waypoints) < 2:
-    #         return waypoints
-    #     filtered = [waypoints[0]]
-    #     for pt in waypoints[1:]:
-    #         if np.linalg.norm(np.array(pt) - np.array(filtered[-1])) > min_distance:
-    #             filtered.append(pt)
-    #     return np.array(filtered)
-
     def path_create(self):
         if len(self.yellow_points) < 2 or len(self.blue_points) < 2:
             return
         
         if self.flag_3:
             self.path_pub.publish(self.final_path)
-            # msg = Bool()self.fla
-            # msg.data = True
-            # self.one_lap_pub.publish(msg)
             return
-        # else:
-            # msg = Bool()
-            # msg.data = False
-            # self.one_lap_pub.publish(msg)
 
         # Combine yellow and blue points
         all_points = np.array(self.yellow_points + self.blue_points)
@@ -237,27 +214,6 @@ class PathPublisher(Node):
         if len(spline_x) > 2:
             dx = np.append(dx,dx[-1])
             dy = np.append(dy,dy[-1])
-
-        # 중복 제거: (x, y) 좌표 기준
-        unique_coords = set()
-        cleaned_spline_x = []
-        cleaned_spline_y = []
-        cleaned_dx = []
-        cleaned_dy = []
-
-        for x, y, dx_val, dy_val in zip(spline_x, spline_y, dx, dy):
-            key = (round(x, 4), round(y, 4))  # 소수점 4자리까지 동일하면 중복으로 간주
-            if key not in unique_coords:
-                unique_coords.add(key)
-                cleaned_spline_x.append(x)
-                cleaned_spline_y.append(y)
-                cleaned_dx.append(dx_val)
-                cleaned_dy.append(dy_val)
-        
-        spline_x = cleaned_spline_x
-        spline_y = cleaned_spline_y
-        dx = cleaned_dx
-        dy = cleaned_dy
 
         for x, y, dx, dy in zip(spline_x, spline_y, dx, dy):
             pose = PoseStamped()
@@ -382,25 +338,11 @@ class PathPublisher(Node):
                 front_points.extend(waypoints)
                 start_end_distance = np.hypot(self.first_point[0] - waypoints[-1][0], self.first_point[1] - waypoints[-1][1])
                 
-                # start_cu_distance = np.hypot(self.first_point[0] - self.current_x, self.first_point[1] - self.current_y)
-                self.get_logger().info(f"dis_s : {start_end_distance}")
-                # self.get_logger().info(f"dis : {start_cu_distance}")
-                
-                # if start_end_distance < 4 and len(waypoints) > self.waypoints_thresold + 10: 
-               
-                #     num_interp = 10
-                #     interp_x = np.linspace(current_point[0], starting_point[0], num_interp)
-                #     interp_y = np.linspace(current_point[1], starting_point[1], num_interp)
-                #     # for x, y in zip(interp_x[1:], interp_y[1:]):
-                #     #     waypoints.append([x, y])
-                #     for x, y in zip(interp_x[1:], interp_y[1:]):
-                #         pt = [x, y]
-                #         if np.linalg.norm(np.array(pt) - np.array(waypoints[-1])) > 1e-6:
-                #             waypoints.append(pt)
-
+                self.get_logger().info(f"start_end_distance : {start_end_distance}")
+       
                 if start_end_distance < 3:
                     self.flag_3 = True
-                    print("한바퀴")
+                    self.get_logger().info("한바퀴")
                     msg = Bool()
                     msg.data = True
                     self.one_lap_pub.publish(msg)
@@ -427,47 +369,7 @@ class PathPublisher(Node):
         return np.array(waypoints)
     
     # UnivariateSpline을 사용하여 경로를 부드럽게 연결하는 함수
-    def spline_interpolation(self, points, s=1, k=3, spacing=0.1):
-        # if len(points) < 2:
-        #     return points[:, 0], points[:, 1]
-        
-        # # x, y 좌표 분리
-        # x = points[:, 0]
-        # y = points[:, 1]
-
-        # # 경로의 시작점과 마지막 점이 가까우면 원형으로 이어서 부드럽게 보간
-        # if self.flag_3:
-        #     print("마지막")
-        #     x = np.append(x, x[0])  # 첫 번째 점을 끝에 추가
-        #     y = np.append(y, y[0])  # 첫 번째 점을 끝에 추가
-        #     # CubicSpline을 사용하여 주기적 경로 생성
-        #     cs_x = CubicSpline(range(len(x)), x, bc_type='periodic')  # 주기적 경계 조건 설정
-        #     cs_y = CubicSpline(range(len(y)), y, bc_type='periodic')
-        # else:
-        #     cs_x = CubicSpline(range(len(x)), x)
-        #     cs_y = CubicSpline(range(len(y)), y)
-        # # 스플라인 보간법 적용
-        # # us_x = UnivariateSpline(range(len(x)), x, s=s, k=k)
-        # # us_y = UnivariateSpline(range(len(y)), y, s=s, k=k)
-        
-        # # 각 점 사이의 거리(유클리드 거리)를 계산하여 누적 거리를 구함
-        # distances = np.sqrt(np.diff(x)**2 + np.diff(y)**2)
-        # cumulative_distances = np.insert(np.cumsum(distances), 0, 0)  # 누적 거리
-        # total_distance = cumulative_distances[-1]
-
-        # # 일정한 간격으로 보간할 점들의 누적 거리 설정
-        # num_points = int(total_distance / spacing)
-        # uniform_distances = np.linspace(0, total_distance, num_points)
-        
-        # # 스플라인 보간에 사용할 새로운 파라미터 t 생성 (누적 거리 기반)
-        # t = np.linspace(0, len(x) - 1, len(x))  # 원래 파라미터
-        # interpolated_t = np.interp(uniform_distances, cumulative_distances, t)
-
-        # # 새로운 t 값으로 보간된 x, y 좌표 계산
-        # interpolated_x = cs_x(interpolated_t)
-        # interpolated_y = cs_y(interpolated_t)
-        
-        # return interpolated_x, interpolated_y  
+    def spline_interpolation(self, points, s=1, k=3, spacing=0.1): 
         if len(points) < 2:
             return points[:, 0], points[:, 1]
         

@@ -49,8 +49,7 @@ private:
             {
                 RCLCPP_WARN(this->get_logger(), "Transform failed: %s", ex.what());
             }
-
-            break;
+     
         }
 
             

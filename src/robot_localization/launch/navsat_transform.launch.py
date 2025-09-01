@@ -44,6 +44,19 @@ def generate_launch_description():
             package='robot_state_publisher',
             executable='robot_state_publisher',
             parameters=[{"robot_description":robot_description.toxml()}],
-            output='screen')
+            output='screen'),
+
+        launch_ros.actions.Node(
+            package="localization_cpp",
+            executable="gps_dummy",
+            name="gps_jamming_filter",
+            output = "screen"
+        ),
+        launch_ros.actions.Node(
+            package='localization',
+            executable='erp_twist',
+            name='erp_twist',
+            output='screen',
+        ),
             
 ])

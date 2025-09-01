@@ -17,12 +17,12 @@ def generate_launch_description():
     navsat_transform_yaml = os.path.join(pkg_path, "params", "navsat_transform.yaml")
     param_ekf_yaml = os.path.join(pkg_path, "params", "param_ekf.yaml")
 
-    robot_state_publisher_node = launch_ros.actions.Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        parameters=[{"robot_description": robot_description.toxml()}],
-        output="screen",
-    )
+    # robot_state_publisher_node = launch_ros.actions.Node(
+    #     package="robot_state_publisher",
+    #     executable="robot_state_publisher",
+    #     parameters=[{"robot_description": robot_description.toxml()}],
+    #     output="screen",
+    # )
 
     ekf_localization_node = launch_ros.actions.Node(
         package="robot_localization",
@@ -34,33 +34,33 @@ def generate_launch_description():
         # clear_parameters=True
     )
 
-    navsat_transform_node = launch_ros.actions.Node(
-        package="robot_localization",
-        executable="navsat_transform_node",
-        name="navsat_transform_node",
-        parameters=[navsat_transform_yaml],
-        remappings=[
-            # ('imu', 'imu/data'),
-            ("imu", "imu/rotated"),
-            ("odometry/filtered", "/odometry/navsat"),
-            # ('odometry/filtered', '/localization/kinematic_state'),
-            ("gps/fix", "ublox_gps_node/fix"),
-        ],
-        output="screen",
-        # clear_parameters=True
-    )
+    # navsat_transform_node = launch_ros.actions.Node(
+    #     package="robot_localization",
+    #     executable="navsat_transform_node",
+    #     name="navsat_transform_node",
+    #     parameters=[navsat_transform_yaml],
+    #     remappings=[
+    #         # ('imu', 'imu/data'),
+    #         ("imu", "imu/rotated"),
+    #         ("odometry/filtered", "/odometry/navsat"),
+    #         # ('odometry/filtered', '/localization/kinematic_state'),
+    #         ("gps/fix", "ublox_gps_node/fix"),
+    #     ],
+    #     output="screen",
+    #     # clear_parameters=True
+    # )
 
-    erp_twist_node = launch_ros.actions.Node(
-        package="localization", executable="erp_twist", name="erp_twist"
-    )
+    # erp_twist_node = launch_ros.actions.Node(
+    #     package="localization", executable="erp_twist", name="erp_twist"
+    # )
 
     return LaunchDescription(
         [
             launch_ros.actions.SetParameter(name="use_sim_time", value=False),
-            robot_state_publisher_node,
-            erp_twist_node,
+            # robot_state_publisher_node,
+            # erp_twist_node,
             # wheel_odometry_node,
-            navsat_transform_node,
+            # navsat_transform_node,
             ekf_localization_node,
             # rviz_node
         ]

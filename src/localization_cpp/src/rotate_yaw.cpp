@@ -38,7 +38,7 @@ public:
       std::bind(&Rotate::gpsFixCallback, this, std::placeholders::_1));
     // ★ 추가: GPS 재밍 오도메트리 구독
     sub_gps_jam_ = create_subscription<nav_msgs::msg::Odometry>(
-      "odometry/gps_jaming", qos,
+      "odometry/gps_jamming", qos,
       std::bind(&Rotate::gpsJammingCallback, this, std::placeholders::_1));
 
 
@@ -142,12 +142,8 @@ private:
     imu_out.orientation.y = q_new.y();
     imu_out.orientation.z = q_new.z();
     imu_out.orientation.w = q_new.w();
+    imu_out.header.stamp = this->get_clock()->now();
 
-    imu_out.orientation_covariance = {
-      0.00025, 0.0,     0.0,
-      0.0,     0.00025, 0.0,
-      0.0,     0.0,     0.00025
-    };
 
     RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 100,
         "Yaw prev: %.2f°, new: %.2f°, delta: %.2f°",

@@ -74,7 +74,7 @@ private:
             Eigen::Vector3d pixel_homo = P * point_lidar;
 
             double u = pixel_homo(0) / pixel_homo(2);
-            double v = pixel_homo(1) / pixel_homo(2) -10 ;
+            double v = pixel_homo(1) / pixel_homo(2) -20 ;
 
             int x = last_bbox_.x, y = last_bbox_.y, w = last_bbox_.width, h = last_bbox_.height;
 

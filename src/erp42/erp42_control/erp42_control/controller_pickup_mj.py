@@ -148,5 +148,6 @@ class Pickup():
         msg.speed = int(speed) * 10
         msg.gear = 2
         msg.estop = self.estop
+        print(self.abs_var,"detected")
 
         return msg, self.abs_var, self.pickup_finished

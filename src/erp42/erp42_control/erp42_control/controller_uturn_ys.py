@@ -204,7 +204,7 @@ class Uturn:
                 h_gain=0.5,
                 c_gain=0.24,
             )
-            msg.speed = int(5) * 10
+            msg.speed = int(13) * 10
             msg.steer = int(m.degrees((-1) * steer))
             msg.gear = 2
             if flag:
@@ -257,7 +257,7 @@ class Uturn:
             px, py = path_point[0] + dx, path_point[1] + dy
             for cone in self.cones:
                 dist = np.hypot(px - cone.x, py - cone.y)
-                if dist < 2.0:
+                if dist < 1.5:
                     return False, 0, 0
         return True, dx, dy
 

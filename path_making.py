@@ -45,7 +45,7 @@ class DBWRITE(Node):
         
         #############################################################
         db_dir = "/home/acca/db_file"
-        db_name = "bunsudae_v1.db"
+        db_name = "0827_ssupark_ys.db"
         #############################################################
 
         self.marker_timer = self.create_timer(1.0,self.domain_for_visu)

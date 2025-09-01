@@ -59,6 +59,7 @@ private:
       }
     }
     // 그대로 또는 수정된 메시지를 새 토픽으로 발행
+    out_msg.header.stamp = this->get_clock()->now();
     pub_->publish(out_msg);
   }
 

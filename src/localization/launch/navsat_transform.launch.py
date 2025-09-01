@@ -44,6 +44,10 @@ def generate_launch_description():
         # clear_parameters=True
     )
 
+    gps_jammer = launch_ros.actions.Node(
+        package="localization_cpp", executable="gps_dummy", name="gps_jamming_filter"
+    )
+    
     navsat_transform_node = launch_ros.actions.Node(
         package="robot_localization",
         executable="navsat_transform_node",
@@ -85,6 +89,7 @@ def generate_launch_description():
             # wheel_odometry_node,
             navsat_transform_node,
             ekf_localization_node,
+            gps_jammer,
             # rviz_node
         ]
     )

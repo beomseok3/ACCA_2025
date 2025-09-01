@@ -46,22 +46,22 @@ class Delivery:
         self.abs_var = None  # 관심 class_id (외부에서 전달 받음)
 
         # ── 제어 파라미터 ────────────────────────────────────────────────
-        self.v_search = 5.0           # 기본 추종 속도
-        self.v_fast = 8.0             # 재출발 후 빠른 추종 속도
+        self.v_search = 8.0           # 기본 추종 속도
+        self.v_fast = 12.0             # 재출발 후 빠른 추종 속도
         self.max_steer_deg = 28.0     # 조향 제한(deg)
-        self.stop_radius = 5.0        # [m] sign까지 거리 임계값
-        self.stop_hold_sec = 5.0      # [s] E-stop 유지 시간
+        self.stop_radius = 4.2       # [m] sign까지 거리 임계값
+        self.stop_hold_sec = 3.0      # [s] E-stop 유지 시간
 
         # 경로 완료 판정
         self.finish_radius = 1.0      # [m] 마지막 점 반경
-        self.goal_count_thr = 10      # 완료 판정 유지 카운트 (노이즈 억제)
+        self.goal_count_thr = 1      # 완료 판정 유지 카운트 (노이즈 억제)
 
         # 내부
         self.current_path = None      # (xs, ys, yaws)
         self.target_idx = 0
         self.count = 0
         self.published_once = False
-        self.goal_count = 0
+        self.goal = False
         self.path_done = False         # 완료 래치
 
         # ── 상태머신 ────────────────────────────────────────────────────
@@ -141,15 +141,13 @@ class Delivery:
             return False
         gx, gy = xs[-1], ys[-1]
         dist = m.hypot(gx - self.x, gy - self.y)
-        near_end_idx = (self.target_idx >= max(0, len(xs) - 2))
 
-        if dist <= self.finish_radius and near_end_idx:
-            self.goal_count += 1
+        if dist <= self.finish_radius:
+            self.goal = True
         else:
-            self.goal_count = 0
+            self.goal = False
 
-        return self.goal_count >= self.goal_count_thr
-
+        return self.goal
     # ─────────────────────────────────────────────────────────────────────
     # 메인 제어 함수 (상태머신 버전)
     # ─────────────────────────────────────────────────────────────────────
@@ -217,7 +215,7 @@ class Delivery:
 
             # 반경 내 진입 시, 약간의 카운트 지연 후 E-stop 래치
             if dist <= self.stop_radius:
-                if self.count >= 50:
+                if self.count >= 30:
                     # E-stop 진입 → HOLD 전환 및 타이머 시작
                     self.state = "HOLD"
                     self._hold_until_sec = now_sec + self.stop_hold_sec

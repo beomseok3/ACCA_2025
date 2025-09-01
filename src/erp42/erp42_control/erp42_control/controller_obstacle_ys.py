@@ -18,12 +18,14 @@ from rclpy.qos import qos_profile_system_default
 from erp42_msgs.msg import ControlMessage
 import time as t
 
+# ★ ref를 DB에서 읽기 위해 추가
+from DB import DB
+
 
 class SpeedSupporter:
     def __init__(self, node):
         # self.he_gain = node.declare_parameter("/speed_supporter/he_gain", 30.0).value
         # self.ce_gain = node.declare_parameter("/speed_supporter/ce_gain", 20.0).value
-
         # self.he_thr = node.declare_parameter("/speed_supporter/he_thr",0.01).value
         # self.ce_thr = node.declare_parameter("/speed_supporter/ce_thr",0.02).value
 
@@ -132,7 +134,7 @@ class Obstacle:
 
         self.to_num = None
 
-        # 도로 center_points #현재는 직접하는데 나중에 받아와야함
+        # 도로 center_points
         self.ref_path_points1 = None
         self.ref_path_points2 = None
 
@@ -155,6 +157,20 @@ class Obstacle:
         self.o_list = [0] * 50
 
         self.once = 0  # 처음에 한번만 실행하기 위한 변수
+
+        # ───────────────── DB에서 ref 경로 로딩 (추가된 부분) ─────────────────
+        self.path1_db = DB("obs_path_1.db")
+        self.path2_db = DB("obs_path_2.db")
+
+        # shape (N,3) = [x,y,yaw]
+        self.path1_data = np.array(self.path1_db.read_db_n("Path", "x", "y", "yaw"))
+        self.path2_data = np.array(self.path2_db.read_db_n("Path", "x", "y", "yaw"))
+
+        if self.path1_data.size == 0:
+            self.node.get_logger().warn("[DB] lane1(Path1) 데이터가 비어있습니다: obs_path_1.db")
+        if self.path2_data.size == 0:
+            self.node.get_logger().warn("[DB] lane2(Path2) 데이터가 비어있습니다: obs_path_2.db")
+        # ────────────────────────────────────────────────────────────────
 
     def call_marker(self, msg):
         if self.code_start:
@@ -373,6 +389,44 @@ class Obstacle:
             # Save global path for later use
             self.ref_path_points2 = path_points
 
+    # ★ DB에서 읽은 (x,y,yaw) → Path 퍼블리시 + 내부 (x,y) 보관 (추가된 함수)
+    def publish_ref_path_from_db(self, path_data: np.ndarray, num: int):
+        """
+        path_data: (N,3) [x, y, yaw]
+        num: 1 → /ref/path1, 2 → /ref/path2
+        """
+        if path_data is None or path_data.size == 0:
+            self.node.get_logger().warn(f"[DB] lane{num} 경로 데이터 없음")
+            return
+
+        path = Path()
+        path.header = Header()
+        path.header.stamp = self.node.get_clock().now().to_msg()
+        path.header.frame_id = "map"
+
+        for x, y, yaw in path_data:
+            pose = PoseStamped()
+            pose.header.stamp = self.node.get_clock().now().to_msg()
+            pose.header.frame_id = "map"
+            pose.pose.position.x = float(x)
+            pose.pose.position.y = float(y)
+            pose.pose.position.z = 0.0
+
+            q = quaternion_from_euler(0, 0, float(yaw))
+            pose.pose.orientation.x = q[0]
+            pose.pose.orientation.y = q[1]
+            pose.pose.orientation.z = q[2]
+            pose.pose.orientation.w = q[3]
+
+            path.poses.append(pose)
+
+        if num == 1:
+            self.ref_path1.publish(path)
+            self.ref_path_points1 = path_data[:, :2]  # (x,y)만 보관
+        elif num == 2:
+            self.ref_path2.publish(path)
+            self.ref_path_points2 = path_data[:, :2]
+
     def publish_polygon(self, points, ns, r, g, b, a):
         marker = Marker()
         marker.header.frame_id = "map"
@@ -543,15 +597,15 @@ class Obstacle:
             line2_DA = [
                 (174.3036346435547, -29.518701553344727),
                 (173.55572509765625, -28.224584579467773),
-                (78.60236358642578, -84.23417663574219),
-                (79.04353332519531, -85.19808197021484),
+                (77.6576, -82.3811),
+                (78.2905, -83.6974),
             ]  # DA = detection_area
 
             line1_DA = [
-                (178.50836181640625, -29.293609619140625),
-                (177.8487548828125, -28.28826904296875),
-                (79.6720199584961, -86.20462799072266),
-                (80.13756561279297, -87.22261047363281),
+                (178.405, -29.3547),
+                (177.318, -28.3859),
+                (78.9209, -84.3033),
+                (79.945, -86.629),
             ]
 
         # Create polygons from the detection areas
@@ -688,18 +742,17 @@ class Obstacle:
             and self.odometry.y is not None
         ):
             if self.state == "static":
-                # k-city2 @ 작은거
-                self.publish_ref_path(
-                    wx=[179.949, 79.5295, 67.04232025146484],
-                    wy=[-27.069, -86.3704, -93.48049926757812],
-                    num=1,
-                )  # 1차선 center line
+                # ★ 하드코딩 경로 대신 DB 경로 퍼블리시
+                if self.path1_data.size >= 3:
+                    self.publish_ref_path_from_db(self.path1_data, num=1)
+                else:
+                    self.node.get_logger().warn("[DB] lane1 데이터 부족")
 
-                self.publish_ref_path(
-                    wx=[179.092, 78.6943],
-                    wy=[-25.5873, -85.0537],
-                    num=2,
-                )  # 2차선 center line
+                if self.path2_data.size >= 3:
+                    self.publish_ref_path_from_db(self.path2_data, num=2)
+                else:
+                    self.node.get_logger().warn("[DB] lane2 데이터 부족")
+
                 self.check_obstacle("small")
 
                 self.organize_obstacle_lists()
@@ -707,17 +760,12 @@ class Obstacle:
                 self.line_change()
 
             elif self.state == "dynamic":
-                self.publish_ref_path(
-                    wx=[179.949, 79.5295],
-                    wy=[-27.069, -86.3704],
-                    num=1,
-                )  # 1차선 center line
+                # ★ 동적 상태에서도 DB 경로 퍼블리시 후 중간선(Local path) 생성
+                if self.path1_data.size >= 3:
+                    self.publish_ref_path_from_db(self.path1_data, num=1)
+                if self.path2_data.size >= 3:
+                    self.publish_ref_path_from_db(self.path2_data, num=2)
 
-                self.publish_ref_path(
-                    wx=[179.092, 78.6943],
-                    wy=[-25.5873, -85.0537],
-                    num=2,
-                )
                 self.local_points = []
                 for p1, p2 in zip(self.ref_path_points2, self.ref_path_points1):
                     avg_point = [

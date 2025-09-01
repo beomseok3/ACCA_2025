@@ -5,10 +5,11 @@ from rclpy.qos import qos_profile_system_default
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped
 from erp42_msgs.msg import SerialFeedBack, ControlMessage
-from std_msgs.msg import Float64, Int64
+from std_msgs.msg import Float64, Int64, Float32
 
 from stanley import Stanley
-from .mpc_node import MPC
+# from .mpc_node import MPC
+from .mpc_node_tunning_2 import MPC
 from DB import DB
 import numpy as np
 import math as m
@@ -16,8 +17,9 @@ from Modifier_param import ParamConfigurer
 from enum import Enum
 import threading
 
-# from controller_obstacle_ys import Obstacle
-from controller_uturn_ys import Uturn
+from controller_obstacle_ys import Obstacle
+from controller_uturn import Uturn
+from controller_parking_ys import Parking
 
 
 def euler_from_quaternion(quaternion):
@@ -88,23 +90,24 @@ class PID:
 
     def PIDControl(self, speed, desired_value, min, max):
 
-        self.current = self.node.get_clock().now().seconds_nanoseconds()[0] + (
-            self.node.get_clock().now().seconds_nanoseconds()[1] / 1e9
-        )
-        dt = self.current - self.last
-        self.last = self.current
+        # self.current = self.node.get_clock().now().seconds_nanoseconds()[0] + (
+        #     self.node.get_clock().now().seconds_nanoseconds()[1] / 1e9
+        # )
+        # dt = self.current - self.last
+        # self.last = self.current
 
         err = desired_value - speed
         # self.d_err = (err - self.p_err) / dt
 
         self.p_err = err
-        self.i_err += self.p_err * dt * (0.0 if speed == 0 else 1.0)
-        if self.i_err > 5.0:
-            self.i_err = 5.0
-        if self.i_err < -5.0:
-            self.i_err = -5.0
+        # self.i_err += self.p_err * dt * (0.0 if speed == 0 else 1.0)
+        # if self.i_err > 5.0:
+        #     self.i_err = 5.0
+        # if self.i_err < -5.0:
+        #     self.i_err = -5.0
 
         self.speed = speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err)
+        # self.speed = speed + (self.p_gain * self.p_err) 
 
         return int(np.clip(self.speed, min, max))
 
@@ -135,34 +138,29 @@ class SpeedSupporter:
 
 
 class State(Enum):
-    # ############### YS 0802 ###########################
-    A1A2  = "uturn_a"       # st(13) mpc(20)
-    A2A3  = "parking_b"       # st(5)  mpc(5)
-    A3A4  = "driving_c"       # st(13) mpc(20)
-    A4A5  = "slow_d"     # st(8)  mpc(8)
-    # B1B2  = "uturn_e"
-    A5A6  = "driving_e"       # st(13) mpc(20)
-    A6A7  = "obstacle_f"      # st(8)  mpc(8)
-    # ###################  YS ###########################
+    ########### YS MPC ############
+    # A1A2 = "driving_a"
+    # A2A3 = "driving_stanley_b"
+    # A3A4 = "driving_c"
+    # B1B2 = "uturn_d"
+    # A4A5 = "driving_e"
+    # A5A6 = "obstacle_f"
+    ########### YS MPC ############
+    # ssupark
+    # A1A2 = "driving_a"
+    # A2A3 = "parking_b"
+    # A3A4 = "driving_c"
+    # B1B2 = "uturn_d"
+    # A4A5 = "driving_e"
 
-    ############### YS 0801 ###########################
-
-    # A1A2 = "driving_A"  # old(15) new(20)
-
-    # # A2A3 = "parking_B" # 사선 주차 old(5)
-    # A2A3 = "driving_stanley_B"  # 사선 주차 old(5)
-
-    # A3A4 = "driving_B"
-    # # A3A4 = "curve_C" # old(8) new(11)
-    # # A4A5 = "driving_D" # old(15) new(20)
-
-    # A4A5 = "driving_stanley_E"  # 방지턱 old(12) new(12)
-
-    # A5A6 = "driving_F"  # old(8) new(11)
-
-    # A6A7 = "obstacle_G"  # old(12) new(20)
-
-    # ###################  YS ###########################
+    A1A2="stanley_a"
+    A2A3="parking_b"
+    A3A4="driving_c"
+    A4A5="driving_f"
+    B1B2="uturn_g"
+    A5A6="stanley_h"
+    A6A7="driving_i"
+    A7A8="obstacle_j"
     # Bunsudae Path
     # A1A2 = "driving_a"  # 13
     # A2A3 = "pickup_b"  # 8
@@ -233,11 +231,10 @@ class GetOdometry:
             ]
         )
         self.v = msg.twist.twist.linear.x
-        self.speed = self.v
 
 
 class StateMachine:
-    def __init__(self, node, odometry, path, state, db):
+    def __init__(self, node, odometry, path, state, db, db_mpc):
 
         self.logging = node.declare_parameter("logging", True).value
 
@@ -246,6 +243,12 @@ class StateMachine:
         )
         self.path_pub = node.create_publisher(
             Path, "global_path", qos_profile=qos_profile_system_default
+        )
+        node.create_subscription(
+            Float32, "hdr", self.hdr_callback, qos_profile=qos_profile_system_default
+        )
+        node.create_subscription(
+            Float32, "ctr", self.ctr_callback, qos_profile=qos_profile_system_default
         )
 
         if self.logging:
@@ -271,6 +274,7 @@ class StateMachine:
             self.idx_msg = Int64()
 
         self.db = db
+        self.db_mpc = db_mpc
 
         self.node = node
         self.state = state
@@ -278,7 +282,7 @@ class StateMachine:
         self.odometry = odometry
 
         self.st = Stanley()
-        self.mpc = MPC(self.db, state)
+        self.mpc = MPC(self.db_mpc)
         self.pid = PID(node)
         self.ss = SpeedSupporter(node)
         self.pc = ParamConfigurer(node)
@@ -286,19 +290,32 @@ class StateMachine:
         self.target_idx = 0
         self.mission_finish = False
 
-        # self.obstacle = Obstacle(self.node)
+        self.obstacle = Obstacle(self.node)
         self.uturn = Uturn(self.node)
+        self.parking = Parking(self.node)
 
         self.min = 0
         self.max = 25
-        self.first = True
+        self.first_ob = True
+        self.first_par = True
+        self.first_uturn = True
+        self.first_driving = True
+
+        self.hdr = 0.0
+        self.ctr = 0.0
+
+    def hdr_callback(self, msg):
+        self.hdr = msg.data
+
+    def ctr_callback(self, msg):
+        self.ctr = msg.data
 
     def update_state_and_path(self):
-        print(f"{'-'*37}\n{self.target_idx}  /  {len(self.path.cx)}\n{'-'*37}")
+        # print(f"{'-'*37}\n{self.target_idx}  /  {len(self.path.cx)}\n{'-'*37}")
         if (
             self.state.value[:-2] == "driving"
             or self.state.value[:-2] == "curve"
-            or self.state.value[:-2] == "driving_stanley"
+            or self.state.value[:-2] == "stanley"
         ):
             if self.target_idx >= len(self.path.cx) - 10:  # driving에서 state 전환 조건
                 states = list(State)
@@ -309,6 +326,7 @@ class StateMachine:
                     self.state = states[
                         current_index + 1
                     ]  # state update (driving -> mission)
+                    self.first_driving = True
                     self.target_idx = 0  # target_idx reset
                     self.path.file_open_with_id(self.state.name)  # path update
                     self.publish_path()  # path publish
@@ -338,21 +356,43 @@ class StateMachine:
         msg = ControlMessage()
         self.idx = self.idx_calc()
         # print(self.idx)
+        __, steer, speed_output = self.mpc.pose_callback(
+                    self.odometry.pose
+                )
 
         if self.state.value[:-2] == "driving" or self.state.value[:-2] == "curve":
-
+            if self.first_driving:
+                self.first_driving = False
+                self.pc.set_detection_area([0.,0.,0.,0.])
             if self.odometry.x != 0.0:  # 10.03 수정
                 self.min = 0
                 self.max = 25
+                self.target_idx, _ = self.st.calc_target_index(self.odometry, self.path.cx, self.path.cy)
 
-                self.target_idx, steer, speed_output = self.mpc.pose_callback(
-                    self.odometry.pose, self.odometry.speed, self.state
-                )
+                
                 mspeed = speed_output * 3.6  # kph
-                speed = self.pid.PIDControl(
-                    self.odometry.v * 3.6, mspeed, self.min, self.max
-                )
-                brake = self.cacluate_brake(mspeed)  # brake 조정
+
+                adapted_speed = -50.0
+
+                if self.hdr and self.ctr:
+                    adapted_speed = self.ss.adaptSpeed(
+                        mspeed,
+                        self.hdr,
+                        self.ctr,
+                        min_value=2,
+                        max_value=self.max,
+                    )
+
+                if adapted_speed == -50.0:
+                    speed = self.pid.PIDControl(
+                        self.odometry.v * 3.6, mspeed, self.min, self.max
+                    )  # speed 조정 (PI control)
+                else:
+                    speed = self.pid.PIDControl(
+                        self.odometry.v * 3.6, adapted_speed, self.min, self.max
+                    )
+                
+                brake = self.cacluate_brake(speed)  # brake 조정
 
                 # msg.speed = int(adapted_speed) * 10
                 msg.speed = int(speed) * 10
@@ -374,7 +414,7 @@ class StateMachine:
             else:
                 pass
 
-        elif self.state.value[:-2] == "driving_stanley":
+        elif self.state.value[:-2] == "stanley":
             if self.odometry.x != 0.0:  # 10.03 수정
 
                 steer, self.target_idx, hdr, ctr = self.st.stanley_control(
@@ -399,18 +439,30 @@ class StateMachine:
                 msg.brake = int(brake)
 
         elif self.state.value[:-2] == "obstacle":
-            if self.first:
-                self.pc.set_detection_area([0.,20.,-2.5,2.5])
+            if self.first_ob:
+                self.first_ob = False
+                self.pc.set_detection_area([0.,5.,-2.5,2.5])
                 self.pc.set_gps_jamming(True)
-                self.firts = False
-            ## 항상 parking이 마지막이므로 set detection area는 한번만 실행
             msg, self.mission_finish = self.obstacle.control_obstacle(
                 self.odometry, self.path
             )
 
         elif self.state.value[:-2] == "uturn":
+            if self.first_uturn:
+                self.first_uturn = False
+                self.pc.set_detection_area([0.,10.,-7.,0.5])
             if self.odometry.x != 0.0:
                 msg, self.mission_finish = self.uturn.control_uturn(self.odometry)
+        
+        elif self.state.value[:-2] == "parking":
+            if self.first_par:
+                self.first_par = False
+                self.pc.set_detection_area([-2.0, 8.0, -8.0, 0.5])
+                # msg = ControlMessage(
+                #     mora=0, estop=1, gear=0, speed=0, steer=0, brake=200
+                # )
+            if self.odometry.x != 0.0:
+                msg, self.mission_finish = self.parking.control_parking(self.odometry)
         else:
             print("error: ", self.state.value)
 
@@ -466,21 +518,23 @@ class StateMachine:
 def main():
     rclpy.init(args=None)
     node = rclpy.create_node("state_machine_node")
-
     # Declare Params
-    node.declare_parameter("file_name", "bunsudae_mpc_full_v1" ".db")
+    node.declare_parameter("file_name", "/kcity/kcity_ys_0831_v_3" ".db")
+    node.declare_parameter("file_name_mpc", "/kcity/mpc_kcity_ys_0831_v_3" ".db")
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
     # Get Params
     file_name = node.get_parameter("file_name").get_parameter_value().string_value
+    file_name_mpc = node.get_parameter("file_name_mpc").get_parameter_value().string_value
     odom_topic = node.get_parameter("odom_topic").get_parameter_value().string_value
 
     # Declare Instance
     db = DB(file_name)
+    db_mpc = DB(file_name_mpc)
     state = State.A1A2
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
-    state_machine = StateMachine(node, odometry, path, state, db)
+    state_machine = StateMachine(node, odometry, path, state, db, db_mpc)
     state_machine.publish_path()  # A1A2(초기 path) publish
 
     thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)

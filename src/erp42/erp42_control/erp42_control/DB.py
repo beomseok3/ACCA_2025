@@ -31,12 +31,38 @@ class DB():
             
             self.makeTable() # 만약 완전 새로운 db라면 기초적인 테이블을 만든다
 
+    # def find_idx(self,x,y,table):# idx ,id
+    #     self.__cur.execute(f"SELECT idx,x,y FROM {table}")
+    #     rows = self.__cur.fetchall()
+    #     # print(rows)
+    #     min_err  = 10000
+    #     idx = 0
+    #     for row in rows:
+    #         x_value = row[1]
+    #         y_value = row[2]
+            
+    #         x_err = (x_value - x)**2
+    #         y_err = (y_value - y)**2
+    #         total_err = x_err + y_err
+            
+    #         if total_err < min_err:
+    #             min_err = total_err
+    #             idx = row[0]
+    #     return idx
+
+
+
     def find_idx(self,x,y,table):# idx ,id
-        self.__cur.execute(f"SELECT idx,x,y FROM {table}")
+        radius = 10
+        query = f"""SELECT idx, x, y
+                FROM {table}
+                WHERE x BETWEEN ? AND ?
+                AND y BETWEEN ? AND ?
+                """
+        self.__cur.execute(query, (x - radius, x + radius, y - radius, y + radius))
         rows = self.__cur.fetchall()
-        # print(rows)
-        min_err  = 10000
-        idx = 0
+        min_err = float('inf')
+        closest_idx = 0
         for row in rows:
             x_value = row[1]
             y_value = row[2]
@@ -47,8 +73,8 @@ class DB():
             
             if total_err < min_err:
                 min_err = total_err
-                idx = row[0]
-        return idx
+                closest_idx = row[0]
+        return closest_idx
         
     def read_db_n(self,table,*n): # table(Path or Node) 에 해당하는 데이터를 모두 가져온다, 반환 형태 : [(,,,),(,,,), ....] 데이터 개수는 db에 따라 다름
         n_str = ', '.join(n)
@@ -143,7 +169,24 @@ class DB():
         
         return cx, cy, cyaw, cv
 
+    def query_from_id_mpc(self, id):
+        self.__cur.execute("SELECT x,y,yaw,speed, idx FROM Path where path_id == ?",(id,))
+        rows = self.__cur.fetchall()
+        
+        cx = []
+        cy = []
+        cyaw = []
+        cv = []
+        cidx = []
 
+        for x, y, yaw, v, idx in rows:
+            cx.append(x)
+            cy.append(y)
+            cyaw.append(yaw)
+            cv.append(v)
+            cidx.append(idx)
+            
+        return cx, cy, cyaw, cv, cidx
     
     
     def read_db_from_id_to_mission(self,id): # id 를 통해 Node테이블의 mission 정보를 가져온다

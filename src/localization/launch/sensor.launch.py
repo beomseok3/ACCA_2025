@@ -54,12 +54,12 @@ def generate_launch_description():
 
     
     return LaunchDescription([
-        # erp_launch,
-        ntrip_launch,
+        erp_launch,
+        # ntrip_launch,
         gps_launch,
         imu_launch,
-        # lidar_launch,
-        # camera_launch,
+        lidar_launch,
+        camera_launch,
     ])
 
 if __name__ == '__main__':

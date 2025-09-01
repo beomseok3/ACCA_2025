@@ -26,9 +26,13 @@ ament_target_dependencies(rotate_yaw rclcpp std_msgs sensor_msgs nav_msgs)
 add_executable(gps_dummy src/gps_dummy.cpp)
 ament_target_dependencies(gps_dummy rclcpp std_msgs sensor_msgs nav_msgs geometry_msgs)
 
+add_executable(gps src/gps.cpp)
+ament_target_dependencies(gps rclcpp std_msgs sensor_msgs nav_msgs geometry_msgs)
+
 install(TARGETS
   rotate_yaw
   gps_dummy
+  gps
   DESTINATION lib/${PROJECT_NAME})
 
   if(BUILD_TESTING)
