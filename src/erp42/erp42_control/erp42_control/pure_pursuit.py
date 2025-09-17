@@ -116,11 +116,11 @@ class TargetCourse:
         def calc_lookahead_gain(v):
             # v: [m/s]
             if v < 2.0:  # 7.2 km/h 이하
-                return 0.2
+                return 0.3
             elif v < 4.5:  # 18 km/h 이하
-                return 0.3
+                return 0.4
             else:  # 20 km/h 이상
-                return 0.3
+                return 0.5
 
         k = calc_lookahead_gain(state.v)
 

@@ -109,17 +109,17 @@ class Detection:
 
 
 
-class Pakring():
+class Parking():
     def __init__(self,node):
         self.node = node
         
-        # search_path
-        #kcity-bs
-        self.search_path_db = DB("search_path_bunsudae.db") #kcity
-        # self.search_path_db = DB("1006_search_path_acca.db") #kcity
-        # self.search_path_db = DB("1006_search_path_acca.db") #dolge
-        #school-bunsudae
-        # self.search_path_db = DB("0710_parking_test.db")
+        #### search_path ####
+        # kcity-bs
+        self.search_path_db = DB("1012_1344_bs_search_path.db") 
+        # school-bunsudae
+        # self.search_path_db = DB("search_path_bunsudae.db") 
+        #### search_path ####
+
         self.search_path = self.search_path_db.read_db_n("Path", "x", "y", "yaw")
         rows = self.search_path
         self.path_cx = [row[0] for row in rows]
@@ -128,19 +128,22 @@ class Pakring():
         self.search_path = np.array(self.search_path)
         
         #### parking_path ####
-        self.parking_path_db = DB("parking_path_bunsudae.db")
-        # self.parking_path_db = DB("1003_1758_parking_path.db") #kcity
-        self.parking_path = self.parking_path_db.read_db_n(
-            "Path", "x", "y", "yaw"
-        )
+        # bunsudae
+        # self.parking_path_db = DB("parking_path_bunsudae.db")
+        # kcity
+        self.parking_path_db = DB("1012_1438_parking_path.db")
+        #### Parking_path ####
+
+        self.parking_path = self.parking_path_db.read_db_n("Path", "x", "y", "yaw")
         self.parking_path = np.array(self.parking_path)
 
-        ##### return_path ####
+        #### return_path ####
         # self.return_path_db = DB("1009_2243_return_path.db")
         # self.return_path = self.return_path_db.read_db_n(
         #     "Path","x","y","yaw"
         # )
         # self.return_path = np.array(self.return_path)
+        #### return_path ####
 
         # parameter
         # self.cone_dist_threshold = self.node.declare_parameter("/parking/cone_dist_threshold", 3.1)
@@ -153,8 +156,8 @@ class Pakring():
             self.search_path[1][0], self.search_path[1][1], self.search_path[1][2]
         )  
         # ROI(rectangular form)
-        self.min_x = self.reference_pose.x + 0.0 + 13.89150679316159 - 6.0- 4.5 - 5.0
-        self.max_x = self.reference_pose.x + 28.0 + 13.89150679316159 -6.0 - 5.0-4.5 -5.0 -2.5
+        self.min_x = self.reference_pose.x + 0.0 + 13.89150679316159 - 6.0- 4.5 - 5.0 + 14.0 - 5.0
+        self.max_x = self.reference_pose.x + 28.0 + 13.89150679316159 -6.0 - 5.0-4.5 -5.0 -2.5 + 14.0 - 5.0
         self.min_y = self.reference_pose.y -2.5 - 0.49272527596502247 -0.8 + 0.65
         self.max_y = self.reference_pose.y  -1.0 - 0.49272527596502247 -0.5 +0.65
         
@@ -183,19 +186,19 @@ class Pakring():
             self.goal_pose_marker = node.create_publisher(Marker,"marker_goal",qos_profile_system_default)
             self.reference_pose_marker = node.create_publisher(Marker,"reference_pose",qos_profile_system_default)
             self.roi_marker_array = node.create_publisher(MarkerArray,"roi",qos_profile_system_default)
-            self.roi_visualizatin()
+            self.roi_visualization()
             self.current_path_visualization()
     
     ###################### utils ##########################
 
-    def cacluate_brake(
+    def calcluate_brake(
         self, adapted_speed
     ):  # brake 값 정하는 알고리즘 좀 더 정교하게 생각
         if self.vehicle_state.v * 3.6 >= adapted_speed:
             brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
         else:
             brake = 0
-        return brake
+        return np.clip(brake, 0, 200)
     
     def rotate_points(self, points, angle, origin):
         if points is not None:
@@ -238,9 +241,7 @@ class Pakring():
             if not self.euclidean_duplicate(rotated_point):
                 if self.in_roi(rotated_point):
                     self.roi_cone.append(rotated_point)
-                    
                     self.roi_cone_visualization()
-
                     self.update_parking_path()
 
     def update_parking_path(self):
@@ -257,7 +258,7 @@ class Pakring():
 
     def parking_path_align(self):
 
-        angle =   self.parking_path[-1][2] - self.reference_pose.yaw
+        angle = self.parking_path[-1][2] - self.reference_pose.yaw
         
         goal_pose = self.rotate_points(
             np.array(
@@ -368,63 +369,64 @@ class Pakring():
                     target_speed = 8.0
                     adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6)
                     speed = self.pid.PIDControl(State.v * 3.6, adapted_speed, min=4, max=6)
-                    msg = ControlMessage(mora=0, estop=0,gear=2,speed = speed*10, steer = int(m.degrees(-1* steer)),brake=0)
+                    msg = ControlMessage(mora=0, estop=0,gear=2,speed = speed*10, steer = int(m.degrees(-1* steer) * 1e3),brake=0)
 
                 except Exception as e:
                     print(f"{e}: stanley")
                 return msg, False
             
             # Kcity 경사로 setting                
-            # elif self.parking_state == Parking_state.PARKING:
-            #     if time.time() - self.parking_stop_time <= 5.0:
-            #         msg = ControlMessage(mora=0, estop=1,gear=0,speed = 0*10, steer = 0,brake=200)
-            #         return msg, False                 
-                    
-            #     try:
-            #         steer, self.target_idx, hdr,ctr = self.st.stanley_control(
-            #             State,
-            #             self.path_cx,
-            #             self.path_cy,
-            #             self.path_cyaw,
-            #             h_gain = 1.5,
-            #             c_gain = 1.2,
-            #             reverse=True,
-            #         )
-            #         target_speed = 2.0
-            #         adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=2, max_value=3
-            #         )
-            #         brake = self.cacluate_brake(adapted_speed)
-            #         msg = ControlMessage(mora=0, estop=0,gear=0,speed = int(adapted_speed)*10, steer = int(m.degrees(-1* steer)),brake= int(brake))
-            #     except Exception as e:
-            #         print(f"Stanley:{e}\n",f"{State}")
-            #     return msg, False
-            
-            elif self.parking_state == Parking_state.PARKING:                
+            elif self.parking_state == Parking_state.PARKING:
                 if time.time() - self.parking_stop_time <= 0.2:
                     msg = ControlMessage(mora=0, estop=1,gear=0,speed = 0*10, steer = 0,brake=200)
-                    self.node.get_logger().info(f"estop time_stop {time.time() - self.stop_start_time}")                 
-                    return msg, False                    
+                    return msg, False                 
+                    
                 try:
                     steer, self.target_idx, hdr,ctr = self.st.stanley_control(
                         State,
                         self.path_cx,
                         self.path_cy,
                         self.path_cyaw,
-                        h_gain = 2.0,
-                        c_gain = 1.5,
+                        h_gain = 1.5,
+                        c_gain = 1.2,
                         reverse=True,
                     )
-                    # target_speed = 3.0
-                    target_speed = 5.0
-
-                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6
+                    target_speed = 2.0
+                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=2, max_value=3
                     )
-                    speed = self.pid.PIDControl(State.v * 3.6, adapted_speed,min=4, max=6)
-                    brake = self.cacluate_brake(adapted_speed)
-                    msg = ControlMessage(mora=0, estop=0,gear=0,speed = speed*10, steer = int(m.degrees(-1* steer)),brake= int(brake))
+                    brake = self.calcluate_brake(adapted_speed)
+                    msg = ControlMessage(mora=0, estop=0,gear=0,speed = int(adapted_speed)*10, steer = int(m.degrees(-1* steer) * 1e3),brake= int(brake))
                 except Exception as e:
                     print(f"Stanley:{e}\n",f"{State}")
                 return msg, False
+            
+            # elif self.parking_state == Parking_state.PARKING:                
+            #     if time.time() - self.parking_stop_time <= 0.2:
+            #         msg = ControlMessage(mora=0, estop=1,gear=0,speed = 0*10, steer = 0,brake=200)
+            #         self.node.get_logger().info(f"estop time_stop {time.time() - self.stop_start_time}")                 
+            #         return msg, False                    
+            #     try:
+            #         steer, self.target_idx, hdr,ctr = self.st.stanley_control(
+            #             State,
+            #             self.path_cx,
+            #             self.path_cy,
+            #             self.path_cyaw,
+            #             h_gain = 2.0,
+            #             c_gain = 1.5,
+            #             reverse=True,
+            #         )
+            #         # target_speed = 3.0
+            #         target_speed = 10.0
+            #         self.goal = 5
+
+            #         adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=8, max_value=10
+            #         )
+            #         speed = self.pid.PIDControl(State.v * 3.6, adapted_speed,min=8, max=10)
+            #         brake = self.calcluate_brake(adapted_speed)
+            #         msg = ControlMessage(mora=0, estop=0,gear=0,speed = speed*10, steer = int(m.degrees(-1* steer) * 1e3),brake= int(brake))
+            #     except Exception as e:
+            #         print(f"Stanley:{e}\n",f"{State}")
+            #     return msg, False
             
             else: # RETURN
                 try:
@@ -442,8 +444,8 @@ class Pakring():
                     target_speed = 5.0
                     adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6
                     )
-                    # speed = self.pid.PIDControl(State.v * 3.6, adapted_speed)
-                    msg = ControlMessage(mora=0, estop=0,gear=2,speed = int(adapted_speed)*10, steer = int(m.degrees(-1* steer)),brake=0)
+                    speed = self.pid.PIDControl(State.v * 3.6, adapted_speed, min = 4 , max = 6)
+                    msg = ControlMessage(mora=0, estop=0,gear=2,speed = int(adapted_speed)*10, steer = int(m.degrees(-1* steer) * 1e3),brake=0)
 
                 except Exception as e:
                     print(f"{e}: stanley")
@@ -487,7 +489,7 @@ class Pakring():
         # 퍼블리시
         self.goal_pose_marker.publish(marker)
         
-    def roi_visualizatin(self):
+    def roi_visualization(self):
         combinations = [
         (self.min_x, self.min_y),  # Bottom-left
         (self.max_x, self.min_y),  # Bottom-right

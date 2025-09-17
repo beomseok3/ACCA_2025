@@ -23,7 +23,9 @@ setup(
             'cone = yolo.cone:main',
             'traffic = yolo.traffic:main',
             'light_manta = yolo.traffic_light:main',
-            'light_logitech = yolo.traffic_light_logitech:main'
+            'light_logitech = yolo.traffic_light_logitech:main',
+            'check_t = yolo.check_traffic:main',
+            'concat = yolo.image_concat_trafficlight:main',
         ],
     },
 )

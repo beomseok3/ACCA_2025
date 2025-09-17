@@ -157,10 +157,12 @@ class State(Enum):
     A2A3="parking_b"
     A3A4="driving_c"
     A4A5="driving_f"
+    A5A6 = "driving_s"
+    # add another state
     B1B2="uturn_g"
-    A5A6="stanley_h"
-    A6A7="driving_i"
-    A7A8="obstacle_j"
+    A6A7="stanley_h"
+    A7A8="driving_i"
+    A8A9="obstacle_j"
     # Bunsudae Path
     # A1A2 = "driving_a"  # 13
     # A2A3 = "pickup_b"  # 8

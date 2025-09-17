@@ -114,7 +114,7 @@ class Stopline():
             speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
 
 
-        msg.steer = int(math.degrees((-1) * steer))
+        msg.steer = int(math.degrees((-1) * steer) * 1e3)
         msg.speed = int(speed) * 10 
         msg.gear = 2
         msg.estop = self.estop

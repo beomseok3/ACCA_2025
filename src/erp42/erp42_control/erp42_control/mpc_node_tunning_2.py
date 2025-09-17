@@ -17,6 +17,7 @@ from rclpy.qos import qos_profile_system_default
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point, PoseStamped, PoseArray, Pose
 from sensor_msgs.msg import LaserScan
+from erp42_msgs.msg import ControlMessage
 from visualization_msgs.msg import Marker, MarkerArray
 from stanley import Stanley
 from std_msgs.msg import Float32, String, Int32
@@ -88,34 +89,71 @@ class State_mpc(Enum):
 class mpc_config:
     NXK: int = 4  # length of kinematic state vector: z = [x, y, v, yaw]
     NU: int = 2  # length of input vector: u = [steering speed, acceleration]
-    TK: int = 20 # finite time horizon length - kinematic
+    TK: int = 25 # finite time horizon length - kinematic
 
+    # Rk: list = field(
+    #     default_factory=lambda: np.diag([0.1, 100.0])
+    # ) 
+    # # input difference cost matrix, penalty for change of inputs - [accel, steering_speed]
+    # Rdk: list = field(
+    #     default_factory=lambda: np.diag([0.1, 100.0])
+    # )  
+
+    # # (x, y, v, yaw)
+    # Qk: list = field(
+    #     default_factory=lambda: np.diag([13.0, 13.0, 5.5, 13.0])
+    # )
+    # # final state error matrix, penalty  for the final state constraints: (x, y, v, yaw)
+    # Qfk: list = field(
+    #     default_factory=lambda: np.diag([13.0, 13.0, 5.5, 13.0])
+    # )
+
+    #     # TODO: you may need to tune the following matrices
+    # Rk: list = field(
+    #     # default_factory=lambda: np.diag([0.01, 100.0])
+    #     default_factory=lambda: np.diag([0.0144, 248.526])
+    # )  # input cost matrix, penalty for inputs - [accel, steering_speed]
+    # Rdk: list = field(
+    #     # default_factory=lambda: np.diag([0.01, 100.0])
+    #     default_factory=lambda: np.diag([0.0169, 200]) # (0.0169, 325)
+    # )  # input difference cost matrix, penalty for change of inputs - [accel, steering_speed]
+    # Qk: list = field(
+    #     default_factory=lambda: np.diag([15.4214, 16.0728, 22, 14.8503])  # levine sim
+    #     # default_factory=lambda: np.diag([50., 50., 5.5, 13.0])
+    # )  # state error cost matrix, for the the next (T) prediction time steps [x, y, delta, v, yaw, yaw-rate, beta]
+    # Qfk: list = field(
+    #     default_factory=lambda: np.diag([19.44, 19.44, 6.655, 15.73])  # levine sim
+    #     # default_factory=lambda: np.diag([50., 50., 5.5, 13.0])
+    # )  # final state error matrix, penalty  for the final state constraints: [x, y, delta, v, yaw, yaw-rate, beta]
+    # # # ---------------------------------------------------
+        # TODO: you may need to tune the following matrices
     Rk: list = field(
-        default_factory=lambda: np.diag([0.5, 70.0])
-    ) 
-    # input difference cost matrix, penalty for change of inputs - [accel, steering_speed]
+        # default_factory=lambda: np.diag([0.01, 100.0])
+        default_factory=lambda: np.diag([0.0429982, 3589.3])
+    )  # input cost matrix, penalty for inputs - [accel, steering_speed]
     Rdk: list = field(
-        default_factory=lambda: np.diag([0.5, 500.0])
-    )  
-
-    # (x, y, v, yaw)
+        # default_factory=lambda: np.diag([0.01, 100.0])
+        default_factory=lambda: np.diag([0.0815731, 11020])
+    )  # input difference cost matrix, penalty for change of inputs - [accel, steering_speed]
     Qk: list = field(
-        default_factory=lambda: np.diag([9.0, 9.0, 25.0, 8.5])
-    )
-    # final state error matrix, penalty  for the final state constraints: (x, y, v, yaw)
+        default_factory=lambda: np.diag([10.5392, 36.9121, 1408, 28.1982])  # levine sim
+        # default_factory=lambda: np.diag([50., 50., 5.5, 13.0])
+    )  # state error cost matrix, for the the next (T) prediction time steps [x, y, delta, v, yaw, yaw-rate, beta]
     Qfk: list = field(
-        default_factory=lambda: np.diag([9.0 ,9.0, 25.0, 8.5])
+        default_factory=lambda: np.diag(
+            [58.0476, 58.0476, 11.7897, 27.8666]
+        )  # levine sim
     )
-
     DTK: float = 0.1  # time step [s] kinematic
+    dlk: float = 0.1
     WIDTH: float = 1.160  # Width of the vehicle [m]
     WB: float = 1.040  # Wheelbase [m]
     MIN_STEER: float = -0.4189  # maximum steering angle [rad]
     MAX_STEER: float = 0.4189  # maximum steering angle [rad] # expand
-    MAX_DSTEER = np.deg2rad(200.0)  # 1.05 rad/s
-    MAX_SPEED: float = 12.0  # maximum speed [m/s] ~ 5.0 for levine sim
+    MAX_DSTEER = np.deg2rad(5)  # 1.05 rad/s
+    MAX_SPEED: float = float(25/3.6)  # maximum speed [m/s] ~ 5.0 for levine sim
     MIN_SPEED: float = -2.0  # minimum backward speed [m/s]
-    MAX_ACCEL: float = 10.0  # maximum acceleration [m/ss]
+    MAX_ACCEL: float = 100.0  # maximum acceleration [m/ss]
 
 
 @dataclass
@@ -150,12 +188,22 @@ class MPC(Node):
         self.oa = None
         self.waypoints = None
         self.latest_state = self.state  # latest state of FSM
+        self.speed_output = 0
 
 
         vis_ref_traj_topic = "/ref_traj_marker"
         vis_waypoints_topic = "/waypoints_marker"
         vis_pred_path_topic = "/pred_path_marker"
+        # drive_topic = "/cmd_msg"
+        # pose_topic = "/localization/kinematic_state"
+
+        # self.pose_sub = self.create_subscription(
+        #     Odometry, pose_topic, self.pose_callback, 1
+        # )
+        # self.pose_sub 
         
+        # self.drive_pub = self.create_publisher(ControlMessage, drive_topic, 1)
+        # self.drive_msg = ControlMessage()
         self.vis_waypoints_pub = self.create_publisher(Marker, vis_waypoints_topic, 1)
         self.vis_waypoints_msg = Marker()
         self.vis_ref_traj_pub = self.create_publisher(PoseArray, vis_ref_traj_topic, 1)
@@ -165,7 +213,7 @@ class MPC(Node):
         self.pub_hdr = self.create_publisher(Float32, "hdr", 1)
         self.pub_ctr = self.create_publisher(Float32, "ctr", 1)
         self.pub_error = self.create_publisher(Int32, "/mpc/error", 1)
-        self.last_pred_position = [0, 0]
+        self.last_pred_path = None
         self.db_idx = 0
         self.mpc_prob_init()
 
@@ -177,7 +225,7 @@ class MPC(Node):
             
         self.vehicle_state = self.update_vehicle_state(pose_msg)
         # 안전 슬라이싱
-        start = int(max(0, self.db_idx - 30))
+        start = int(max(0, self.db_idx -100))
         end   = int(min(len(self.total_global_path[0,:]), self.db_idx + 400))
         # self.get_logger().info(f"{start}, {end}")
         # if end - start < 2:
@@ -195,7 +243,7 @@ class MPC(Node):
             self.waypoints[3, :],
             self.waypoints[4, :]
             )
-        print(self.db_idx)
+        # print(self.db_idx)
         # print(f"mpc/-------------waypoints : {len(self.target_idx[0, : ])}------------")
 
         self.visualize_ref_traj_in_rviz(self.ref_path)
@@ -230,7 +278,8 @@ class MPC(Node):
             target_speed = self.waypoints[
                 3, self.target_idx
             ]
-            return self.target_idx, steer, target_speed
+            return steer, target_speed
+            
         else:
             (
                 self.oa,
@@ -241,15 +290,27 @@ class MPC(Node):
                 ov,
                 state_predict,
             ) = result
+            # print(self.oa[0])
 
-            steer = self.odelta_v[0]
-            speed_output = self.vehicle_state.v + self.oa[0] * self.config.DTK
+            steer_output = self.odelta_v[0]
+            self.speed_output = self.vehicle_state.v + self.oa[0] * self.config.DTK
+
+            # print(speed_output)
+            # self.get_logger().info(f"{self.vehicle_state.v}")
+            # self.drive_msg.gear = 2
+            # self.drive_msg.steer = int(steer_output * 180.0 / math.pi * -1)
+            # # self.drive_msg.speed = int(1.0 * speed_output * 3.6) * 10
+            # speed_val = int(max(0, min(65535, speed_output * 3.6 * 10)))
+            # self.drive_msg.speed = speed_val
+            # self.drive_pub.publish(self.drive_msg)
 
             self.pub_hdr.publish(Float32(data=0.0))
             self.pub_ctr.publish(Float32(data=0.0))
 
+            return steer_output, self.speed_output
 
-        return self.target_idx, steer, speed_output
+
+        
 
 
     def update_vehicle_state(self, pose_msg):
@@ -260,6 +321,9 @@ class MPC(Node):
         vehicle_state.x = pose_msg.pose.pose.position.x
         vehicle_state.y = pose_msg.pose.pose.position.y
         vehicle_state.v = pose_msg.twist.twist.linear.x # 0812 수정
+        # vehicle_state.v = self.speed_output  # convert to m/s
+        # print(f"{pose_msg.twist.twist.linear.x}, {vehicle_state.v}")
+
         curr_orien = pose_msg.pose.pose.orientation
         q = [curr_orien.x, curr_orien.y, curr_orien.z, curr_orien.w]
         
@@ -519,7 +583,7 @@ class MPC(Node):
         _, dist, _, ind = self.nearest_point(
             np.array([state.x, state.y]), np.array([cx, cy]).T
         )
-        print(dist)
+        # print(dist)
         if dist > 10.: 
             db_idx = self.db.find_idx(state.x, state.y, "Path")
         else:
@@ -554,21 +618,31 @@ class MPC(Node):
 
         # v = (state.v + sp[ind]) /2
         # print(v)
-        # travel = abs(v) * self.config.DTK
+        # travel = abs(state.v) * self.config.DTK
         # dind =  ( travel / self.config.dlk)
-        dind = 4  # 기본값
-
-        try:
-            if self.last_pred_position[0]:  # 0이면 False
-                _, _, _, ind_last = self.nearest_point(
-                    np.array([self.last_pred_position[0], self.last_pred_position[1]]), np.array([cx, cy]).T
-                )
-                if 0 <= ind_last < ncourse:
-                    ind_length = abs(int(ind) - ind_last) + 5  # margin
-                    dind = ind_length / max(1, self.config.TK)
-                    self.get_logger().info(f'length: {ind_length}, dind : {dind}')
+        dind = 6  # 기본값
+        try: 
+            if self.last_pred_path is not None:
+                diffs = np.diff(self.last_pred_path[0:2, :], axis=1)  # (x,y) 차이
+                seg_lengths = np.sqrt(np.sum(diffs**2, axis=0))
+                total_length = np.sum(seg_lengths)
+                ind_total_length = 10 * total_length
+                margin = 10 #1m  # 필요시 조정
+                dind = (ind_total_length + margin) / max(1, self.config.TK)
+                self.get_logger().info(f"pred path length={total_length:.2f}, dind={dind:.2f}")
         except Exception as e:
-            self.get_logger().warn(f"[MPC] dind from last_pred_position failed: {e}")
+            self.get_logger().warn(f"[MPC] dind from last_pred_path failed: {e}")
+        # try:
+        #     if self.last_pred_position[0]:  # 0이면 False
+        #         _, _, _, ind_last = self.nearest_point(
+        #             np.array([self.last_pred_position[0], self.last_pred_position[1]]), np.array([cx, cy]).T
+        #         )
+        #         if 0 <= ind_last < ncourse:
+        #             ind_length = abs(int(ind) - ind_last) + 10  # margin
+        #             dind = ind_length / max(1, self.config.TK)
+        #             self.get_logger().info(f'length: {ind_length}, dind : {dind}')
+        # except Exception as e:
+        #     self.get_logger().warn(f"[MPC] dind from last_pred_position failed: {e}")
 
         # 남아있는 idx 개수에서 내 위치 뺀 것과 1 중에서 큰 값 결정, 최소 1 확보
         rest_idx_num = max(len(cx) - ind - 1, 1)
@@ -579,7 +653,7 @@ class MPC(Node):
         # 계산된 최대 간격과 1을 비교해서 가장 큰 값을 결정하고, 그 값을 지정해놓은 간격과 비교해서 가장 작은 값을 결정
         dind = min(dind, max(1, max_dind))
         # 최소 3 확보
-        dind = max(3, dind) 
+        dind = max(1, dind) 
         # [dind, dind, ... , dind] TK개  [dind, 2*dind, ... , TK*dind]  [0, dind, ... , TK*dind] - 내 위치 추가
         ind_offsets = np.insert(np.cumsum([dind] * self.config.TK), 0, 0)
 
@@ -755,7 +829,7 @@ class MPC(Node):
 
         # Call the Motion Prediction function: Predict the vehicle motion for x-steps
         path_predict = self.predict_motion(x0, oa, od, ref_path)
-        self.last_pred_position = [path_predict[0,-1], path_predict[1,-1]] 
+        self.last_pred_path = path_predict
         self.visualize_pred_path_in_rviz(path_predict)
 
         ########################################## 연산 오래걸림 ##########################################
@@ -830,3 +904,18 @@ class MPC(Node):
 
         # PoseArray 퍼블리시
         self.vis_pred_path_pub.publish(pa)
+
+def main(args=None):
+    file_name = "mpc_ys_smooth_new.db"
+    db = DB(file_name)
+    rclpy.init(args=args)
+    print("MPC Initialized")
+    mpc_node = MPC(db)
+    rclpy.spin(mpc_node)
+
+    mpc_node.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()

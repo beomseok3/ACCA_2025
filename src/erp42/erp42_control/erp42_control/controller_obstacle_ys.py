@@ -138,6 +138,8 @@ class Obstacle:
         self.ref_path_points1 = None
         self.ref_path_points2 = None
 
+        self.already_use_mpc = False
+
         # local_path
         self.local_points = None  # list
 
@@ -152,7 +154,6 @@ class Obstacle:
         self.code_start = True
         self.state = "dynamic"  # dynamic, static
         self.change_time = None
-        self.estop = 0
         self.observed_points = []
         self.o_list = [0] * 50
 
@@ -647,7 +648,7 @@ class Obstacle:
         polygon = Polygon(polygon_points)
         self.publish_polygon(polygon_points, "dynamic", 1.0, 1.0, 0.0, 1.0)
 
-        print("self.observed_points", self.observed_points)
+        print("self.observed_points", self.observed_points, "self.olist", self.o_list)
         if self.observed_points:
             print("a")
             for obs_point in self.observed_points:
@@ -683,6 +684,18 @@ class Obstacle:
         self.timer_callback()
         msg = ControlMessage()
 
+        # if self.estop == 1:
+        #     self.already_use_mpc = True
+        
+        # if not self.estop and self.already_use_mpc is False:
+        #     # use mpc cmd
+
+        #     msg.speed = int(mpc_speed * 3.6 ) * 10
+        #     msg.steer = int(degrees((-1) * mpc_steer) * 1e3)
+        #     msg.gear = 2
+        #     msg.estop = self.estop
+        #     return msg, False
+
         if len(self.local_x) != 0:
             steer, self.target_idx, hdr, ctr = self.st.stanley_control(
                 odometry,
@@ -715,7 +728,7 @@ class Obstacle:
             speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed)
 
         msg.speed = int(speed) * 10
-        msg.steer = int(degrees((-1) * steer))
+        msg.steer = int(degrees((-1) * steer) * 1e3)
         msg.gear = 2
         msg.estop = self.estop
 

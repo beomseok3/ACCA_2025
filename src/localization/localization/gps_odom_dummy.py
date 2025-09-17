@@ -15,7 +15,7 @@ class DummyPublisher(Node):
             "odometry/gps",
             qos_profile_system_default,
         )
-        self.timer = self.create_timer(1 / 8, self.publish_dummy_message)
+        self.timer = self.create_timer(1 / 10, self.publish_dummy_message)
 
     def publish_dummy_message(self):
         msg = Odometry()

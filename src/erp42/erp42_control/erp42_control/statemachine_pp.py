@@ -88,21 +88,22 @@ class StateMachine(Node):
         self.current_ind = 0
 
         # ---odometry & control--- #
-        self.odom = State(is_reverse=False)  # pure pursuit
+        self.odom = State(is_reverse=True)  # pure pursuit
         self.target_course = None  # pure pursuit
 
         # ---mission_param--- #
         self.mission = Mission.A1A2
 
         # ---global_path--- #
-        self.db = DB("0827_ssupark_ys.db")
+        # self.db = DB("0827_ssupark_ys.db")
+        self.db = DB("PP_bunsudae.db")
         self.cx, self.cy, self.cyaw, self.cv = self.db.query_from_id(self.mission.name)
         self.target_course = TargetCourse(self.cx, self.cy)
         self.target_ind, _ = self.target_course.search_target_index(self.odom)
         self.publish_path()
 
         # ---target_speed--- #
-        self.target_speed = 10
+        self.target_speed = 15
 
     # callback group
     def odom_callback(self, msg):
@@ -185,7 +186,7 @@ class StateMachine(Node):
                 # ERP42 제어 메시지 작성
                 cmd = ControlMessage()
                 cmd.speed = int(target_speed) * 10
-                cmd.steer = int(np.clip(-math.degrees(di) * np.pi, -28, 28))
+                cmd.steer = int(np.clip(-math.degrees(di) * np.pi, -28, 28)*1000)
                 cmd.gear = 0 if self.odom.direction == -1 else 2
                 cmd.brake = 0
 

@@ -75,8 +75,7 @@ class Control:
             # speed
             speed = data.speed
             # steer
-            steer = data.steer * 71
-
+            steer = data.steer * 71 / 1e3
             # 제한
             if steer > 1999:
                 steer = 1999
@@ -103,7 +102,7 @@ class Control:
             speed = 0
 
             # steer
-            steer = 0 * 71
+            steer = 0 * 71 
             if steer > 1999:
                 steer = 1999
             if steer < -1999:

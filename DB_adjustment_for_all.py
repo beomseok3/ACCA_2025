@@ -23,41 +23,7 @@ import shutil, datetime
 
 
 class State(Enum):    
-#kcity 본선 대회용 (final - 1012)
-    '''    A1A2 = "driving_a"  #13
-    A2A3 = "pickup_b"  #9
-    A3A4 = "curve_c"  #8
-    A4A5 = "curve_d"  #8
-    A5A6 = "obstacle_e"  #6
-    A6A7 = "curve_f"  #8
-    A7A8 = "stop_line_a"  #8
-    A8A9 = "stop_line_b"  #8
-    A9A10 = "curve_h"  #8
-    A10A11 = "traffic_light_i"  #8
-    A11A12 = "curve_j"  #8
-    A12A13 = "traffic_light_k"  #8
-    A13A14 = "driving_l"  #15
-    A14A15 = "obstacle_m"  #6
-    A15A16 = "curve_n"  #8
-    A16A17 = "traffic_light_o"  #8
-    A17A18 = "driving_p"  #10
-    A18A19 = "delivery_q"  #7 #delivery
-    A19A20 = "driving_r"  #8
-    A20A21 = "traffic_light_s"  #8
-    A21A22 = "driving_t"  #10
-    A22A23 = "traffic_light_u"  #8
-    A23A24 = "curve_v"  #10
-    A24A25 = "driving_w"  #15
-    A25A26 = "curve_x"  #11
-    A26A27 = "stop_line_c"  #8
-    A27A28 = "curve_y"  #8
-    A28A29 = "driving_z"  #13
-    A29A30 = "traffic_light_A"  #8
-    A30A31 = "driving_B"  #16
-    A31A32 = "traffic_light_C"  #8
-    A32A33 = "driving_D"  #15
-    A33A34 = "parking_E"  #6
-    A34A35 = "driving_E"  #15'''
+
     
     """
     ########### 분수대 ##############
@@ -75,65 +41,60 @@ class State(Enum):
     A12A13 = "driving_f" 
     ################################
     """
-    """         ############### YS 0802 ###########################
-    A1A2 = "driving_A" # old(15) new(20)
-    A2A3 = "parking_B" # 사선 주차 old(5)
-    A3A4 = "curve_C" # old(8) new(11)
-    A4A5 = "driving_D" # old(15) new(20)
-    A5A6 = "slow_E" # 방지턱 old(12) new(12)
-    A6A7 = "curve_F" # old(8) new(11)
-    A7A8 = "driving_G" # old(12) new(20)
-    #B1B2 = "uturn_H" # old(7) 
-    A8A9 = "driving_I" # old(12) new(15)
-    A9A10 = "curve_I" # old(12) new(15)
-    A10A11 = "obstacle_J" # old(5) new(8)
-    ###################  YS ########################### """
+    ############### YS 0802 ###########################
+    # A1A2 = "driving_A" # 20
+    # A2A3 = "parking_B" # 15
+    # A3A4 = "curve_C" # 15
+    # A4A5 = "driving_8_D" #8
+    # A5A6 = "curve_E" # 15
+    # A6A7 = "driving_F" # 20
+    # #B1B2 = "uturn_H" 
+    # A7A8 = "curve_I" # 15
+    # A8A9 = "obstacle_Y" # 7
+    ###################  YS ########################### 
 
-    # ############### BS 0802 ###########################
-    # A1A2 = "driving_a"       # st(13) mpc(20) -- 40까지?
-    # A2A3 = "pickup_b"        # st(9)
-    # A3A4 = "driving_c"       # st(13) mpc(20)
-    # A4A5 = "traffic_light_d" # st(8) mpc(8)
-    # A5A6 = "driving_e"       # st(13) mpc(20)
-    # A6A7 = "traffic_light_f" # st(8) mpc(8)
-    # A7A8 = "driving_A"       # st(13) mpc(20)
-    # A8A9 = "obstacle_b"      # 대형 장애물 # st(6) mpc(6)
-    # A9A10 = "curve_h"        # 차선 변경 # st(8) mpc(10)
-    # A10A11 = "traffic_light_j" # st(8) mpc(8)
-    # A11A12 = "driving_k"     # st(13) mpc(20)
-    # A12A13 = "stop_line_l"   # st(10) mpc(10)
-    # A13A14 = "curve_m"       # st(8) mpc(10)
-    # A14A15 = "stop_line_n"   # st(10) mpc(10)
-    # A15A16 = "curve_o"       # st(8) mpc(10)
-    # A16A17 = "driving_p"     # st(13) mpc(20)
-    # A17A18 = "traffic_light_p" # st(8) mpc(8)
-
-    # # === 여기서부터 1칸씩 뒤로 밀림 ===
-    # A18A19 = "driving_q"     # st(13) mpc(20)  ← 새로 추가
-    # A19A20 = "curve_r"       # st(13) mpc(20)
-    # A20A21 = "delivery_s"    # st(10) mpc(10)
-    # A21A22 = "curve_t"       # st(10) mpc(15)
-    # A22A23 = "traffic_light_u" # st(8) mpc(8)
-    # A23A24 = "driving_v"     # st(10) mpc(15)
-    # A24A25 = "traffic_light_w" # st(8) mpc(8)
-    # A25A26 = "driving_x"     # st(10) mpc(15)
-    # A26A27 = "curve_c"       # st(8) mpc(10)
-    # A27A28 = "obstacle_y"    # 소형 # st(8) mpc(8)
-    # A28A29 = "curve_z"       # st(8) mpc(10)
-    # A29A30 = "driving_C"     # st(13) mpc(20)
-    # A30A31 = "parking_A"     # st(5) mpc(5)
-    # A31A32 = "driving_B"     # st(13) mpc(20)
+    # # ############### BS 0906 ###########################
+    A1A2="driving_a"
+    A2A3="pickup_b"
+    A3A4="driving_5_c"
+    A4A5="traffic_light_d"
+    A5A6="driving_e"
+    A6A7="traffic_light_f"
+    A7A8="driving_g"
+    A8A9="obstacle_h"
+    A9A10="curve_i"
+    A10A11="traffic_light_j"
+    A11A12="driving_k"
+    A12A13="stop_line_l"
+    A13A14="stop_line_m"
+    A14A15="curve_p"
+    A15A16="driving_q"
+    A16A17="traffic_light_r"
+    A17A18="driving_s"
+    A18A19="curve_t"
+    A19A20="delivery_u"
+    A20A21="curve_v"
+    A21A22="traffic_light_w"
+    A22A23="driving_x"
+    A23A24="traffic_light_y"
+    A24A25="driving_z"
+    A25A26="curve_a"
+    A26A27="obstacle_b"
+    A27A28="curve_c"
+    A28A29="curve_d"
+    A29A30="parking_e"
+    A30A31="driving_f"
     # ###################  BS ###########################
 
 
     # (20kph)
-    A1A2 = "stanley_A"
-    A2A3 = "parking_B"
-    A3A4 = "driving_8_C"
-    A4A5 = "driving_10_D"
-    A5A6 = "stanley_E"
-    A6A7 = "driving_H"
-    A7A8 = "obstacle_I"
+    # A1A2 = "stanley_A"
+    # A2A3 = "parking_B"
+    # A3A4 = "driving_8_C"
+    # A4A5 = "driving_10_D"
+    # A5A6 = "stanley_E"
+    # A6A7 = "driving_H"
+    # A7A8 = "obstacle_I"
     # A1A2=	'driving_a'
     # A2A3=	"stanley_b"
     # A3A4=	'driving_c'
@@ -146,7 +107,7 @@ class State(Enum):
 class DBExtractor:
     def __init__(self, path_id, controller="stanley",
                  global_db_dir=os.path.expanduser("~/db_file"),
-                 global_db_name="kcity_ys_0831_v_origin.db"):
+                 global_db_name="kcity_6th_bs_v1.db"):
         self.controller = controller.lower()
         print("Resolved DB path:", os.path.join(os.path.expanduser("~/acca/db_file"),
                                         "bunsudae_0830_v_origin.db"))
@@ -194,17 +155,21 @@ class DBExtractor:
         #OLD 
 
         self.speed_table = {
-        "driving": 15,
-        "curve": 8,
+        "driving": 20,
+        "curve": 15,
         "slow_8": 8,
         "slow_10" : 10,
-        "parking": 8,
+        "parking": 15,
         "obstacle": 7,
-        'pickup': 8,
+        'pickup': 3,
         'delivery': 8,
-        'driving_10' : 10,
+        'driving_5' : 5,
         'driving_8' : 8,
-        "stanley" : 20
+        "stanley" : 20,
+        'traffic_light': 8,
+        'stop_line': 8,
+
+
 
          }
 
@@ -654,7 +619,7 @@ class DBExtractor:
         return int(round(min_w + (max_w - min_w) * min(abs(dv*1.5), 10) / 10))
 
     # 핵심 함수 ─────────────────────────────────────────────
-    def smooth_speed_transitions(self, min_w=90, max_w=120, drive_bias=0.5):
+    def smooth_speed_transitions(self, min_w=50, max_w=100, drive_bias=0.95):
 #####################################################################################################        
         """
         Δv로 L 결정 →  (driving↔X) 이면 L*drive_bias 를 driving 쪽,

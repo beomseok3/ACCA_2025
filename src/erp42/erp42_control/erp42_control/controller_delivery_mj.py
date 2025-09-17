@@ -49,7 +49,7 @@ class Delivery:
         self.v_search = 8.0           # 기본 추종 속도
         self.v_fast = 12.0             # 재출발 후 빠른 추종 속도
         self.max_steer_deg = 28.0     # 조향 제한(deg)
-        self.stop_radius = 4.2       # [m] sign까지 거리 임계값
+        self.stop_radius = 3.0       # [m] sign까지 거리 임계값
         self.stop_hold_sec = 3.0      # [s] E-stop 유지 시간
 
         # 경로 완료 판정
@@ -129,7 +129,7 @@ class Delivery:
         steer_deg = float(np.clip(steer_deg, -self.max_steer_deg, self.max_steer_deg))
 
         msg = ControlMessage()
-        msg.steer = int(steer_deg)         # TODO: ERP42 내부 단위 필요시 변환
+        msg.steer = int(steer_deg * 1e3)         # TODO: ERP42 내부 단위 필요시 변환
         msg.speed = int(speed_cmd * 10.0)  # TODO: 프로젝트 속도 단위에 맞게 스케일
         msg.gear = 2
         msg.estop = int(estop)

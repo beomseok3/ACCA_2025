@@ -109,9 +109,35 @@ class Pickup():
             if self.queue.count(label) >= 6:
                 idx = label    # "1", "2", "3"
                 self.abs_var = int(label+3)
-                print(self.abs_var, "detected")
+                self.node.get_logger().info(f"{self.abs_var}, detected")
                 # 딱 한 번만 하고 끝내고 싶으면 return 추가
 
+
+    # def control_pickup(self, odometry, path, mpc_steer , mpc_speed):
+
+    #     msg = ControlMessage()
+
+    #     steer, self.target_idx, hdr, ctr = self.st.stanley_control(odometry, path.cx, path.cy, path.cyaw, h_gain=0.6, c_gain=0.35)
+    #     # self.get_logger().info(self.target_idx)
+
+    #     if self.target_idx >= len(path.cx) - 15 : # distance가 0.5m 이내
+    #         # self.get_logger().info(self.target_idx, len(path.cx), self.count)
+    #         if self.count <= 30:
+    #             self.estop = 1
+    #             self.count += 1
+    #             if self.abs_var is not None:
+    #                 print(f"Pickup: {self.abs_var} detected, estop engaged.")
+    #         else:
+    #             self.estop = 0
+    #             self.pickup_finished = True
+
+
+    #     msg.steer = int(math.degrees((-1) * mpc_steer) * 1e3)
+    #     msg.speed = int(mpc_speed * 3.6) * 10
+    #     msg.gear = 2
+    #     msg.estop = self.estop
+
+    #     return msg, self.abs_var, self.pickup_finished
 
     def control_pickup(self, odometry, path):
 
@@ -144,10 +170,10 @@ class Pickup():
             speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
 
 
-        msg.steer = int(math.degrees((-1) * steer))
+        msg.steer = int(math.degrees((-1) * steer) * 1e3)
         msg.speed = int(speed) * 10
         msg.gear = 2
         msg.estop = self.estop
-        print(self.abs_var,"detected")
 
         return msg, self.abs_var, self.pickup_finished
+

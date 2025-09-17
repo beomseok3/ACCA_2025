@@ -25,17 +25,20 @@ public:
         traffic_rviz_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("traffic_sign_rviz", 10);
 
         // 카메라 내부 파라미터
-        C_Mc_ << 627.735492099247, 0., 336.539893173783, 0.,
-                 0., 626.560686842897, 231.417340787929, 0.,
-                 0., 0., 1., 0.;
+        C_Mc_ << 600.0215532765091, 0.0, 328.4470315774296, 0.,
+                    0.0, 600.7558135485723, 236.1876388527033, 0.,
+                    0.0, 0.0, 1.0, 0.;
+
+                
 
         // LiDAR → Camera 외부 변환 행렬
-        C_RTlc_ << -0.0186639176860175, -0.999758559244839, -0.0115966112848825, 0.0500832719924129,
-                    0.045164508844289, 0.0107437549862607, -0.998921788164443, 0.271694171397735,
-                    0.998805198883878, -0.0191675492820104, 0.0449530837324648, 0.425836353178122,
-                    0.0, 0.0, 0.0, 1.0;
-    }
+        C_RTlc_ << 0.0572, -0.9980, 0.0270, 0.0271,
+                    0.1006, -0.0211, -0.9947, -0.2647,
+                    0.9933, 0.0596, 0.0992, -0.1308,
+                    0.0,0.0,0.0,1.0;
 
+                
+        }
 private:
     void bboxCallback(const yolo_msg::msg::BoundingBox::SharedPtr msg)
     {
@@ -73,8 +76,8 @@ private:
             Eigen::Matrix<double, 3, 4> P = C_Mc_ * C_RTlc_;
             Eigen::Vector3d pixel_homo = P * point_lidar;
 
-            double u = pixel_homo(0) / pixel_homo(2);
-            double v = pixel_homo(1) / pixel_homo(2) -20 ;
+            double u = pixel_homo(0) / pixel_homo(2) - 10;
+            double v = pixel_homo(1) / pixel_homo(2) - 20;
 
             int x = last_bbox_.x, y = last_bbox_.y, w = last_bbox_.width, h = last_bbox_.height;
 

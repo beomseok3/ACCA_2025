@@ -15,14 +15,14 @@ from tf_transformations import quaternion_from_euler
 
 
 class DB_READER(Node):
-    def __init__(self, input_file: str, table: str):
+    def __init__(self, input_file: str, table: str, frame: str):
         super().__init__("db_reader")
         qos_profile = QoSProfile(depth=10)
         self.pub_path = self.create_publisher(Path, "db_path", qos_profile)
         self.pub_markers = self.create_publisher(MarkerArray, "db_markers", qos_profile)
-        self.db_read(input_file, table)
+        self.db_read(input_file, table, frame)
 
-    def db_read(self, file_path: str, table: str):
+    def db_read(self, file_path: str, table: str, frame: str):
         conn = sqlite3.connect(file_path)
         cur = conn.cursor()
 
@@ -38,13 +38,13 @@ class DB_READER(Node):
         path = Path()
         path.header = Header()
         path.header.stamp = self.get_clock().now().to_msg()
-        path.header.frame_id = "odom"
+        path.header.frame_id = frame
 
         markers = MarkerArray()
         now = self.get_clock().now().to_msg()
 
         delete_all = Marker()
-        delete_all.header.frame_id = "odom"
+        delete_all.header.frame_id = frame
         delete_all.header.stamp = now
         delete_all.ns = "db_visual"
         delete_all.id = 0
@@ -57,7 +57,7 @@ class DB_READER(Node):
         for i, (path_id, idx, x, y, yaw, speed) in enumerate(rows):
             pose = PoseStamped()
             pose.header.stamp = self.get_clock().now().to_msg()
-            pose.header.frame_id = "odom"
+            pose.header.frame_id = frame
             pose.pose.position.x = float(x)
             pose.pose.position.y = float(y)
             pose.pose.position.z = 0.0
@@ -70,7 +70,7 @@ class DB_READER(Node):
 
             if last_path_id is None or path_id != last_path_id:
                 m = Marker()
-                m.header.frame_id = "odom"
+                m.header.frame_id = frame
                 m.header.stamp = now
                 m.ns = "db_visual/path_change"
                 m.id = marker_id
@@ -92,7 +92,7 @@ class DB_READER(Node):
                 markers.markers.append(m)
 
                 t = Marker()
-                t.header.frame_id = "odom"
+                t.header.frame_id = frame
                 t.header.stamp = now
                 t.ns = "db_visual/path_change_text"
                 t.id = marker_id
@@ -118,7 +118,7 @@ class DB_READER(Node):
             if i % 5 == 0:
                 spd_val = 0.0 if speed is None else float(speed)
                 s = Marker()
-                s.header.frame_id = "odom"
+                s.header.frame_id = frame
                 s.header.stamp = now
                 s.ns = "db_visual/speed"
                 s.id = marker_id
@@ -134,7 +134,7 @@ class DB_READER(Node):
                 s.color.g = 0.9
                 s.color.b = 0.1
                 s.color.a = 0.95
-                s.text = f"{spd_val:.2f} m/s"
+                s.text = f"{spd_val:.2f} km/h"
                 s.lifetime.sec = 0
                 markers.markers.append(s)
 
@@ -145,12 +145,13 @@ class DB_READER(Node):
 
 def main(args=sys.argv):
     rclpy.init(args=args)
-    if len(args) < 3:
-        print("Usage: ros2 run <pkg> db_read_with_markers <DB_FILE> <TABLE_NAME>")
+    if len(args) < 4:
+        print("Usage: ros2 run <pkg> db_read_with_markers <DB_FILE> <TABLE_NAME> <frame>")
         return
     input_file = args[1]
     table = args[2]
-    node = DB_READER(input_file, table)
+    frame = args[3]
+    node = DB_READER(input_file, table, frame)
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

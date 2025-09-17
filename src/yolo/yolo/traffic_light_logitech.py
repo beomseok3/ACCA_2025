@@ -20,9 +20,16 @@ class YOLOv8InferenceNode(Node):
         self.model = YOLO('/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/traffic_light.pt')
         self.bridge = CvBridge()
 
+        # self.subscription = self.create_subscription(
+        #     Image,
+        #     '/camera1/image_raw',
+        #     self.listener_callback,
+        #     10
+        # )
+
         self.subscription = self.create_subscription(
             Image,
-            '/camera1/image_raw',
+            'traffic_light_cam',
             self.listener_callback,
             10
         )

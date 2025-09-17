@@ -205,7 +205,7 @@ class Trafficlight:
         # 이미 지나침 → 완료
         if remaining_idx <= 0:
             msg = ControlMessage()
-            msg.steer = int(np.clip(math.degrees(-steer), -200.0, 200.0))
+            msg.steer = int(np.clip(math.degrees((-1) * steer) * 1e3, -200.0 * 1e3, 200.0 * 1e3))
             msg.speed = 0
             msg.gear  = 2
             msg.estop = 0
@@ -283,7 +283,7 @@ class Trafficlight:
 
         # 메시지
         msg = ControlMessage()
-        msg.steer = int(np.clip(math.degrees(-steer), -200.0, 200.0))  # 하드웨어에 따라 *10 필요
+        msg.steer = int(np.clip(math.degrees(-steer) * 1e3, -200.0 * 1e3, 200.0 * 1e3))  # 하드웨어에 따라 *10 필요
         msg.speed = int(self.speed) * 10                                # km/h 스케일 *10 가정
         msg.gear  = 2
         msg.estop = self.estop

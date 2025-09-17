@@ -214,7 +214,7 @@ class Uturn:
             adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=12, max_value=14)
             speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
             msg.speed = int(speed) * 10
-            msg.steer = int(m.degrees((-1) * steer))
+            msg.steer = int(m.degrees((-1) * steer) * 1e3)
             msg.gear = 2
 
             # 2) 안전장치: search_started=True인데 아직 In이면 강제 전환
@@ -236,7 +236,7 @@ class Uturn:
             adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=8, max_value=10)
             speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
             msg.speed = int(speed) * 10
-            msg.steer = int(m.degrees((-1) * steer))
+            msg.steer = int(m.degrees((-1) * steer) * 1e3)
             msg.gear = 2
 
             if collides:

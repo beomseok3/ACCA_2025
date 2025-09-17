@@ -4,17 +4,17 @@ import numpy as np
 from collections import deque
 import rclpy
 from rclpy.node import Node
-
+from geometry_msgs.msg import PoseArray
 from visualization_msgs.msg import Marker
 from nav_msgs.msg import Odometry
 
 # 기준 대각값(고정)
 # [Rk_a, Rk_delta, Rdk_a, Rdk_delta, Qk_x, Qk_y, Qk_v, Qk_yaw, Qf_x, Qf_y, Qf_v, Qf_yaw]
 BASE_DIAG = [
-    0.72, 200.155,      # Rk: [accel, steering_speed]
-    0.845,  648,      # Rdk: [Δaccel, Δsteering_speed]
-    24.1754, 30.263, 80, 72.5262,   # Qk: [x, y, v, yaw]
-    23.04, 23.04, 36.3, 48.4    # Qfk: [x, y, v, yaw]
+    0.01728, 356.188,      # Rk: [accel, steering_speed]
+    0.02197,  583.2,      # Rdk: [Δaccel, Δsteering_speed]
+    23.1382, 26.7965, 44, 22.2813,   # Qk: [x, y, v, yaw]
+    23.328, 23.328, 7.3205, 17.303    # Qfk: [x, y, v, yaw]
 ]
 
 def curvature_from_xy(xs, ys):
@@ -101,8 +101,8 @@ class ParamEstimator(Node):
         self.wp_xy    = None
 
         # --- 구독 ---
-        self.create_subscription(Marker, "/ref_traj_marker",  self.cb_ref,  10)
-        self.create_subscription(Marker, "/pred_path_marker", self.cb_pred, 10)
+        self.create_subscription(PoseArray, "/ref_traj_marker",  self.cb_ref,  10)
+        self.create_subscription(PoseArray, "/pred_path_marker", self.cb_pred, 10)
         self.create_subscription(Marker, "/waypoints_marker", self.cb_wp,   10)
         self.create_subscription(Odometry, "/localization/kinematic_state", self.cb_odom, 20)
 
@@ -110,20 +110,21 @@ class ParamEstimator(Node):
         self.create_timer(self.emit_period, self.tick)
         self.get_logger().info("ParamEstimator started. Logging diagonals from live estimates.")
 
-    # --------- 콜백들 ---------
-    def cb_ref(self, msg: Marker):
-        if msg.type != Marker.LINE_STRIP or not msg.points:
+    # --------- 콜백들 ---------    
+    def cb_ref(self, msg: PoseArray):
+        if not msg.poses:
             return
-        xs = np.array([p.x for p in msg.points], dtype=float)
-        ys = np.array([p.y for p in msg.points], dtype=float)
+        xs = np.array([p.position.x for p in msg.poses], dtype=float)
+        ys = np.array([p.position.y for p in msg.poses], dtype=float)
         self.ref_xy = (xs, ys)
 
-    def cb_pred(self, msg: Marker):
-        if msg.type != Marker.LINE_STRIP or not msg.points:
+    def cb_pred(self, msg: PoseArray):
+        if not msg.poses:
             return
-        xs = np.array([p.x for p in msg.points], dtype=float)
-        ys = np.array([p.y for p in msg.points], dtype=float)
+        xs = np.array([p.position.x for p in msg.poses], dtype=float)
+        ys = np.array([p.position.y for p in msg.poses], dtype=float)
         self.pred_xy = (xs, ys)
+
 
     def cb_wp(self, msg: Marker):
         if not msg.points:

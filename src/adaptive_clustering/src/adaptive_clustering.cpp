@@ -58,8 +58,10 @@ public:
         this->declare_parameter<float>("x_threshold", 0.5);
         this->declare_parameter<float>("y_threshold", 0.5);
         this->declare_parameter<float>("cone_position_z", -0.6);
-        this->declare_parameter<int>("cluster_size_min", 3);
-        this->declare_parameter<int>("cluster_size_max", 500); 
+        // this->declare_parameter<int>("cluster_size_min", 3);
+        // this->declare_parameter<int>("cluster_size_max", 500); //cone
+        this->declare_parameter<int>("cluster_size_min", 500);
+        this->declare_parameter<int>("cluster_size_max", 5000); 
 
         // print_fps_(false),
         // leaf_(1),

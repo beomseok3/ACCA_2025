@@ -202,15 +202,15 @@ class Parking:
                 c_gain=0.24,
             )
             adapted_speed = self.ss.adaptSpeed(
-                10, hdr, ctr, min_value=5, max_value=10
+                10, hdr, ctr, min_value=7, max_value=12
             )  # 에러(hdr, ctr) 기반 목표 속력 조정
             speed = self.pid.PIDControl(
-                self.odometry.v * 3.6, adapted_speed, min=7, max=10
+                self.odometry.v * 3.6, adapted_speed, min=7, max=12
             )  # speed 조정 (PI control)
             brake = self.cacluate_brake(adapted_speed)  # brake 조정
 
             msg.speed = int(speed) * 10
-            msg.steer = int(m.degrees((-1) * steer))
+            msg.steer = int(m.degrees((-1) * steer) * 1e3)
             msg.brake = int(brake)
             msg.gear = 2
 
@@ -263,15 +263,15 @@ class Parking:
                 reverse=False,  # 전진 주차
             )
             adapted_speed = self.ss.adaptSpeed(
-                5, hdr, ctr, min_value=3, max_value=8
+                10, hdr, ctr, min_value=7, max_value=12
             )  # 에러(hdr, ctr) 기반 목표 속력 조정
             speed = self.pid.PIDControl(
-                self.odometry.v * 3.6, adapted_speed, min=3, max=8
+                self.odometry.v * 3.6, adapted_speed, min=7, max=12
             )  # speed 조정 (PI control)
             brake = self.cacluate_brake(adapted_speed)  # brake 조정
 
             msg.speed = int(speed) * 10
-            msg.steer = int(m.degrees((-1) * steer))
+            msg.steer = int(m.degrees((-1) * steer)*1e3)
             msg.gear = 2  # 전진 주차
             msg.brake = int(brake)
 
@@ -324,15 +324,15 @@ class Parking:
                 reverse=True,  # 후진
             )
             adapted_speed = self.ss.adaptSpeed(
-                5, hdr, ctr, min_value=3, max_value=8
+                8, hdr, ctr, min_value=5, max_value=10
             )  # 에러(hdr, ctr) 기반 목표 속력 조정
             speed = self.pid.PIDControl(
-                self.odometry.v * 3.6, adapted_speed, min=3, max=8
+                self.odometry.v * 3.6, adapted_speed, min=5, max=10
             )  # speed 조정 (PI control)
             brake = self.cacluate_brake(adapted_speed)  # brake 조정
 
             msg.speed = int(speed) * 10
-            msg.steer = int(m.degrees((-1) * steer))
+            msg.steer = int(m.degrees((-1) * steer)*1e3)
             msg.gear = 0  # 후진
             msg.brake = int(brake)
 

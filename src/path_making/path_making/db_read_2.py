@@ -134,7 +134,7 @@ class DB_READER(Node):
                 s.color.g = 0.9
                 s.color.b = 0.1
                 s.color.a = 0.95
-                s.text = f"{spd_val:.2f} m/s"
+                s.text = f"{spd_val:.2f} km/h"
                 s.lifetime.sec = 0
                 markers.markers.append(s)
 
