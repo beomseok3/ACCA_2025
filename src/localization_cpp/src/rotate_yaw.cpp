@@ -7,9 +7,6 @@
 #include <nav_msgs/msg/odometry.hpp>  // 추가
 
 
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Matrix3x3.h>
-
 #include <deque>
 #include <cmath>
 
@@ -48,18 +45,53 @@ public:
 
 private:
   /* ---------- 보조 함수 ---------- */
-  static void eulerFromQuat(const tf2::Quaternion &q,
-                            double &roll, double &pitch, double &yaw)
+// 수치 안정성을 위한 clamp
+static inline double clamp(double v, double lo, double hi) {
+  return std::max(lo, std::min(v, hi));
+}
+
+// geometry_msgs::msg::Quaternion -> (roll,pitch,yaw)
+// 회전 순서는 roll(X) -> pitch(Y) -> yaw(Z) 가정 (ROS tf와 동일 관습)
+  static inline void eulerFromQuat(const geometry_msgs::msg::Quaternion& q,
+                                  double& roll, double& pitch, double& yaw)
   {
-    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    const double x = q.x;
+    const double y = q.y;
+    const double z = q.z;
+    const double w = q.w;
+
+    // Tait-Bryan XYZ (roll-pitch-yaw) 표준 공식
+    const double sinr_cosp = 2.0 * (w * x + y * z);
+    const double cosr_cosp = 1.0 - 2.0 * (x * x + y * y);
+    roll = std::atan2(sinr_cosp, cosr_cosp);
+
+    double sinp = 2.0 * (w * y - z * x);
+    sinp = clamp(sinp, -1.0, 1.0);
+    pitch = std::asin(sinp);
+
+    const double siny_cosp = 2.0 * (w * z + x * y);
+    const double cosy_cosp = 1.0 - 2.0 * (y * y + z * z);
+    yaw = std::atan2(siny_cosp, cosy_cosp);
   }
 
-  static tf2::Quaternion quatFromEuler(double roll, double pitch, double yaw)
+  // (roll,pitch,yaw) -> geometry_msgs::msg::Quaternion
+  static inline geometry_msgs::msg::Quaternion quatFromEuler(double roll, double pitch, double yaw)
   {
-    tf2::Quaternion q;
-    q.setRPY(roll, pitch, yaw);
+    const double cr = std::cos(roll * 0.5);
+    const double sr = std::sin(roll * 0.5);
+    const double cp = std::cos(pitch * 0.5);
+    const double sp = std::sin(pitch * 0.5);
+    const double cy = std::cos(yaw * 0.5);
+    const double sy = std::sin(yaw * 0.5);
+
+    geometry_msgs::msg::Quaternion q;
+    q.w = cr * cp * cy + sr * sp * sy;
+    q.x = sr * cp * cy - cr * sp * sy;
+    q.y = cr * sp * cy + sr * cp * sy;
+    q.z = cr * cp * sy - sr * sp * cy;
     return q;
   }
+
 
   bool decisionStraight()
   {
@@ -103,11 +135,7 @@ private:
   {
     /* ① IMU → (roll,pitch,yaw) */
     double roll, pitch, yaw;
-    tf2::Quaternion q_orig(msg->orientation.x,
-                           msg->orientation.y,
-                           msg->orientation.z,
-                           msg->orientation.w);
-    eulerFromQuat(q_orig, roll, pitch, yaw);
+    eulerFromQuat(msg->orientation, roll, pitch, yaw);
 
     /* ② GPS‑IMU 차이 */
     double delta   = gps_yaw_ - yaw;
@@ -123,8 +151,7 @@ private:
         delta_ = mean_ - yaw;
 
         // GPS 평균 방향을 별도 topic으로 publish
-        tf2::Quaternion q_gps = quatFromEuler(0,0,gps_yaw_);
-        geometry_msgs::msg::Quaternion q_msg;
+        geometry_msgs::msg::Quaternion q_msg = quatFromEuler(0,0,gps_yaw_);
         q_msg.x = q_gps.x(); q_msg.y = q_gps.y();
         q_msg.z = q_gps.z(); q_msg.w = q_gps.w();
         pub_mean_quat_->publish(q_msg);
@@ -135,15 +162,11 @@ private:
     double yaw_prev = yaw;
     yaw = yaw + delta_yaw_ + delta_;
 
-    tf2::Quaternion q_new = quatFromEuler(0,0,yaw);
+    geometry_msgs::msg::Quaternion q_new = quatFromEuler(0,0,yaw);
 
     sensor_msgs::msg::Imu imu_out = *msg;   // 원본 복사
-    imu_out.orientation.x = q_new.x();
-    imu_out.orientation.y = q_new.y();
-    imu_out.orientation.z = q_new.z();
-    imu_out.orientation.w = q_new.w();
+    imu_out.orientation = q_new;
     imu_out.header.stamp = this->get_clock()->now();
-
 
     RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 100,
         "Yaw prev: %.2f°, new: %.2f°, delta: %.2f°",
