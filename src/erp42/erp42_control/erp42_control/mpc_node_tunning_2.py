@@ -222,6 +222,8 @@ class MPC(Node):
         return self.db.query_from_id_mpc(id)
 
     def pose_callback(self, pose_msg):
+
+        
             
         self.vehicle_state = self.update_vehicle_state(pose_msg)
         # 안전 슬라이싱

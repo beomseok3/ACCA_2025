@@ -12,7 +12,7 @@ from ultralytics import YOLO
 
 class YOLOv8InferenceNode(Node):
     def __init__(self):
-        super().__init__('yolov8_inference_node')
+        super().__init__('yolov8_manta_node')
 
         self.model = YOLO('/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/traffic_light.pt')
         self.bridge = CvBridge()

@@ -15,7 +15,7 @@ from yolo_msg.msg import BoundingBox, BoundingBoxArray
 
 class YOLOv8InferenceNode(Node):
     def __init__(self):
-        super().__init__('yolov8_inference_node')
+        super().__init__('yolov8_logitech_node')
 
         self.model = YOLO('/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/traffic_light.pt')
         self.bridge = CvBridge()

@@ -2,6 +2,8 @@ import rclpy
 from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point,PoseWithCovarianceStamped
+from tf_transformations import euler_from_quaternion
+import math as m
 
 class MarkerPublisher(Node):
 
@@ -21,6 +23,7 @@ class MarkerPublisher(Node):
     def callback_init(self,msg):
         # Define the points as provided
         x,y = msg.pose.pose.position.x, msg.pose.pose.position.y
+        _, _, yaw = euler_from_quaternion([msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w])
         #Kcity
         # self.points = [(23.583086013793945, 44.68124771118164), (41.48026657104492, 77.4826431274414), (41.10720443725586, 99.65604400634766), (21.3468074798584, 110.56675720214844), (12.809849739074707, 131.71347045898438), (22.107276916503906, 150.3382568359375), (38.61094665527344, 154.302978515625), (59.60713577270508, 143.14654541015625), (78.80033874511719, 149.413818359375), (92.86607360839844, 175.26931762695312), (112.33516693115234, 211.57684326171875), (131.51490783691406, 257.3350524902344), (136.92379760742188, 280.112060546875), (137.53985595703125, 301.34765625), (138.3419189453125, 322.13037109375), (135.43121337890625, 384.5190734863281), (134.97653198242188, 411.4892578125), (108.131591796875, 433.099365234375), (83.99140167236328, 431.75396728515625), (67.6582260131836, 416.9241027832031), (70.56803131103516, 334.7068786621094), (90.34085845947266, 308.0325012207031), (118.09099578857422, 308.0494384765625), (128.59963989257812, 278.4043884277344), (108.31996154785156, 223.01483154296875), (93.47908020019531, 194.215576171875), (83.50749969482422, 169.2460479736328), (73.35724639892578, 150.46775817871094), (33.62983703613281, 75.23554229736328)]
         # self.points = [(-39.62443923950195, -62.97883605957031), (22.173192977905273, -69.15447235107422), (35.364715576171875, -59.505401611328125), (42.553321838378906, -18.44838523864746), (32.25053024291992, -1.0876102447509766), (-11.788719177246094, 3.980168104171753), (-47.4533828815921,	-14.7799070979004)]
@@ -29,7 +32,7 @@ class MarkerPublisher(Node):
         # self.points= [(1, -18.23921557407822, -35.36064092865631), (2, 22.216028422501736, 41.98294406115804), (3, 44.30248074612337, 45.959671228521074), (4, 182.7836298755737, 76.93391801437679), (5, 159.94693449761178, -67.80196480909964), ( 0, 35.795875549316406,-139.5904998779297), (6, -17.006026606399512, -35.50766487658391)]
         self.points = []
         #school
-        self.points.append((x,y))
+        self.points.append((x,y,m.degrees(yaw)))
         # Initialize markers
         for point in self.points:
 
@@ -38,7 +41,7 @@ class MarkerPublisher(Node):
             marker.header.stamp = self.get_clock().now().to_msg()
             marker.ns = "markers"
             marker.id = self.i
-            marker.type = Marker.SPHERE
+            marker.type = Marker.ARROW
             marker.action = Marker.ADD
 
             marker.pose.position.x = point[0]
@@ -47,12 +50,12 @@ class MarkerPublisher(Node):
 
             marker.pose.orientation.x = 0.0
             marker.pose.orientation.y = 0.0
-            marker.pose.orientation.z = 0.0
-            marker.pose.orientation.w = 1.0
+            marker.pose.orientation.z = msg.pose.pose.orientation.z
+            marker.pose.orientation.w = msg.pose.pose.orientation.w
 
-            marker.scale.x = 1.0
-            marker.scale.y = 1.0
-            marker.scale.z = 1.0
+            marker.scale.x = 0.4
+            marker.scale.y = 0.4
+            marker.scale.z = 0.1
 
             marker.color.r = 1.0
             marker.color.g = 0.0

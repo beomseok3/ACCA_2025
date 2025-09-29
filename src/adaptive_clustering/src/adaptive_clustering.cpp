@@ -20,6 +20,7 @@
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include "adaptive_clustering_msgs/msg/cluster_array.hpp"
+#include <std_msgs/msg/string.hpp>
 
 
 // PCL
@@ -58,10 +59,10 @@ public:
         this->declare_parameter<float>("x_threshold", 0.5);
         this->declare_parameter<float>("y_threshold", 0.5);
         this->declare_parameter<float>("cone_position_z", -0.6);
-        // this->declare_parameter<int>("cluster_size_min", 3);
-        // this->declare_parameter<int>("cluster_size_max", 500); //cone
-        this->declare_parameter<int>("cluster_size_min", 500);
-        this->declare_parameter<int>("cluster_size_max", 5000); 
+        this->declare_parameter<int>("cluster_size_min", 3);
+        this->declare_parameter<int>("cluster_size_max", 500); //cone
+        // this->declare_parameter<int>("cluster_size_min", 500);
+        // this->declare_parameter<int>("cluster_size_max", 5000); 
 
         // print_fps_(false),
         // leaf_(1),
@@ -104,7 +105,11 @@ public:
     
     point_cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
       "points_no_ground", 1, std::bind(&AdaptiveClustering::pointCloudCallback, this, std::placeholders::_1));
-    
+      // cluster_flag 구독 추가
+    cluster_flag_sub_ = this->create_subscription<std_msgs::msg::String>(
+        "cluster_flag", 10,
+        std::bind(&AdaptiveClustering::clusterFlagCallback, this, std::placeholders::_1));
+
     if (sensor_model_ == "VLP-16") {
       regions_ = {2, 3, 3, 3, 3, 3, 3, 2, 3, 3, 3, 3, 3, 3};
     } 
@@ -124,6 +129,19 @@ public:
   }
 
 private:
+  void clusterFlagCallback(const std_msgs::msg::String::SharedPtr msg) {
+    if (msg->data == "delivery" || msg->data == "pickup") {
+      cluster_size_min_ = 500;
+      cluster_size_max_ = 5000;
+      RCLCPP_INFO(this->get_logger(), "ClusterFlag: %s → Using LARGE cluster size (min=%d, max=%d)",
+                  msg->data.c_str(), cluster_size_min_, cluster_size_max_);
+    } else {
+      cluster_size_min_ = 3;
+      cluster_size_max_ = 500;
+      RCLCPP_INFO(this->get_logger(), "ClusterFlag: %s → Using SMALL cluster size (min=%d, max=%d)",
+                  msg->data.c_str(), cluster_size_min_, cluster_size_max_);
+    }
+  }
   void pointCloudCallback(const sensor_msgs::msg::PointCloud2::ConstPtr& ros_pc2_in) {
     if (print_fps_) {
       if (reset_) {
@@ -346,7 +364,8 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pose_array_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;
-  
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr cluster_flag_sub_;
+
   bool print_fps_;
   int leaf_;
   float z_axis_min_;

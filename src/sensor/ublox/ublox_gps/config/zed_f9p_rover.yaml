@@ -1,5 +1,8 @@
 ublox_gps_node:
   ros__parameters:
+    dynamic_model: automotive
+         # Airborne < 2G, 2D fix not supported (3D only),
+
     debug: 0
     set_baudrate: false
     device: /dev/ttyACM0 # smc_plus device name
@@ -14,7 +17,7 @@ ublox_gps_node:
     inf:
       all: true
     publish:
-      all: false
+      all: true
       aid:
         hui: false
       nav:

@@ -152,7 +152,7 @@ class Pickup():
                 self.estop = 1
                 self.count += 1
                 if self.abs_var is not None:
-                    print(f"Pickup: {self.abs_var} detected, estop engaged.")
+                    print(f"Pickup: {self.abs_var} detected, estop engaged.") #TODO topic(String) 형태로 logging 하기 (bag file 저장용)
             else:
                 self.estop = 0
                 self.pickup_finished = True

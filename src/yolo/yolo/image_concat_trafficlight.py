@@ -14,10 +14,10 @@ class ImageConcatNode(Node):
         # 두 카메라 이미지 구독
         # 위 이미지
         self.sub1 = self.create_subscription(
-            Image, 'camera1/image_raw', self.callback1, 10)
+            Image, 'camera2/image_raw', self.callback1, 10)
         # 밑 이미지
         self.sub2 = self.create_subscription(
-            Image, 'camera2/image_raw', self.callback2, 10)
+            Image, 'camera3/image_raw', self.callback2, 10)
 
         # 합쳐진 이미지 발행
         self.pub = self.create_publisher(Image, 'traffic_light_cam', 10)

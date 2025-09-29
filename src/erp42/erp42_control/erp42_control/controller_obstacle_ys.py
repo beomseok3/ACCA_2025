@@ -780,11 +780,12 @@ class Obstacle:
                     self.publish_ref_path_from_db(self.path2_data, num=2)
 
                 self.local_points = []
-                for p1, p2 in zip(self.ref_path_points2, self.ref_path_points1):
-                    avg_point = [
-                        (coord1 + coord2) / 2 for coord1, coord2 in zip(p1, p2)
-                    ]
-                    self.local_points.append(avg_point)
+                # for p1, p2 in zip(self.ref_path_points2, self.ref_path_points1):
+                #     avg_point = [
+                #         (coord1 + coord2) / 2 for coord1, coord2 in zip(p1, p2)
+                #     ]
+                #     self.local_points.append(avg_point)
+                self.local_points = self.ref_path_points2
 
                 self.publish_local_path(self.local_points)
                 self.stop_to()

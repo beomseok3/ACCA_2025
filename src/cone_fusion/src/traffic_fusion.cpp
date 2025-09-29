@@ -76,8 +76,8 @@ private:
             Eigen::Matrix<double, 3, 4> P = C_Mc_ * C_RTlc_;
             Eigen::Vector3d pixel_homo = P * point_lidar;
 
-            double u = pixel_homo(0) / pixel_homo(2) - 10;
-            double v = pixel_homo(1) / pixel_homo(2) - 20;
+            double u = pixel_homo(0) / pixel_homo(2) - 30;
+            double v = pixel_homo(1) / pixel_homo(2) - 10;
 
             int x = last_bbox_.x, y = last_bbox_.y, w = last_bbox_.width, h = last_bbox_.height;
 

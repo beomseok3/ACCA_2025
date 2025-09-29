@@ -161,13 +161,13 @@ class State(Enum):
     # A6A7="driving_i"
     # A7A8="driving_j"
 
-    A1A2="driving_a"
+    A1A2="stanley_a"
     A2A3="parking_b"
     A3A4="driving_c"
     A4A5="driving_f"
     A5A6 = "driving_U"
     B1B2="uturn_g"
-    A6A7="driving_h"
+    A6A7="stanley_h"
     A7A8="driving_i"
     A8A9="obstacle_j"
     
@@ -480,8 +480,8 @@ class StateMachine:
 def main():
     rclpy.init(args=None)
     node = rclpy.create_node("state_machine_node")
-    node.declare_parameter("file_name", "YS/kcity_6th_ys_v1" ".db")
-    node.declare_parameter("file_name_mpc", "YS/MPC_kcity_6th_ys_v1" ".db")
+    node.declare_parameter("file_name", "pl_v1" ".db")
+    node.declare_parameter("file_name_mpc", "MPC_pl_v1" ".db")
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
     # Get Params
@@ -492,7 +492,7 @@ def main():
     # Declare Instance
     db = DB(file_name)
     db_mpc = DB(file_name_mpc)
-    state = State.A1A2
+    state = State.A7A8
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
     state_machine = StateMachine(node, odometry, path, state, db, db_mpc)

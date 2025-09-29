@@ -5,7 +5,7 @@ from rclpy.qos import qos_profile_system_default
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped
 from erp42_msgs.msg import SerialFeedBack, ControlMessage
-from std_msgs.msg import Float64, Int64, Float32
+from std_msgs.msg import Float64, Int64, Float32, String
 
 from stanley import Stanley
 from .mpc_node_tunning_2 import MPC
@@ -148,7 +148,7 @@ class SpeedSupporter:
 
 class State(Enum):
     ###### 0906 Kcity BS set ######
-    A1A2="driving_a"
+    A1A2="stanley_a"
     A2A3="pickup_b"
     A3A4="stanley_c"
     A4A5="traffic_light_d"
@@ -263,6 +263,9 @@ class StateMachine:
         node.create_subscription(
             Float32, "ctr", self.ctr_callback, qos_profile=qos_profile_system_default
         )
+        self.pub_cluster_flag = node.create_publisher(
+            String, "cluster_flag", qos_profile_system_default
+        )
 
         self.db = db
         self.db_mpc = db_mpc
@@ -341,6 +344,7 @@ class StateMachine:
         return idx
 
     def update_cmd_msg(self):
+        self.pub_cluster_flag.publish(msg = String(data = self.state.value[:-2]))
         print(self.state.value)
         msg = ControlMessage()
         steer, speed_output = self.mpc.pose_callback(self.odometry.pose)
@@ -496,8 +500,8 @@ def main():
     # node.declare_parameter("file_name_mpc", "/bunsudae/mpc_bunsudae_v_7_0830" ".db")
     
     #### kcity ####
-    node.declare_parameter("file_name", "BS/split/kcity_6th_bs_v1_A17A21_align" ".db") 
-    node.declare_parameter("file_name_mpc", "BS/split/MPC_kcity_6th_bs_v1_A17A21_align" ".db")
+    node.declare_parameter("file_name", "BS/kcity_6th_bs_v1" ".db") 
+    node.declare_parameter("file_name_mpc", "BS/MPC_kcity_6th_bs_v1" ".db")
 
     # node.declare_parameter("file_name", "BS/kcity_6th_bs_v1" ".db") 
     # node.declare_parameter("file_name_mpc", "BS/MPC_kcity_6th_bs_v1" ".db")
@@ -512,7 +516,7 @@ def main():
     # Declare Instance
     db = DB(file_name)
     db_mpc = DB(file_name_mpc)
-    state = State.A18A19
+    state = State.A1A2
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
     state_machine = StateMachine(node, odometry, path, state, db, db_mpc)

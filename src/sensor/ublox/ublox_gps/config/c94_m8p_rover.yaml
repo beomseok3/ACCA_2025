@@ -15,7 +15,7 @@ ublox_gps_node:
                                 # be either 5 Hz (Dual constellation) or
                                 # 8 Hz (GPS only)
     # dynamic_model: automotive     # Airborne < 2G, 2D fix not supported (3D only),
-    dynamic_model: portable     # Airborne < 2G, 2D fix not supported (3D only),
+    dynamic_model: automotive     # Airborne < 2G, 2D fix not supported (3D only),
                                 # Max Alt: 50km
                                 # Max Horizontal Velocity: 250 m/s,
                                 # Max Vertical Velocity: 100 m/s

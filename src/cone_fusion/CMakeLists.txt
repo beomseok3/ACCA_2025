@@ -21,7 +21,8 @@ include_directories(
 add_executable(fusion_node src/fusion_node.cpp)
 ament_target_dependencies(fusion_node rclcpp geometry_msgs yolo_msg Eigen3 sensor_msgs)
 
-
+add_executable(time src/time_test.cpp)
+ament_target_dependencies(time rclcpp geometry_msgs yolo_msg Eigen3 sensor_msgs)
 
 add_executable(cone src/fusion_conetracking.cpp)
 ament_target_dependencies(cone rclcpp geometry_msgs yolo_msg Eigen3 sensor_msgs)
@@ -52,6 +53,7 @@ cone
 traffic
 tf
 fusion_node
+time
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()
