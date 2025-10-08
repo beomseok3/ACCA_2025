@@ -27,6 +27,7 @@ setup(
         "console_scripts": [
             "erp_twist = localization.erp_twist:main",
             "rotate_yaw = localization.rotate_yaw:main",
+            "rotate_yaw_ys = localization.rotate_yaw_ys:main",
             "rotate_yaw_cone = localization.rotate_yaw_cone:main",
             "gps_odom = localization.gps_odom:main",
             "imu_bias_measure = localization.imu_bias_measure:main",

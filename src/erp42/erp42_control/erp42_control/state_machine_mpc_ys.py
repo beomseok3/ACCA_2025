@@ -5,7 +5,7 @@ from rclpy.qos import qos_profile_system_default
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped
 from erp42_msgs.msg import SerialFeedBack, ControlMessage
-from std_msgs.msg import Float64, Int64, Float32
+from std_msgs.msg import Float64, Int64, Float32, String
 
 from stanley import Stanley
 # from .mpc_node import MPC
@@ -162,11 +162,11 @@ class State(Enum):
     # A7A8="driving_j"
 
     A1A2="stanley_a"
-    A2A3="parking_b"
+    A2A3="driving_b"
     A3A4="driving_c"
     A4A5="driving_f"
     A5A6 = "driving_U"
-    B1B2="uturn_g"
+    # B1B2="stanley_g"
     A6A7="stanley_h"
     A7A8="driving_i"
     A8A9="obstacle_j"
@@ -262,9 +262,13 @@ class StateMachine:
         node.create_subscription(
             Float32, "ctr", self.ctr_callback, qos_profile=qos_profile_system_default
         )
+        self.publish_mode = node.create_publisher(
+            String, "jamming_status", qos_profile=qos_profile_system_default)
 
         self.db = db
         self.db_mpc = db_mpc
+
+        self.jamming_status = "False"
 
         self.node = node
         self.state = state
@@ -290,7 +294,8 @@ class StateMachine:
         self.max = 25
         self.hdr = 0.0
         self.ctr = 0.0
-
+        
+        self.publish_mode.publish(msg = String(data = self.jamming_status))
 
     def update_state_and_path(self):
         if self.state.value[:-2] in ["driving","curve","stanley"]:
@@ -338,7 +343,7 @@ class StateMachine:
             
         elif self.state.value[:-2] == "obstacle":
             self.activate_detection_area(state = "obstacle", area = [0.,5.,-2.5,2.5])
-            self.activate_gpa_jamming_mode(state = "obstacle_jamming", bool = True)
+            self.activate_gpa_jamming_mode(state = "obstacle_jamming")
             msg, self.mission_finish = self.obstacle.control_obstacle(self.odometry, self.path)
 
         elif self.state.value[:-2] == "uturn":
@@ -370,10 +375,12 @@ class StateMachine:
             self.first_flags[state] = False
             self.pc.set_detection_area(area)
 
-    def activate_gpa_jamming_mode(self,state,bool):
+    def activate_gpa_jamming_mode(self,state):
         if self.first_flags.get(state, False):
             self.first_flags[state] = False
-            self.pc.set_gps_jamming(bool)
+            self.jamming_status = "True"
+            self.publish_mode.publish(msg = String(data = self.jamming_status))  # path publish
+            #self.pc.set_gps_jamming(bool)
         
     def control_mpc(self, speed_output, steer):
         msg = ControlMessage()
@@ -480,8 +487,8 @@ class StateMachine:
 def main():
     rclpy.init(args=None)
     node = rclpy.create_node("state_machine_node")
-    node.declare_parameter("file_name", "pl_v1" ".db")
-    node.declare_parameter("file_name_mpc", "MPC_pl_v1" ".db")
+    node.declare_parameter("file_name", "YS/kcity_6th_ys_v1" ".db")
+    node.declare_parameter("file_name_mpc", "YS/MPC_kcity_6th_ys_v1" ".db")
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
     # Get Params
@@ -492,7 +499,7 @@ def main():
     # Declare Instance
     db = DB(file_name)
     db_mpc = DB(file_name_mpc)
-    state = State.A7A8
+    state = State.A1A2
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
     state_machine = StateMachine(node, odometry, path, state, db, db_mpc)

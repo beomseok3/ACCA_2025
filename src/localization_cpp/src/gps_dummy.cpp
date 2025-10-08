@@ -1,6 +1,7 @@
 // gps_jamming_filter.cpp
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 
 class GpsJammingFilter : public rclcpp::Node
@@ -11,6 +12,7 @@ public:
   {
     // ─────────────── Parameter ───────────────
     this->declare_parameter<bool>("gps_jamming_mode", false);
+    jamming_active_ = this->get_parameter("gps_jamming_mode").as_bool();
 
     // ─────────────── QoS ───────────────
     auto qos = rclcpp::SystemDefaultsQoS().keep_last(10);
@@ -23,36 +25,36 @@ public:
     pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
       "/odometry/gps_jamming", qos);
 
-    // ─────────────── Dynamic parameter callback ───────────────
-    param_cb_handle_ = this->add_on_set_parameters_callback(
-      std::bind(&GpsJammingFilter::paramCallback, this, std::placeholders::_1));
+    mode_sub_ = this->create_subscription<std_msgs::msg::String>(
+      "jamming_status", qos,
+      std::bind(&GpsJammingFilter::mode_Callback, this, std::placeholders::_1));
   }
 
 private:
-  // ------- Parameter helper -------
-  bool gpsJammingMode() const
+  // ------- Mode(subscription) callback -------
+  void mode_Callback(const std_msgs::msg::String::SharedPtr msg)
   {
-    return this->get_parameter("gps_jamming_mode").as_bool();
-  }
+    if (!msg) return;
 
-  // ------- Parameter change callback -------
-  rcl_interfaces::msg::SetParametersResult
-  paramCallback(const std::vector<rclcpp::Parameter>&)
-  {
-    rcl_interfaces::msg::SetParametersResult result;
-    result.successful = true;                 // accept all changes
-    result.reason = "Parameter accepted";
-    return result;
+    if (msg->data == "True") {
+      jamming_active_ = true;
+    } else if (msg->data == "False") {
+      jamming_active_ = false;
+    }
+    RCLCPP_INFO(this->get_logger(), "jamming_status: %s -> %s",
+                msg->data.c_str(), jamming_active_ ? "ON" : "OFF");
   }
 
   // ------- Odometry subscription callback -------
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
   {
+    if (!msg) return;
+
     nav_msgs::msg::Odometry out_msg = *msg;   // copy
 
-    if (gpsJammingMode())
+    if (jamming_active_)
     {
-      // pose.covariance는 6×6 행렬이 1‑D 배열(36)로 직렬화되어 있음
+      // pose.covariance는 6×6 행렬이 1-D 배열(36)로 직렬화되어 있음
       for (size_t i = 0; i < 36; i += 7)      // 0,7,14,21,28,35: 대각 원소
       {
         out_msg.pose.covariance[i] = 9.99999999999e11;
@@ -66,7 +68,9 @@ private:
   // ------- Members -------
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr sub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_;
-  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mode_sub_;
+
+  bool jamming_active_{false};
 };
 
 // ────────────────────────────────────────────

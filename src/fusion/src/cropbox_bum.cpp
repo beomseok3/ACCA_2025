@@ -26,7 +26,9 @@ private:
     void velodyneCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
     {
         std::vector<uint8_t> filtered_data;
+        // std::cout << "start" << std::endl;
         this->get_parameter("detection_area", detection);
+        // std::cout << "end" << std::endl;
 
 
         int x_offset = -1;

@@ -12,6 +12,7 @@ import numpy as np
 from cv_bridge import CvBridge
 import time
 
+
 CLASS_COLOR = {
     "yellow": (0, 255, 255),
     "blue": (255, 0, 0)
@@ -23,10 +24,9 @@ class YoloSegNode(Node):
         super().__init__('yolo_seg_node')
         self.bridge = CvBridge()
 
-        # YOLOv8 모델 로드
-        self.model = YOLO('/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/best.pt')
-        self.labels = self.model.names
-
+        # YOLOv8 세그멘테이션 모델 로드
+        self.model = YOLO('/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/cone.pt')  # pt 경로 수정 가능
+        self.labels = self.model.names  # {0: 'yellow', 1: 'blue', ...}
         # ROS2 통신
         self.image_sub = self.create_subscription(Image, 'concated_cam', self.image_callback, 10)
         self.yellow_pub = self.create_publisher(PointStamped, 'yellow_cone', 10)
@@ -37,23 +37,32 @@ class YoloSegNode(Node):
         cv2.namedWindow("Detections", cv2.WINDOW_NORMAL)
 
     def image_callback(self, msg):
+        print(self.labels)
         frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-
+        # print(frame)
+        # cv2.imshow("Detections", frame)
+        # cv2.waitKey(1)
         start = time.perf_counter()
-        results = self.model(frame)[0]
+        # 480 * 1920 320 * 1280
+        # results = self.model.predict(frame, imgsz=(480,1920))[0]
+        results = self.model.predict(frame, imgsz=1920)[0]
+# 
+        # results = self.model(frame)[0]
+        # print(results.masks)
         end = time.perf_counter()
         latency = (end - start) * 1000
         self.get_logger().info(f"YOLOv8-seg Inference Time: {latency:.2f} ms")
 
-        if results.masks is None or results.boxes is None:
-            self.get_logger().warn("No detections or masks.")
-            return
-
-        masks = results.masks.data.cpu().numpy()
-        boxes = results.boxes
         bbox_array = BoundingBoxArray()
         bbox_array.header.stamp = self.get_clock().now().to_msg()
         bbox_array.header.frame_id = "camera_map"
+
+        if results.masks is None:
+            self.get_logger().warn("No masks detected.")
+            return
+
+        masks = results.masks.data.cpu().numpy()  # shape: [N, H, W]
+        boxes = results.boxes
 
         for i, box in enumerate(boxes):
             if i >= len(masks):
@@ -61,40 +70,30 @@ class YoloSegNode(Node):
                 continue
 
             cls_id = int(box.cls[0].item())
-            class_name = self.labels.get(cls_id, "unknown")
+            class_name = self.labels[cls_id]
             conf = float(box.conf[0].item())
-            if conf < 0.5:
-                continue
-
-            # 박스 좌표 및 크기
-            x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
             width, height = x2 - x1, y2 - y1
 
-            # 마스크 리사이즈 및 중심 계산
+            # 마스크 중심점 계산
             mask = masks[i]
-            mask_resized = cv2.resize(mask, (width, height))
-            cx_mask, cy_mask = self.get_mask_center(mask_resized, i)
-            cx_box = width // 2
-            cy_box = height // 2
-
-            # 중심 보정 (가중 평균)
-            alpha = 0.0
-            cx_local = int(alpha * cx_mask + (1 - alpha) * cx_box)
-            cy_local = int(alpha * cy_mask + (1 - alpha) * cy_box)
-
-            cx = x1 + cx_local
-            cy = y1 + cy_local
+            center = self.get_mask_center(mask, i)
+            if center is None:
+                continue
+            cx, cy = center
 
             # 메시지 생성
             bbox = BoundingBox()
-            bbox.x = x1
-            bbox.y = y1
-            bbox.width = width
-            bbox.height = height
+            bbox.x = int(x1)
+            bbox.y = int(y1)
+            bbox.width = int(width)
+            bbox.height = int(height)
             bbox.class_name = class_name
             bbox.confidence = conf
             bbox.center_x = float(cx)
             bbox.center_y = float(cy)
+            bbox.pixel_center_x = float(cx)
+            bbox.pixel_center_y = float(cy)
 
             bbox_array.boxes.append(bbox)
 
@@ -105,7 +104,7 @@ class YoloSegNode(Node):
             cv2.circle(frame, (cx, cy), 6, color, -1)
 
             # 중심점 퍼블리시
-            self.publish_center_point(class_name, cx, cy)
+            self.publish_center_point(class_name, cx, cy, color)
 
         self.bbox_pub.publish(bbox_array)
 
@@ -114,16 +113,13 @@ class YoloSegNode(Node):
             rclpy.shutdown()
 
     def get_mask_center(self, mask, i):
-        mask_bin = (mask > 0.5).astype(np.uint8)
-        M = cv2.moments(mask_bin)
-        if M["m00"] == 0:
-            self.get_logger().warn(f"Mask {i} has zero area.")
-            return mask.shape[1] // 2, mask.shape[0] // 2  # fallback
-        cx = int(M["m10"] / M["m00"])
-        cy = int(M["m01"] / M["m00"])
-        return cx, cy
+        ys, xs = np.where(mask > 0.5)
+        if len(xs) == 0:
+            self.get_logger().warn(f"Mask {i} is empty after thresholding.")
+            return None
+        return int(xs.mean()), int(ys.mean())
 
-    def publish_center_point(self, class_name, x, y):
+    def publish_center_point(self, class_name, x, y, color):
         pt = PointStamped()
         pt.header.stamp = self.get_clock().now().to_msg()
         pt.header.frame_id = "camera_link"

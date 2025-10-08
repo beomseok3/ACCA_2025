@@ -20,6 +20,12 @@ public:
         float_size = 4;
 
         //Cone Tracking
+        // min_x = 0;
+        // max_x = 8.0;
+        // min_y = -4.0;
+        // max_y = 4.0;
+        // min_z = -2.0; 
+        // max_z = -0.25;
         min_x = 0;
         max_x = 5.0;
         min_y = -3.0;

@@ -324,10 +324,10 @@ class Parking:
                 reverse=True,  # 후진
             )
             adapted_speed = self.ss.adaptSpeed(
-                8, hdr, ctr, min_value=5, max_value=10
+                12, hdr, ctr, min_value=8, max_value=14
             )  # 에러(hdr, ctr) 기반 목표 속력 조정
             speed = self.pid.PIDControl(
-                self.odometry.v * 3.6, adapted_speed, min=5, max=10
+                self.odometry.v * 3.6, adapted_speed, min=8, max=14
             )  # speed 조정 (PI control)
             brake = self.cacluate_brake(adapted_speed)  # brake 조정
 

@@ -111,7 +111,6 @@ class PathHandler():
         self.init_db()
         self.path = False
         self.one = False
-        
 
     def backup_then_reset_db(self):
         """기존 DB가 있으면 타임스탬프 .bak로 백업하고 원본 제거"""
@@ -211,6 +210,40 @@ class PathHandler():
                         q = row.pose.orientation
                         _, _, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
                         yaw_list.append(yaw)
+                    # 더 부드러운 보간을 위해: 끝에서 5개, 시작에서 5개를 추출하여 이어줌
+                    n_edge = 3  # 사용할 점 개수
+                    x_edge = np.concatenate([x[-n_edge:], x[:n_edge]])
+                    y_edge = np.concatenate([y[-n_edge:], y[:n_edge]])
+
+                    # 누적 거리로 정규화된 t_edge 계산
+                    distances = [0.0]
+                    for i in range(1, len(x_edge)):
+                        dx = x_edge[i] - x_edge[i - 1]
+                        dy = y_edge[i] - y_edge[i - 1]
+                        distances.append(distances[-1] + np.hypot(dx, dy))
+
+                    t_edge = np.array(distances) / distances[-1]
+
+                    # 보간 함수
+                    cs_x = CubicSpline(t_edge, x_edge, bc_type='natural')
+                    cs_y = CubicSpline(t_edge, y_edge, bc_type='natural')
+                    # 연결 구간 보간 (예: 10개)
+                    t_insert = np.linspace(0, 1, 30, endpoint=False)
+                    extra_x = cs_x(t_insert)
+                    extra_y = cs_y(t_insert)
+                    t_smooth = np.linspace(t_insert.min(), t_insert.max(), len(extra_x))
+
+                    # smoothing factor s를 0으로 하면 점들을 모두 통과하는 스플라인 생성
+                    spline_x = UnivariateSpline(t_insert, extra_x, s=2, k=3)
+                    spline_y = UnivariateSpline(t_insert, extra_y, s=2, k=3)
+                    smooth_yaw = compute_yaw_from_spline(spline_x, spline_y, t_smooth)
+
+
+                    # spline_x(t), spline_y(t)로 t 범위 내에서 부드러운 x,y 좌표를 얻을 수 있음
+                    # 예를 들어 100개의 부드러운 점 생성
+                    t_smooth = np.linspace(t_insert.min(), t_insert.max(), len(extra_x))
+                    smooth_x = spline_x(t_smooth)
+                    smooth_y = spline_y(t_smooth)
 
                     # 기존 경로 저장
                     min_len = min(len(self.cx), len(self.cy), len(self.way.poses))
@@ -227,6 +260,13 @@ class PathHandler():
                             "INSERT INTO Path (path_id, x, y, yaw, speed) VALUES (?, ?, ?, ?, ?)",
                             ("A1A2", x, y, yaw, speed)
                         )
+
+                    # 시작점과 끝점 사이 부드럽게 이어주는 구간 추가 삽입
+                    for i in range(len(extra_x)):
+                        cur.execute(
+                            "INSERT INTO Path (path_id, x, y, yaw, speed) VALUES (?, ?, ?, ?, ?)",
+                            ("A1A2", float(smooth_x[i]), float(smooth_y[i]), float(smooth_yaw[i]), speed)
+                        )                        
 
                     conn.commit()
                     end_time = time.time()
@@ -345,11 +385,11 @@ class Drive():
 
                     h_gain_straight = 0.6
                     c_gain_straight = 0.3
-                    target_speed = 10.0
+                    target_speed = 12.0
                     # target_speed = 5.0
 
                     steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_straight, c_gain_straight, target_idx, error)
-                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=7, max_value=10, he_gain=40.0, ce_gain=30.0, he_thr=0.07, ce_thr=0.05)
+                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=8, max_value=15, he_gain=40.0, ce_gain=30.0, he_thr=0.07, ce_thr=0.05)
                     if self.state.v * 3.6 >= adapted_speed:
                         input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                     else:
@@ -362,10 +402,10 @@ class Drive():
                 else:
                     h_gain_curve = 0.8
                     c_gain_curve = 0.5
-                    target_speed = 5.0
+                    target_speed = 7.0
 
                     steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_curve, c_gain_curve, target_idx, error)
-                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6, he_gain=50.0, ce_gain=30.0, he_thr=0.001, ce_thr=0.002)
+                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=6, max_value=7, he_gain=50.0, ce_gain=30.0, he_thr=0.001, ce_thr=0.002)
                     if self.state.v * 3.6 >= adapted_speed:
                         input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                     else:
@@ -422,7 +462,7 @@ class Drive():
         msg = ControlMessage()
         # msg.speed = max(0, min(65535, int(round(speed)) * 10)) 
         msg.speed = int(speed)*10 
-        msg.steer = int(m.degrees((-1)*steer)*1e3)
+        msg.steer = int(m.degrees((-1)*steer))
         msg.gear = 2
         msg.brake = int(input_brake)
 
@@ -449,7 +489,7 @@ class Drive():
                 break
         mean = np.mean(np.abs(np.diff(yaw_list)))
         # print(mean)
-        if mean > 0.0075: #1027 0.01 -> 0.0075 -> 0.015 -> 0.02 --> 0.0075
+        if mean > 0.018: #1027 0.01 -> 0.0075 -> 0.015 -> 0.02
             return False
         else:
             return True

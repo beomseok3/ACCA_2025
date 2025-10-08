@@ -500,11 +500,11 @@ def main():
     # node.declare_parameter("file_name_mpc", "/bunsudae/mpc_bunsudae_v_7_0830" ".db")
     
     #### kcity ####
-    node.declare_parameter("file_name", "BS/kcity_6th_bs_v1" ".db") 
-    node.declare_parameter("file_name_mpc", "BS/MPC_kcity_6th_bs_v1" ".db")
-
     # node.declare_parameter("file_name", "BS/kcity_6th_bs_v1" ".db") 
     # node.declare_parameter("file_name_mpc", "BS/MPC_kcity_6th_bs_v1" ".db")
+
+    node.declare_parameter("file_name", "BS/split/kcity_6th_A1A4_align_align_align" ".db") 
+    node.declare_parameter("file_name_mpc", "BS/split/mpc_kcity_6th_A1A4_align_align_align" ".db")
     
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 

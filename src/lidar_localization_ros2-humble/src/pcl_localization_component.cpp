@@ -236,11 +236,6 @@ void PCLLocalization::initializePubSub()
     std::bind(&PCLLocalization::imuReceived, this, std::placeholders::_1));
 
 
-
-
-
-
-
   // Subscribing to the "/localization/kinematic_state" topic
   odom_kinematic_sub_ = create_subscription<nav_msgs::msg::Odometry>(
     "/localization/kinematic_state", rclcpp::SystemDefaultsQoS(),
@@ -251,6 +246,10 @@ void PCLLocalization::initializePubSub()
     "ublox_gps_node/fix", 10,
     std::bind(&PCLLocalization::callback_gps, this, std::placeholders::_1));
 
+  jamming_status_sub_ = this->create_subscription<std_msgs::msg::String>(
+    "jamming_status", 10,
+    std::bind(&PCLLocalization::callback_jamming_status, this, std::placeholders::_1));
+  
 
   // RCLCPP_INFO(get_logger(), "initializePubSub end");
 }
@@ -333,6 +332,10 @@ void PCLLocalization::odomKinematicReceived(const nav_msgs::msg::Odometry::Const
   // Check if GPS covariance is less than or equal to 0.01 -> 0.007
   if (gps_covariance_x > 0.007 || gps_covariance_y > 0.007) {
     RCLCPP_INFO(get_logger(), "GPS covariance is greater than 0.007, skipping initialPoseReceived.");
+    return;
+  }
+  if (latest_jamming_status_ && latest_jamming_status_->data == "True") {
+    RCLCPP_INFO(get_logger(), "GPS is jamming, skipping initialPoseReceived.");
     return;
   }
 
@@ -450,6 +453,11 @@ double PCLLocalization::computeDistance(const geometry_msgs::msg::Pose &pose1, c
 void PCLLocalization::callback_gps(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
 {
   latest_gps_msg_ = msg;  // Store the latest GPS data
+}
+
+void PCLLocalization::callback_jamming_status(const std_msgs::msg::String::SharedPtr msg)
+{
+  latest_jamming_status_ = msg;  // Store the latest GPS data
 }
 
 void PCLLocalization::imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg)

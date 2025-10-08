@@ -107,7 +107,7 @@ class State(Enum):
 class DBExtractor:
     def __init__(self, path_id, controller="stanley",
                  global_db_dir=os.path.expanduser("~/db_file"),
-                 global_db_name="kcity_6th_bs_v1.db"):
+                 global_db_name="BS/split/kcity_6th_A1A4_align_align.db"):
         self.controller = controller.lower()
         print("Resolved DB path:", os.path.join(os.path.expanduser("~/acca/db_file"),
                                         "bunsudae_0830_v_origin.db"))
@@ -161,7 +161,7 @@ class DBExtractor:
         "slow_10" : 10,
         "parking": 15,
         "obstacle": 7,
-        'pickup': 3,
+        'pickup': 6,
         'delivery': 8,
         'driving_5' : 5,
         'driving_8' : 8,

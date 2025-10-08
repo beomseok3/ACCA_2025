@@ -16,9 +16,6 @@ sys.path.append('/home/ps/ros2_ws/src/global_path/global_path')
 from cubic_spline_planner import calc_spline_course
 import time
 
-################## 해야할 것 #####################
-
-
 
 class PathPublisher(Node):
     def __init__(self):
@@ -33,8 +30,6 @@ class PathPublisher(Node):
         # Subscribers
         self.yellow_sub = self.create_subscription(PointStamped, 'yellow_odom', self.yellow_callback, 10)
         self.blue_sub = self.create_subscription(PointStamped, 'blue_odom', self.blue_callback, 10)
-        # self.yellow_sub = self.create_subscription(PointStamped, 'yellow_odom', self.blue_callback, 10)
-        # self.blue_sub = self.create_subscription(PointStamped, 'blue_odom', self.yellow_callback, 10)
         self.odom_sub = self.create_subscription(Odometry, "/odometry/navsat", self.odom_callback, 10)
 
         # Publishers
@@ -168,7 +163,6 @@ class PathPublisher(Node):
                 print("섞임")
                 return
             
-        # self.f.write(f"blue, {msg.point.x}, {msg.point.y}\n")
         self.blue_points.append(b_point)
     
     def odom_callback(self, msg):
@@ -178,30 +172,13 @@ class PathPublisher(Node):
             self.first_point = [self.current_x,self.current_y]
             self.flag_1 = True
 
-    # def filter_close_waypoints(self, waypoints, min_distance=0.2):
-    #     """지나치게 가까운 waypoint 제거"""
-    #     if len(waypoints) < 2:
-    #         return waypoints
-    #     filtered = [waypoints[0]]
-    #     for pt in waypoints[1:]:
-    #         if np.linalg.norm(np.array(pt) - np.array(filtered[-1])) > min_distance:
-    #             filtered.append(pt)
-    #     return np.array(filtered)
-
     def path_create(self):
         if len(self.yellow_points) < 2 or len(self.blue_points) < 2:
             return
         
         if self.flag_3:
             self.path_pub.publish(self.final_path)
-            # msg = Bool()self.fla
-            # msg.data = True
-            # self.one_lap_pub.publish(msg)
             return
-        # else:
-            # msg = Bool()
-            # msg.data = False
-            # self.one_lap_pub.publish(msg)
 
         # Combine yellow and blue points
         all_points = np.array(self.yellow_points + self.blue_points)
@@ -254,45 +231,11 @@ class PathPublisher(Node):
             pose.pose.orientation.z = float(quat[2])
             pose.pose.orientation.w = float(quat[3])
             path.poses.append(pose)
-
-        # 첫 점과 마지막 점 출력
-        if len(path.poses) > 0:
-            first_pose = path.poses[0].pose.position
-            # last_pose__local =Point(x=self.current_x,y= self.current_y)
-            last_pose = path.poses[-1].pose.position
-            x_diff = abs(first_pose.x - last_pose.x)
-            y_diff = abs(first_pose.y - last_pose.y)
-
-
-            # x_diff_local = abs(first_pose.x - last_pose__local.x)
-            # y_diff_local = abs(first_pose.y - last_pose__local.y)
-
-            d = np.hypot(x_diff, y_diff)
-            # d_local = np.hypot(x_diff_local, y_diff_local)
-            if d >= 0.05:
-                self.path_pub.publish(path)
-
-
-            if d <= 1.0:
-                self.get_logger().info(
-                f"[X DIFF ALERT] Δx: {d:.3f} | "
-                f"First x: {first_pose.x:.3f}, Last x: {last_pose.x:.3f}"
-            )
-                msg = Bool()
-                msg.data = True
-                self.one_lap_pub.publish(msg)
-
-            
         
         if self.flag_3:
             self.final_path = path
-        
-
-        # self.path_pub.publish(path)
-
-
-        
-
+            
+        self.path_pub.publish(path)
 
         # Create MarkerArray for Delaunay triangles
         marker_array = MarkerArray()
@@ -395,13 +338,14 @@ class PathPublisher(Node):
                 front_points.extend(waypoints)
                 start_end_distance = np.hypot(self.first_point[0] - waypoints[-1][0], self.first_point[1] - waypoints[-1][1])
                 
-                # start_cu_distance = np.hypot(self.first_point[0] - self.current_x, self.first_point[1] - self.current_y)
-                self.get_logger().info(f"dis_s : {start_end_distance}")
-               
-                if start_end_distance < 1:
+                self.get_logger().info(f"start_end_distance : {start_end_distance}")
+       
+                if start_end_distance < 3:
                     self.flag_3 = True
-                    print("한바퀴")
-                    
+                    self.get_logger().info("한바퀴")
+                    msg = Bool()
+                    msg.data = True
+                    self.one_lap_pub.publish(msg)
 
             else: # watpoints의 두번째 점이 결정되지 않았을 경우
                 current_point = starting_point
@@ -425,8 +369,7 @@ class PathPublisher(Node):
         return np.array(waypoints)
     
     # UnivariateSpline을 사용하여 경로를 부드럽게 연결하는 함수
-    def spline_interpolation(self, points, s=5, k=3, spacing=0.1):
-        
+    def spline_interpolation(self, points, s=1, k=3, spacing=0.1): 
         if len(points) < 2:
             return points[:, 0], points[:, 1]
         
@@ -470,7 +413,7 @@ class PathPublisher(Node):
         interpolated_x = us_x(interpolated_t)
         interpolated_y = us_y(interpolated_t)
         
-        return interpolated_x, interpolated_y   
+        return interpolated_x, interpolated_y
     
         
     def add_triangles_to_marker_array(self, marker_array, points, triangles):

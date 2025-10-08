@@ -56,7 +56,7 @@ def generate_launch_description():
         DeclareLaunchArgument('ground_point_topic', default_value='/points_ground'),
         DeclareLaunchArgument('all_points_topic', default_value='/all_points'),
         DeclareLaunchArgument('clip_height', default_value='3.5'),
-        DeclareLaunchArgument('sensor_height', default_value='1.0'),
+        DeclareLaunchArgument('sensor_height', default_value='1.77'),
         DeclareLaunchArgument('min_distance', default_value='0.01'),
         DeclareLaunchArgument('max_distance', default_value='25.0'),
         DeclareLaunchArgument('sensor_model', default_value='32'),

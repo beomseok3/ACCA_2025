@@ -29,7 +29,7 @@ class ErpTwist(Node):
     
         
     def callback_erp(self, msg):
-        self.get_logger().info("erp_callback_ok")
+        # self.get_logger().info("erp_callback_ok")
         header = self.header
         header.stamp = self.get_clock().now().to_msg()
         header.frame_id = "base_link"

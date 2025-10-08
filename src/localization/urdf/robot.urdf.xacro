@@ -40,7 +40,8 @@
   </joint>
 </robot> -->
 
-<link name="base_link"></link>
+
+  <link name="base_link"></link>
 
   <!-- <link name="velodyne"> </link>
   <joint name="velodyne_joint" type="fixed">
@@ -53,7 +54,7 @@
   <joint name="velodyne_joint" type="fixed">
     <parent link="base_link" />
     <child link="velodyne" />
-    <origin xyz="0.375 0 0" rpy="0 0 0" />
+    <origin xyz="0.38 0 0" rpy="0 0 0" />
   </joint>
 
   <link name="imu_link"> </link>

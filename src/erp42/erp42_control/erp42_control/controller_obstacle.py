@@ -341,7 +341,7 @@ class Obstacle:
                 front_obs.sort(key=lambda t: t[0])
                 nearest_len, obs_x, obs_y = front_obs[0]
                 self.node.get_logger().debug(f"[line_change] nearest front cone dist={nearest_len:.2f} m")
-                thr = 4.5 if self.state == "small" else 5.0 # 필요시 2.0~5.0 조정
+                thr = 5.0 if self.state == "small" else 5.0 # 필요시 2.0~5.0 조정
                 if nearest_len <= thr:
                     mode = "긴급회피" if len(self.num1_obs) < 1 else "회피"
                     self.node.get_logger().info(f"[line_change] {mode} triggered at {nearest_len:.2f} m")

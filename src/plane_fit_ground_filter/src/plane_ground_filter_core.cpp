@@ -13,7 +13,9 @@ PlaneGroundFilter::PlaneGroundFilter()
     this->declare_parameter<std::string>("ground_point_topic", "/points_ground");
     this->declare_parameter<std::string>("all_points_topic", "/all_points");
     this->declare_parameter<double>("clip_height", 4.0);
-    this->declare_parameter<double>("sensor_height", 1.77);
+    this->declare_parameter<double>("sensor_height", 1.77); 
+    // 0929_backup
+    // this->declare_parameter<double>("sensor_height", 1.4);
     this->declare_parameter<double>("min_distance", 2.0);
     this->declare_parameter<double>("max_distance", 75.0);
     this->declare_parameter<int>("sensor_model", 32);

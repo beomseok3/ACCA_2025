@@ -26,6 +26,7 @@
 #include "sensor_msgs/msg/imu.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
+#include "std_msgs/msg/string.hpp"
 
 #include <pclomp/ndt_omp.h>
 #include <pclomp/ndt_omp_impl.hpp>
@@ -68,6 +69,7 @@ public:
 
    // GPS 관련 함수 추가
   void callback_gps(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
+  void callback_jamming_status(const std_msgs::msg::String::SharedPtr msg);
   double computeDistance(const geometry_msgs::msg::Pose &pose1, const geometry_msgs::msg::Pose &pose2);
   // void gnssReceived();
 
@@ -98,7 +100,8 @@ public:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_kinematic_sub_;
 
    // GPS 서브스크립션 추가
-  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;
+   rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;
+   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr jamming_status_sub_;
 
   boost::shared_ptr<pcl::Registration<pcl::PointXYZI, pcl::PointXYZI>> registration_;
   pcl::VoxelGrid<pcl::PointXYZI> voxel_grid_filter_;
@@ -142,6 +145,7 @@ public:
 
   // GPS 관련 멤버 변수 추가
   sensor_msgs::msg::NavSatFix::SharedPtr latest_gps_msg_;  // 최신 GPS 데이터 저장
+  std_msgs::msg::String::SharedPtr latest_jamming_status_;  // 최신 GPS 데이터 저장
   geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr pcl_pose_;  // NDT 결과로 얻어진 포즈 데이터 저장
 
   // imu

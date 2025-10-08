@@ -23,7 +23,7 @@ class YOLOv8InferenceNode(Node):
 
         self.subscription = self.create_subscription(
             Image,
-            '/camera1/image_raw',
+            '/camera2/image_raw',
             self.listener_callback,
             10
         )

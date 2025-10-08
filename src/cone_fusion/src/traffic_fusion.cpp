@@ -22,20 +22,17 @@ public:
             std::bind(&TrafficSignChecker::bboxCallback, this, std::placeholders::_1));
 
         traffic_pub_ = create_publisher<yolo_msg::msg::TrafficSign>("traffic_sign", 10);
-        traffic_rviz_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("traffic_sign_rviz", 10);
+        traffic_rviz_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("traffic_sign_rviz_check", 10);
 
         // 카메라 내부 파라미터
-        C_Mc_ << 600.0215532765091, 0.0, 328.4470315774296, 0.,
-                    0.0, 600.7558135485723, 236.1876388527033, 0.,
-                    0.0, 0.0, 1.0, 0.;
-
-                
-
-        // LiDAR → Camera 외부 변환 행렬
         C_RTlc_ << 0.0572, -0.9980, 0.0270, 0.0271,
-                    0.1006, -0.0211, -0.9947, -0.2647,
-                    0.9933, 0.0596, 0.0992, -0.1308,
-                    0.0,0.0,0.0,1.0;
+                  0.1006, -0.0211, -0.9947, -0.2647,
+                  0.9933, 0.0596, 0.0992, -0.1308,
+                  0.0, 0.0, 0.0, 1.0;
+
+        C_Mc_ << 600.0215532765091, 0.0, 328.4470315774296, 0.0,
+                0.0, 600.7558135485723, 236.1876388527033, 0.0,
+                0.0, 0.0, 1.0, 0.0;
 
                 
         }
@@ -96,7 +93,7 @@ private:
                 // RViz용 PoseStamped
                 geometry_msgs::msg::PoseStamped rviz_pose;
                 rviz_pose.header.stamp = get_clock()->now();
-                rviz_pose.header.frame_id = "velodyne";  // 실제 LiDAR 프레임으로 바꿔주세요
+                rviz_pose.header.frame_id = "velodyne"; 
                 rviz_pose.pose = pose;
                 traffic_rviz_pub_->publish(rviz_pose);
 
