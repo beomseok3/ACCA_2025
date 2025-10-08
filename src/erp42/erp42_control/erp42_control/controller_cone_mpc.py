@@ -97,10 +97,10 @@ class PID:
         return int(np.clip(self.speed, min, max))
 
 class PathHandler():
-    def __init__(self, node, path_topic, one_topic):
+    def __init__(self, node, path_topic, first_lap_done_topic):
         self.node = node
         self.node.create_subscription(Path, path_topic, self.callback_path, qos_profile_system_default)
-        self.node.create_subscription(Bool, one_topic, self.done_path, qos_profile_system_default)
+        self.node.create_subscription(Bool, first_lap_done_topic, self.first_lap_done_path, qos_profile_system_default)
         
 
         self.cx = []
@@ -110,7 +110,7 @@ class PathHandler():
         self.db_path = os.path.expanduser("/home/acca/db_file/mpc/path_data.db")
         self.init_db()
         self.path = False
-        self.one = False
+        self.one_lap_done = False
         
 
     def backup_then_reset_db(self):
@@ -174,10 +174,12 @@ class PathHandler():
 
         return rx.tolist(), ry.tolist()
 
-    def done_path(self, msg):
-        self.one = msg.data
+    def first_lap_done_path(self, msg):
+        self.one_lap_done = msg.data
+
         thread_id = threading.get_ident()
         self.node.get_logger().info(f"[done_path] Thread ID: {thread_id}")
+
         if msg.data:
             try:
                 str_time = time.time()               
@@ -289,8 +291,10 @@ class SpeedSupporter():
 class Drive():
     def __init__(self, node, state, path):
         self.pub = node.create_publisher(ControlMessage, "cmd_msg", qos_profile_system_default)
+        self.one_lap_done_pub = node.create_publisher(Bool, "one_lap_done", qos_profile_system_default)
         node.create_subscription(Float32, "hdr", self.hdr_callback,qos_profile_system_default)
         node.create_subscription(Float32, "ctr", self.ctr_callback, qos_profile_system_default)
+        
 
         self.hdr = 0.0
         self.ctr = 0.0
@@ -319,9 +323,8 @@ class Drive():
         target_idx, error  = self.st.calc_target_index(self.state, self.path.cx, self.path.cy)
         self.decision_first_lap(target_idx)
         
-
-        if not self.path.one: # first lap
-            # print(self.path.one)
+        ####### First_lap Controller ########
+        if not self.path.one_lap_done: 
             if self.decision_last_idx(target_idx):
                 h_gain_curve = 0.8
                 c_gain_curve = 0.5
@@ -333,23 +336,47 @@ class Drive():
                     input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                 else:
                     input_brake = 0
-
+                speed = adapted_speed 
                 print("close last idx", adapted_speed)
-                speed = adapted_speed
 
             else:
-                
                 if self.decision_straight(target_idx):
                     # h_gain_straight = 0.5
                     # c_gain_straight = 0.24
 
                     h_gain_straight = 0.6
                     c_gain_straight = 0.3
-                    target_speed = 10.0
                     # target_speed = 5.0
+                    target_speed = 10.0 # origin (12.0) modified 25.10.04
 
                     steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_straight, c_gain_straight, target_idx, error)
-                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=7, max_value=10, he_gain=40.0, ce_gain=30.0, he_thr=0.07, ce_thr=0.05)
+                    adapted_speed = self.ss.adaptSpeed(
+                        target_speed,
+                        hdr,
+                        ctr,
+                        min_value=7,
+                        max_value=10,
+                        he_gain=40.0,
+                        ce_gain=30.0,
+                        he_thr=0.07,
+                        ce_thr=0.05
+                        )
+                    # adapted_speed = self.ss.adaptSpeed(
+                    #     target_speed,
+                    #     hdr,
+                    #     ctr,
+                    #     min_value=8, 
+                    #     max_value=15,
+                    #     he_gain=40.0, 
+                    #     ce_gain=30.0, 
+                    #     he_thr=0.07, 
+                    #     ce_thr=0.05
+                    #     ) # modified 25.10.04
+                    
+                    # origin before 1004 
+                        # min_value=9,
+                        # max_value=12,
+                    
                     if self.state.v * 3.6 >= adapted_speed:
                         input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                     else:
@@ -362,80 +389,87 @@ class Drive():
                 else:
                     h_gain_curve = 0.8
                     c_gain_curve = 0.5
-                    target_speed = 5.0
+                    target_speed = 5.0 # origin (7.0) modified 25.10.04
 
                     steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_curve, c_gain_curve, target_idx, error)
-                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6, he_gain=50.0, ce_gain=30.0, he_thr=0.001, ce_thr=0.002)
+                    adapted_speed = self.ss.adaptSpeed(
+                        target_speed, 
+                        hdr, 
+                        ctr, 
+                        min_value=4, # origin (6) modified 25.10.04
+                        max_value=6,  # origin(7) modified 25.10.04
+                        he_gain=50.0, 
+                        ce_gain=30.0, 
+                        he_thr=0.001, 
+                        ce_thr=0.002
+                        )
                     if self.state.v * 3.6 >= adapted_speed:
                         input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                     else:
                         input_brake = 0
                     speed = adapted_speed
-
-
                     print("curve", adapted_speed)
 
-
+        ####### Second_lap Controller ########
         else:
-            if self.decision_straight(target_idx):                
-                _, steer, speed_output = self.mpc.pose_callback(self.state.pose)
-                kspeed = speed_output * 3.6
-                if self.hdr != 0 and self.ctr != 0:
-                    adapted_speed = self.ss.adaptSpeed(kspeed, self.hdr, self.ctr, min_value=5, max_value=10, he_gain=40.0, ce_gain=30.0, he_thr=0.07, ce_thr=0.05)
-
-                    if self.state.v * 3.6 >= adapted_speed:
-                        input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
-                    else:
-                        input_brake = 0
-                    speed = adapted_speed
+            # modified 25.10.08 (직선 판단 불필요)          
+            _, steer, speed_output = self.mpc.pose_callback(self.state.pose)
+            kspeed = speed_output * 3.6
+            
+            ## Fallback Logic (Stanley Controlller) ##
+            if self.hdr != 0 and self.ctr != 0:
+                adapted_speed = self.ss.adaptSpeed(
+                    kspeed, 
+                    self.hdr, 
+                    self.ctr, 
+                    min_value=5, 
+                    max_value=10, 
+                    he_gain=40.0, 
+                    ce_gain=30.0, 
+                    he_thr=0.07, 
+                    ce_thr=0.05
+                    )
+                if self.state.v * 3.6 >= adapted_speed:
+                    input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                 else:
-                    if self.state.v * 3.6 >= kspeed:
-                        input_brake = (abs(self.state.v * 3.6 - kspeed) / 20.0) * 200
-                    else:
-                        input_brake = 0
-                    speed = kspeed
-
-                speed = self.pid.PIDControl(self.state.v * 3.6, speed, 0, 25)
-
+                    input_brake = 0
+                speed = adapted_speed
+            
+            ## MPC ##
             else:
-                _, steer, speed_output = self.mpc.pose_callback(self.state.pose )
-                kspeed = speed_output * 3.6
-                # adapted_speed = -50.0
-                if self.hdr != 0 and self.ctr != 0:
-                    adapted_speed = self.ss.adaptSpeed(kspeed, self.hdr, self.ctr, min_value=5, max_value=10, he_gain=40.0, ce_gain=30.0, he_thr=0.07, ce_thr=0.05)
-
-                    if self.state.v * 3.6 >= adapted_speed:
-                        input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
-                    else:
-                        input_brake = 0
-                    speed = adapted_speed
+                if self.state.v * 3.6 >= kspeed:
+                    input_brake = (abs(self.state.v * 3.6 - kspeed) / 20.0) * 200
                 else:
-                    if self.state.v * 3.6 >= kspeed:
-                        input_brake = (abs(self.state.v * 3.6 - kspeed) / 20.0) * 200
-                    else:
-                        input_brake = 0
-                    speed = kspeed
-                speed = self.pid.PIDControl(self.state.v * 3.6, speed, 0, 25)
+                    input_brake = 0
+                speed = kspeed
 
-                # print("curve", adapted_speed)
+            speed = self.pid.PIDControl(self.state.v * 3.6, speed, 0, 25)
+
 
         msg = ControlMessage()
-        # msg.speed = max(0, min(65535, int(round(speed)) * 10)) 
         msg.speed = int(speed)*10 
-        msg.steer = int(m.degrees((-1)*steer)*1e3)
+        msg.steer = int(m.degrees((-1)*steer) * 1e3)
         msg.gear = 2
         msg.brake = int(input_brake)
 
         self.pub.publish(msg)
 
     def decision_first_lap(self, target_idx):
-        if len(self.path.cyaw) >= 100 and target_idx <= 10: #생성된 path가 10m 이상이고 target_idx가 10 이하일 떄, 즉 출발점 부근일 떼
+        '''
+        True:\n
+        생성된 path가 10m 이상이고 target_idx가 10 이하(출발점 부근)일 때
+        '''
+        if len(self.path.cyaw) >= 100 and target_idx <= 5 and self.first_lap: 
             self.first_lap = False
+            self.one_lap_done_pub.publish(Bool(data=True))
 
     def decision_last_idx(self, target_idx):
-        if  abs(len(self.path.cyaw) - target_idx) <= 10: # path의 마지막 노드랑 차랑 인덱스가 10개 이내일때 (즉 path의 마지막 노드랑 거리가 1m 이내일 때)
+        ''' 
+        True:\n
+        path의 마지막 노드랑 차랑 인덱스가 10개(1m) 이내일때 
+        '''
+        if  abs(len(self.path.cyaw) - target_idx) <= 10: 
             return True
-        
         else:
             return False
         

@@ -39,6 +39,7 @@ class PathPublisher(Node):
 
         # Publishers
         self.path_pub = self.create_publisher(Path, 'del_path', 10)
+        self.one_lap_pub = self.create_publisher(Bool, 'one_lap_done', 10)
         self.marker_pub = self.create_publisher(MarkerArray, 'del_array', 10)
         
         # Frame id
@@ -193,7 +194,14 @@ class PathPublisher(Node):
         
         if self.flag_3:
             self.path_pub.publish(self.final_path)
+            # msg = Bool()self.fla
+            # msg.data = True
+            # self.one_lap_pub.publish(msg)
             return
+        # else:
+            # msg = Bool()
+            # msg.data = False
+            # self.one_lap_pub.publish(msg)
 
         # Combine yellow and blue points
         all_points = np.array(self.yellow_points + self.blue_points)
@@ -214,8 +222,10 @@ class PathPublisher(Node):
         # start_time = time.time()
         waypoints = self.rearrange_midpoints(self.first_point, midpoints)
         # print(f"rearrange_midpoints 시간: {time.time() - start_time}초")
+        # waypoints = self.filter_close_waypoints(waypoints)
+
         # start_time = time.time()
-        spline_x, spline_y = self.spline_interpolation(waypoints,s = 0.1)
+        spline_x, spline_y = self.spline_interpolation(waypoints)
         # print(f"spline_interpolation 시간: {time.time() - start_time}초")
 
         # Publish path
@@ -245,10 +255,44 @@ class PathPublisher(Node):
             pose.pose.orientation.w = float(quat[3])
             path.poses.append(pose)
 
+        # 첫 점과 마지막 점 출력
+        if len(path.poses) > 0:
+            first_pose = path.poses[0].pose.position
+            # last_pose__local =Point(x=self.current_x,y= self.current_y)
+            last_pose = path.poses[-1].pose.position
+            x_diff = abs(first_pose.x - last_pose.x)
+            y_diff = abs(first_pose.y - last_pose.y)
+
+
+            # x_diff_local = abs(first_pose.x - last_pose__local.x)
+            # y_diff_local = abs(first_pose.y - last_pose__local.y)
+
+            d = np.hypot(x_diff, y_diff)
+            # d_local = np.hypot(x_diff_local, y_diff_local)
+            if d >= 0.05:
+                self.path_pub.publish(path)
+
+
+            if d <= 1.0:
+                self.get_logger().info(
+                f"[X DIFF ALERT] Δx: {d:.3f} | "
+                f"First x: {first_pose.x:.3f}, Last x: {last_pose.x:.3f}"
+            )
+                msg = Bool()
+                msg.data = True
+                self.one_lap_pub.publish(msg)
+
+            
+        
         if self.flag_3:
             self.final_path = path
+        
 
-        self.path_pub.publish(path)
+        # self.path_pub.publish(path)
+
+
+        
+
 
         # Create MarkerArray for Delaunay triangles
         marker_array = MarkerArray()
@@ -354,7 +398,7 @@ class PathPublisher(Node):
                 # start_cu_distance = np.hypot(self.first_point[0] - self.current_x, self.first_point[1] - self.current_y)
                 self.get_logger().info(f"dis_s : {start_end_distance}")
                
-                if start_end_distance < 3.5: ## TODO 1008 문제 많음
+                if start_end_distance < 1:
                     self.flag_3 = True
                     print("한바퀴")
                     
@@ -374,12 +418,14 @@ class PathPublisher(Node):
                     self.second_point = waypoints[1]
                     self.third_point = waypoints[2]
                     self.flag_2 = True
-        
+                msg = Bool()
+                msg.data = False
+                self.one_lap_pub.publish(msg)
 
         return np.array(waypoints)
     
     # UnivariateSpline을 사용하여 경로를 부드럽게 연결하는 함수
-    def spline_interpolation(self, points, s=1, k=3, spacing=0.1):
+    def spline_interpolation(self, points, s=5, k=3, spacing=0.1):
         
         if len(points) < 2:
             return points[:, 0], points[:, 1]
