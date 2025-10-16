@@ -111,7 +111,17 @@ class Trafficlight:
         self.brake_distance_idx = int(node.declare_parameter("/traffic/brake_distance_idx", 30).value)
         self.stop_near_idx      = int(node.declare_parameter("/traffic/stop_near_idx", 3).value)
         self.yellow_stop_idx    = int(node.declare_parameter("/traffic/yellow_stop_idx", 3).value)
-
+    
+    def cacluate_brake(
+        self, adapted_speed
+    ):  # brake 값 정하는 알고리즘 좀 더 정교하게 생각
+        if self.odometry.v * 3.6 >= adapted_speed:
+            brake = (abs(self.odometry.v * 3.6 - adapted_speed) / 20.0) * 200
+            brake = np.clip(brake, 0, 200)
+        else:
+            brake = 0
+        return brake
+    
     # ── 라벨 정규화 ─────────────────────────────────────────────────────────
     def _normalize_label(self, name: str):
         if not name:
@@ -228,6 +238,8 @@ class Trafficlight:
             else:
                 self.target_speed = int(np.clip((remaining_idx / max(1, npts)) * 15, 6, 8))
                 adapted = self.ss.adaptSpeed(self.target_speed, hdr, ctr, 6, 8)
+                # brake = self.cacluate_brake(adapted_speed) 속도 올릴시 고려
+
                 self.speed = self.pid.PIDControl(odometry.v * 3.6, adapted, 6, 8)
                 self.estop = 0
 
@@ -247,6 +259,7 @@ class Trafficlight:
             else:
                 self.target_speed = 8
                 adapted = self.ss.adaptSpeed(self.target_speed, hdr, ctr, 8, 10)
+                # brake = self.cacluate_brake(adapted_speed) 속도 올릴시 고려
                 self.speed = self.pid.PIDControl(odometry.v * 3.6, adapted, 8, 10)
                 self.estop = 0
 
@@ -256,7 +269,7 @@ class Trafficlight:
         elif sig == "green":
             # 🔓 초록이면 래치 해제 후 진행
             self.must_wait_green = False
-            self.target_speed = 10
+            self.target_speed = 10 # 20 고려
             adapted = self.ss.adaptSpeed(self.target_speed, hdr, ctr, 8, 10)
             self.speed = self.pid.PIDControl(odometry.v * 3.6, adapted, 8, 10)
             self.estop = 0
@@ -275,6 +288,7 @@ class Trafficlight:
                 # 래치가 없거나 너무 오래 기다렸을 때만 보수적 주행
                 self.target_speed = 10
                 adapted = self.ss.adaptSpeed(self.target_speed, hdr, ctr, 8, 10)
+                # brake = self.cacluate_brake(adapted_speed) 속도 올릴시 고려\
                 self.speed = self.pid.PIDControl(odometry.v * 3.6, adapted, 8, 10)
                 self.estop = 0
                 self.node.get_logger().info("신호없음: 기본 주행")

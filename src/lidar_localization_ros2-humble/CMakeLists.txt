@@ -35,8 +35,22 @@ endif()
 add_library(pcl_localization_component SHARED
 src/pcl_localization_component.cpp
 )
-
+add_library(pcl_localization_component_lat SHARED
+src/pcl_localization_component_lat.cpp
+)
 ament_target_dependencies(pcl_localization_component
+  rclcpp
+  tf2_ros
+  tf2_geometry_msgs
+  tf2_sensor_msgs
+  tf2_eigen
+  geometry_msgs
+  sensor_msgs
+  nav_msgs
+  pcl_conversions
+  ndt_omp_ros2
+)
+ament_target_dependencies(pcl_localization_component_lat
   rclcpp
   tf2_ros
   tf2_geometry_msgs
@@ -63,19 +77,29 @@ target_link_libraries(pcl_localization_node
   ${rclcpp_lifecycle_LIBRARIES}
   ${std_msgs_LIBRARIES}
 )
+add_executable(pcl_localization_node_lat src/pcl_localization_node_lat.cpp)
+target_link_libraries(pcl_localization_node_lat
+  pcl_localization_component_lat
+  ${PCL_LIBRARIES}
+  ${rclcpp_lifecycle_LIBRARIES}
+  ${std_msgs_LIBRARIES}
+)
 link_directories(
   ${PCL_LIBRARY_DIRS}
 )
 add_definitions(${PCL_DEFINITIONS})
 
 ament_export_libraries(pcl_localization_component)
+ament_export_libraries(pcl_localization_component_lat)
 
 install(TARGETS
   pcl_localization_node
+  pcl_localization_node_lat
   DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS
   pcl_localization_component
+  pcl_localization_component_lat
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)

@@ -66,7 +66,7 @@ class PID:
 class Obstacle:
     def __init__(self, node: Node):
         self.node = node
-# small obstacle/delivery wapoint 당기기 ##
+
         # Subscribers (MarkerArray → PoseArray)
         # PoseArray는 map frame 기준의 콘 위치(poses)들을 담고 있다고 가정
         self.sub_cone_pose = self.node.create_subscription(
@@ -79,20 +79,7 @@ class Obstacle:
         self.LocalPath_pub = self.node.create_publisher(Path, "/path/avoid_path", 10)
         self.marker_pub    = self.node.create_publisher(MarkerArray, "transformed_markers", 10)
         self.road_poly     = self.node.create_publisher(Marker, "visualization_marker", 10)
-        
-        # util function 모음
-        # 버퍼 폭 (m)
-        self.buffer_m = 0.45
-        self.small_hgain = 0.5
-        self.small_cgain = 0.3
-        self.big_hgain = 1.0
-        self.big_cgain = 0.9
-        self.small_end_dindex = 0
-        self.big_end_dindex = 0 ## mission finish after lane change paramete 50 ( 이동하고 확인 )
-        self.small_thr = 4.5
-        self.big_thr = 5.0
-        
-        
+
         # Odom / pose (외부에서 주입되는 odometry 객체의 필드: x, y, yaw, v)
         self.odometry = None
         self.odom_pose = np.array([0.0, 0.0])
@@ -104,9 +91,6 @@ class Obstacle:
         self.num2_obs = []
         self.obs_vector = None
         self.to_num = None
-        self.standard_idx = 0
-        self.flag_first_change = True
-        self.buffer = 0
 
         # Paths (from DB)
         self.ref_path_points1 = None  # np Nx2
@@ -156,6 +140,8 @@ class Obstacle:
         self._small_l2_first = (float(self.cx_small_l2[0]), float(self.cy_small_l2[0])) if len(self.cx_small_l2) > 0 else None
         self._big_l2_first   = (float(self.cx_big_l2[0]),   float(self.cy_big_l2[0]))   if len(self.cx_big_l2) > 0   else None
 
+        # 버퍼 폭 (m)
+        self.buffer_m = 0.45
 
     # ===== PoseArray 콜백 =====
     def call_cone_pose(self, msg: PoseArray):
@@ -355,16 +341,11 @@ class Obstacle:
                 front_obs.sort(key=lambda t: t[0])
                 nearest_len, obs_x, obs_y = front_obs[0]
                 self.node.get_logger().debug(f"[line_change] nearest front cone dist={nearest_len:.2f} m")
-                thr = self.small_thr if self.state == "small" else self.big_thr # 필요시 2.0~5.0 조정
+                thr = 5.0 if self.state == "small" else 5.0 # 필요시 2.0~5.0 조정
                 if nearest_len <= thr:
                     mode = "긴급회피" if len(self.num1_obs) < 1 else "회피"
                     self.node.get_logger().info(f"[line_change] {mode} triggered at {nearest_len:.2f} m")
                     self.to_num = 1
-                    if self.flag_first_change:
-                        self.standard_idx = self.target_idx
-                        self.buffer += 1
-                        if self.buffer >= 5:
-                            self.flag_first_change = False
                     self.local_points = self.ref_path_points1.tolist() if self.ref_path_points1 is not None else None
                     if self.local_points is not None:
                         self.publish_local_path(self.local_points)
@@ -427,8 +408,8 @@ class Obstacle:
             adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=6, max_value=14)
             speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
         else:
-            self.h_gain = self.small_hgain if self.state == "small" else self.big_hgain
-            self.c_gain = self.small_cgain if self.state == "small" else self.big_cgain
+            self.h_gain = 0.5 if self.state == "small" else 1.0
+            self.c_gain = 0.3 if self.state == "small" else 0.9
             steer, self.target_idx, hdr, ctr = self.st.stanley_control(
                 odometry, path.cx, path.cy, path.cyaw, h_gain=self.h_gain, c_gain=self.c_gain
             )
@@ -439,18 +420,13 @@ class Obstacle:
         msg.speed = int(speed) * 10
         msg.steer = int(degrees((-1) * steer)*1e3)
         msg.gear = 2
-        end_dindex = self.small_end_dindex if self.state == "small" else self.big_end_dindex
 
         # 로컬 경로 끝에 가까워지면 초기화
         if self.local_points is not None and self.target_idx >= len(self.local_points) - 10:
             self.to_num = None
-            self.standard_idx = 0
-            self.buffer = 0
             self.code_start = False
             self.num1_obs = []
             self.num2_obs = []
-            return msg, True
-        elif self.flag_first_change == False and self.target_idx >= self.standard_idx + end_dindex:
             return msg, True
         else:
             return msg, False

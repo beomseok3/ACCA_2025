@@ -37,7 +37,7 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
 
 CallbackReturn PCLLocalization::on_configure(const rclcpp_lifecycle::State &)
 {
-  RCLCPP_INFO(get_logger(), "Configuring");
+  RCLCPP_INFO(get_logger(), "Configuring_lat_lat_lat");
 
   initializeParameters();
   initializePubSub();
@@ -238,7 +238,7 @@ void PCLLocalization::initializePubSub()
 
   // Subscribing to the "/localization/kinematic_state" topic
   odom_kinematic_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-    "/localization/kinematic_state", rclcpp::SystemDefaultsQoS(),
+    "/localization/kinematic_state/rotated", rclcpp::SystemDefaultsQoS(),
     std::bind(&PCLLocalization::odomKinematicReceived, this, std::placeholders::_1));
 
 
@@ -323,9 +323,9 @@ void PCLLocalization::odomKinematicReceived(const nav_msgs::msg::Odometry::Const
 
   RCLCPP_INFO(get_logger(), "Distance: %f meters, GPS covariance (x, y): (%f, %f)", distance, gps_covariance_x, gps_covariance_y);
 
-  // Check if distance is greater than 1 meter
-  if (distance < 0.5) {
-    RCLCPP_INFO(get_logger(), "Distance is less than 1 meter, skipping initialPoseReceived.");
+  // Check if distance is greater than 1 meter // 더늘려보기 아다리 무서움
+  if (distance < 2.5) {
+    RCLCPP_INFO(get_logger(), "Distance is less than 2.5 meter, skipping initialPoseReceived.");
     return;
   }
 
@@ -334,10 +334,10 @@ void PCLLocalization::odomKinematicReceived(const nav_msgs::msg::Odometry::Const
   //   RCLCPP_INFO(get_logger(), "GPS covariance is greater than 0.007, skipping initialPoseReceived.");
   //   return;
   // }
-  if (latest_jamming_status_ && latest_jamming_status_->data == "True") {
-    RCLCPP_INFO(get_logger(), "GPS is jamming, skipping initialPoseReceived.");
-    return;
-  }
+  // if (latest_jamming_status_ && latest_jamming_status_->data == "True") {
+  //   RCLCPP_INFO(get_logger(), "GPS is jamming, skipping initialPoseReceived.");
+  //   return;
+  // }
 
   // Create a PoseWithCovarianceStamped message based on the Odometry message
   auto pose_msg = std::make_shared<geometry_msgs::msg::PoseWithCovarianceStamped>();

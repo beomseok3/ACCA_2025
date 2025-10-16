@@ -354,7 +354,7 @@ class PathPublisher(Node):
                 # start_cu_distance = np.hypot(self.first_point[0] - self.current_x, self.first_point[1] - self.current_y)
                 self.get_logger().info(f"dis_s : {start_end_distance}")
                
-                if start_end_distance < 3.5: ## TODO 1008 문제 많음
+                if start_end_distance < 2.5: ## TODO 1008 문제 많음
                     self.flag_3 = True
                     print("한바퀴")
                     
@@ -389,21 +389,21 @@ class PathPublisher(Node):
         y = points[:, 1]
 
         # 경로의 시작점과 마지막 점이 가까우면 원형으로 이어서 부드럽게 보간
-        if self.flag_3:
-            # 시작과 끝을 자연스럽게 연결하기 위해 CubicSpline을 사용
-            cs_x = CubicSpline([0, 1], [x[-1], x[0]])  # 끝점과 첫점 보간
-            cs_y = CubicSpline([0, 1], [y[-1], y[0]])  # 끝점과 첫점 보간
+        # if self.flag_3:
+        #     # 시작과 끝을 자연스럽게 연결하기 위해 CubicSpline을 사용
+        #     cs_x = CubicSpline([0, 1], [x[-1], x[0]])  # 끝점과 첫점 보간
+        #     cs_y = CubicSpline([0, 1], [y[-1], y[0]])  # 끝점과 첫점 보간
 
-            # 끝점과 첫점 사이를 일정한 간격으로 추가
-            t = np.linspace(0, 1, num=10)  # 더 부드러운 연결을 위해 10개의 보간 점 추가
-            cubic_x = cs_x(t)
-            cubic_y = cs_y(t)
+        #     # 끝점과 첫점 사이를 일정한 간격으로 추가
+        #     t = np.linspace(0, 1, num=10)  # 더 부드러운 연결을 위해 10개의 보간 점 추가
+        #     cubic_x = cs_x(t)
+        #     cubic_y = cs_y(t)
 
-            # 기존 점에 CubicSpline으로 보간된 구간 추가
-            x = np.append(x[:-1], cubic_x)  # 기존 점 끝에 추가된 CubicSpline 점 연결
-            y = np.append(y[:-1], cubic_y)
+        #     # 기존 점에 CubicSpline으로 보간된 구간 추가
+        #     x = np.append(x[:-1], cubic_x)  # 기존 점 끝에 추가된 CubicSpline 점 연결
+        #     y = np.append(y[:-1], cubic_y)
 
-        # 스플라인 보간에 사용할 새로운 파라미터 t 생성 (누적 거리 기반)
+        # # 스플라인 보간에 사용할 새로운 파라미터 t 생성 (누적 거리 기반)
         distances = np.sqrt(np.diff(x)**2 + np.diff(y)**2)
         cumulative_distances = np.insert(np.cumsum(distances), 0, 0)  # 누적 거리
         total_distance = cumulative_distances[-1]

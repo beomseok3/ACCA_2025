@@ -152,7 +152,6 @@ class PathHandler():
     def resample_path(self, cx, cy, spacing=0.005):
         """균일한 간격(spacing)으로 (x, y) 경로 리샘플링"""
         
-
         # 누적 거리 계산
         dx = np.diff(cx)
         dy = np.diff(cy)
@@ -216,6 +215,7 @@ class PathHandler():
 
                     # 기존 경로 저장
                     min_len = min(len(self.cx), len(self.cy), len(self.way.poses))
+                    min_len -= 5
                     for i in range(min_len):
                         x = self.cx[i]
                         y = self.cy[i]
@@ -223,7 +223,7 @@ class PathHandler():
                         _, _, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
                         
                         # 기본 속도 설정
-                        speed = 9  
+                        speed = 12 # 9 modified 25.10.09  
 
                         cur.execute(
                             "INSERT INTO Path (path_id, x, y, yaw, speed) VALUES (?, ?, ?, ?, ?)",
@@ -347,15 +347,15 @@ class Drive():
                     h_gain_straight = 0.6
                     c_gain_straight = 0.3
                     # target_speed = 5.0
-                    target_speed = 10.0 # origin (12.0) modified 25.10.04
+                    target_speed = 12.0 # origin (12.0) modified 25.10.04
 
                     steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_straight, c_gain_straight, target_idx, error)
                     adapted_speed = self.ss.adaptSpeed(
                         target_speed,
                         hdr,
                         ctr,
-                        min_value=7,
-                        max_value=10,
+                        min_value=9,
+                        max_value=12,
                         he_gain=40.0,
                         ce_gain=30.0,
                         he_thr=0.07,
@@ -389,14 +389,14 @@ class Drive():
                 else:
                     h_gain_curve = 0.8
                     c_gain_curve = 0.5
-                    target_speed = 5.0 # origin (7.0) modified 25.10.04
+                    target_speed = 6.0 # origin (7.0) modified 25.10.04
 
                     steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_curve, c_gain_curve, target_idx, error)
                     adapted_speed = self.ss.adaptSpeed(
                         target_speed, 
                         hdr, 
                         ctr, 
-                        min_value=4, # origin (6) modified 25.10.04
+                        min_value=5, # origin (6) modified 25.10.04
                         max_value=6,  # origin(7) modified 25.10.04
                         he_gain=50.0, 
                         ce_gain=30.0, 
@@ -418,6 +418,7 @@ class Drive():
             
             ## Fallback Logic (Stanley Controlller) ##
             if self.hdr != 0 and self.ctr != 0:
+                print("\nStanley_warning\n")
                 adapted_speed = self.ss.adaptSpeed(
                     kspeed, 
                     self.hdr, 
@@ -443,7 +444,7 @@ class Drive():
                     input_brake = 0
                 speed = kspeed
 
-            speed = self.pid.PIDControl(self.state.v * 3.6, speed, 0, 25)
+            # speed = self.pid.PIDControl(self.state.v * 3.6, speed, 0, 25)
 
 
         msg = ControlMessage()
@@ -459,7 +460,7 @@ class Drive():
         True:\n
         생성된 path가 10m 이상이고 target_idx가 10 이하(출발점 부근)일 때
         '''
-        if len(self.path.cyaw) >= 100 and target_idx <= 5 and self.first_lap: 
+        if len(self.path.cyaw) >= 100 and target_idx <= 10 and self.first_lap: 
             self.first_lap = False
             self.one_lap_done_pub.publish(Bool(data=True))
 

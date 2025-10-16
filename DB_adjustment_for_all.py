@@ -17,9 +17,8 @@ from enum import Enum
 import numpy as np
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
-import shutil, pathlib
-# ── 파일 맨 위쪽 import 추가
 import shutil, datetime
+# ── 파일 맨 위쪽 import 추가
 
 
 class State(Enum):    
@@ -160,7 +159,7 @@ class DBExtractor:
         "slow_8": 8,
         "slow_10" : 10,
         "parking": 15,
-        "obstacle": 7,
+        "obstacle": 7, # 12 고려 
         'pickup': 6,
         'delivery': 8,
         'driving_5' : 5,
@@ -619,7 +618,7 @@ class DBExtractor:
         return int(round(min_w + (max_w - min_w) * min(abs(dv*1.5), 10) / 10))
 
     # 핵심 함수 ─────────────────────────────────────────────
-    def smooth_speed_transitions(self, min_w=50, max_w=100, drive_bias=0.95):
+    def smooth_speed_transitions(self, min_w=50, max_w=100, drive_bias=0.95): # 1.0?
 #####################################################################################################        
         """
         Δv로 L 결정 →  (driving↔X) 이면 L*drive_bias 를 driving 쪽,
@@ -642,6 +641,18 @@ class DBExtractor:
             m1,  m2  = self._mission_base(pid1), self._mission_base(pid2)
             dv       = abs(v2 - v1)
             L        = self._blend_window(dv, min_w, max_w)
+            # # --- 🔹추가 구간 확장 규칙 정의---
+            # # obstacle, traffic_light, parking 등 감속 미션으로 갈 때 완화
+            # if m1 == "driving" and m2 in ("obstacle",  "pickup", "delivery"):
+            #     addition = int(L * 0.4)   # 기본 L의 40% 확장
+            #     L += addition
+            #     print(f"⚙️ Extended window {L} for driving→{m2} (Δv={dv:.1f})")
+            
+            # if m1 == "driving" and m2 in ("obstacle", "parking",  "pickup", "delivery"):
+            #     addition = int(L * 0.9)   # 기본 L의 40% 확장
+            #     L += addition
+            #     print(f"⚙️ Extended window {L} for driving→{m2} (Δv={dv:.1f})")
+
 
             # ① 기본 대칭값
             before = after = L // 2

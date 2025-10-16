@@ -378,7 +378,7 @@ class StateMachine:
             msg, self.mission_finish = self.traffic_light.control_traffic_light(self.odometry, self.path)
 
         elif self.state.value[:-2] == "stop_line":
-            msg, self.mission_finish = self.stop_line.control_stop_line(self.odometry, self.path, steer, speed_output)
+            msg, self.mission_finish = self.stop_line.control_stop_line(self.odometry, self.path)
         else:
             print("error: ", self.state.value)
         return msg

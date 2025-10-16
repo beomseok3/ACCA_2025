@@ -28,11 +28,11 @@ public:
     // map_lat_ = 37.23880921;
     // map_lon_ = 126.7728822;
 
-    // kcity-bs
+    // 24 kcity-bs
     // map_lat_ = 37.2388925;
     // map_lon_ = 126.77293309999999;
 
-    // kcity-ys
+    // 24 kcity-ys
     // map_lat_ = 37.2392369;
     // map_lon_ = 126.77316379999999;
 

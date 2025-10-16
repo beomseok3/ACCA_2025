@@ -15,6 +15,8 @@ setup(
         (os.path.join("share", package_name, "urdf"), glob("urdf/*.xacro")),
         (os.path.join("share", package_name, "urdf"), glob("urdf/*.rviz")),
         (os.path.join("share", package_name, "params"), glob("params/*.yaml")),
+        ("lib/" + package_name, [package_name + "/DB.py"]),
+
     ],
     install_requires=["setuptools"],
     zip_safe=False,
@@ -29,6 +31,7 @@ setup(
             "rotate_yaw = localization.rotate_yaw:main",
             "rotate_yaw_ys = localization.rotate_yaw_ys:main",
             "rotate_yaw_cone = localization.rotate_yaw_cone:main",
+            "rotate_yaw_lat = localization.rotate_yaw_lat:main",
             "gps_odom = localization.gps_odom:main",
             "imu_bias_measure = localization.imu_bias_measure:main",
             "create_accel = localization.create_accel:main",

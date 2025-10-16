@@ -17,7 +17,7 @@ class DBWRITE(Node):
     def __init__(self):
         super().__init__("dbwrite")
         self.sub_local = self.create_subscription(
-            Odometry, "localization/kinematic_state", self.callback_local, qos_profile_system_default
+            Odometry, "localization/kinematic_state/rotated", self.callback_local, qos_profile_system_default
         )
         
         self.pub_marker_array = self.create_publisher(
@@ -34,7 +34,7 @@ class DBWRITE(Node):
         self.euclidean_list = []
         self.distance = 0
         self.ds = 0.1
-        self.db = DB("YS_7th_ndt_please_trajectory.db")
+        self.db = DB("1010_kalman_ndt_lat.db")
         for i in range(1,31,1):
             self.db.write_db_Node([(f"A{i}",f"A{i+1}",f"A{i}A{i+1}"),])
         

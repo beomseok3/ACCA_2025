@@ -138,7 +138,7 @@ class ConeTracker(Node):
 
         # 속도 및 제어 메시지 발행
         msg = ControlMessage()
-        msg.steer = int(math.degrees(-steer))
+        msg.steer = int((math.degrees(-steer))*1e3)
         msg.speed = 120 # 7.0m/s
         msg.gear = 2
         msg.brake = 0

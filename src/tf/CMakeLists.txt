@@ -29,8 +29,10 @@ include_directories(
 add_executable(map_odom_tf_publisher_static src/map_odom_tf_publisher_static.cpp)
 add_executable(map_odom_tf_publisher_static_bs src/map_odom_tf_publisher_static_bs.cpp)
 add_executable(map_odom_tf_publisher_static_tunnel src/map_odom_tf_publisher_static_tunnel.cpp)
+add_executable(odom_baselink_tf_publisher src/odom_baselink_tf_publisher.cpp)
 add_executable(odometry_map_frame src/odometry_map_frame.cpp)
 add_executable(cone_pose_transform src/cone_pose_transform.cpp)
+add_executable(cone_pose_transform_ys src/cone_pose_transform_ys.cpp)
 add_executable(localization_path_tf src/localization_path_tf.cpp)
 add_executable(odom2map src/odom2map.cpp)
 add_executable(map_anchor_recorder src/map_anchor_recorder.cpp)
@@ -55,6 +57,15 @@ ament_target_dependencies(map_odom_tf_publisher_static_bs
   sensor_msgs
   Eigen3
 )
+
+ament_target_dependencies(odom_baselink_tf_publisher
+  rclcpp
+  tf2_ros
+  nav_msgs
+  sensor_msgs
+  Eigen3
+)
+
 ament_target_dependencies(map_odom_tf_publisher_static_tunnel
   rclcpp
   tf2_ros
@@ -73,6 +84,14 @@ ament_target_dependencies(odometry_map_frame
 )
 
 ament_target_dependencies(cone_pose_transform
+  rclcpp 
+  geometry_msgs 
+  tf2 
+  tf2_ros
+  tf2_geometry_msgs
+)
+
+ament_target_dependencies(cone_pose_transform_ys
   rclcpp 
   geometry_msgs 
   tf2 
@@ -104,12 +123,17 @@ target_link_libraries(map_odom_tf_publisher_static_bs ${PROJ_LIBRARIES})
 
 target_include_directories(map_odom_tf_publisher_static_tunnel PRIVATE ${PROJ_INCLUDE_DIRS})
 target_link_libraries(map_odom_tf_publisher_static_tunnel ${PROJ_LIBRARIES})
+
+target_include_directories(odom_baselink_tf_publisher PRIVATE ${PROJ_INCLUDE_DIRS})
+target_link_libraries(odom_baselink_tf_publisher ${PROJ_LIBRARIES})
 install(TARGETS
   map_odom_tf_publisher_static
   map_odom_tf_publisher_static_bs
+  odom_baselink_tf_publisher
   map_odom_tf_publisher_static_tunnel
   odometry_map_frame
   cone_pose_transform
+  cone_pose_transform_ys
   localization_path_tf
   odom2map
   map_anchor_recorder

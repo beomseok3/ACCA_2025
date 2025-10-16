@@ -83,7 +83,8 @@ class Stopline():
 
 
 
-    def control_stop_line(self, odometry, path):
+    # def control_stop_line(self, odometry, path): modified 25.10.11
+    def control_stop_line(self, odometry, path, mpc_steer, mpc_speed):
         stopline_finished = False
 
         msg = ControlMessage()
@@ -102,17 +103,18 @@ class Stopline():
                 stopline_finished = True
             speed = 0
 
-        elif self.target_idx >= len(path.cx) - 50: # pickup의 goal이랑 5m 이내부터 감속
-            self.target_speed = (len(path.cx) - self.target_idx) / len(path.cx) * 15
-            self.target_speed = int(np.clip(self.target_speed, 6, 8))
-            adapted_speed = self.ss.adaptSpeed(self.target_speed, hdr, ctr, min_value=6, max_value=8)
-            speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
+        # elif self.target_idx >= len(path.cx) - 50: # pickup의 goal이랑 5m 이내부터 감속
+        #     self.target_speed = (len(path.cx) - self.target_idx) / len(path.cx) * 15
+        #     self.target_speed = int(np.clip(self.target_speed, 6, 8))
+        #     adapted_speed = self.ss.adaptSpeed(self.target_speed, hdr, ctr, min_value=6, max_value=8)
+        #     speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
 
         else:
-            self.target_speed = 10
-            adapted_speed = self.ss.adaptSpeed(self.target_speed, hdr, ctr, min_value=8, max_value=10)
-            speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
-
+            # self.target_speed = 10
+            # adapted_speed = self.ss.adaptSpeed(self.target_speed, hdr, ctr, min_value=8, max_value=10)
+            # speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
+            speed = int(mpc_speed)
+            steer = mpc_steer
 
         msg.steer = int(math.degrees((-1) * steer) * 1e3)
         msg.speed = int(speed) * 10 

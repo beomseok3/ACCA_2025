@@ -67,6 +67,7 @@ private:
 
         auto processed_msg = std::make_shared<sensor_msgs::msg::PointCloud2>();
         processed_msg->header = msg->header;
+        processed_msg->header.frame_id = "velodyne_ys";
         processed_msg->height = 1;
         processed_msg->width = filtered_data.size() / msg->point_step;
         processed_msg->fields = msg->fields;

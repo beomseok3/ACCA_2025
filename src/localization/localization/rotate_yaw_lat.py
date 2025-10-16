@@ -3,12 +3,13 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu, NavSatFix
-from geometry_msgs.msg import TwistWithCovarianceStamped, Quaternion, PoseWithCovarianceStamped
+from geometry_msgs.msg import TwistWithCovarianceStamped, Quaternion, PoseWithCovarianceStamped, Point
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 import math as m
 import numpy as np
 from rclpy.qos import QoSProfile
+from DB import DB
 
 def euler_from_quaternion(quaternion):
     """
@@ -88,12 +89,13 @@ class Rotate(Node):
         self.create_subscription(String, "jamming_status", self.callback_jamming, qos_profile)
 
         # self.create_subscription(String, "road_type", self.callback_shape, qos_profile)
-        # self.create_subscription(Odometry, "odometry/navsat",self.callback_odom, qos_profile)
+        self.create_subscription(Odometry, "localization/kinematic_state",self.callback_odom, qos_profile)
 
         self.pub = self.create_publisher(Imu, "imu/rotated", qos_profile)
 
         self.pub_gps = self.create_publisher(Quaternion, "mean", qos_profile)
 
+        self.pub_odom = self.create_publisher(Odometry, "localization/kinematic_state/rotated", qos_profile)
         self.log_counter = 0   # 로그 카운터 변수
 
 
@@ -104,13 +106,19 @@ class Rotate(Node):
         self.odom_yaw = 0.0
         self.delta = 0.0
         self.path_shape = "straight"
-        self.gps_forward = [
-            None
-        ] * 10  # 큐 사이즈 10 고려해보기 -> 아래 decision_straight함수에서 하나씩 꺼내서 다 검사하기 때문에 연산 시간 때문에 조금 줄여야 할 수도 있음 / 심지어 imu는 400hz
-        self.ndt_forward = [None] * 10
+        self.gps_forward = [None] * 10  # 큐 사이즈 10 고려해보기 -> 아래 decision_straight함수에서 하나씩 꺼내서 다 검사하기 때문에 연산 시간 때문에 조금 줄여야 할 수도 있음 / 심지어 imu는 400hz
+        self.ndt_forward = [None] * 20
+        self.ndt_position= Point()
+        self.odom_postion = Point()
         self.mean = 0.0
         self.cov = 0.0
         self.mode = 'False'  # noraml_state = False / Tunnel = True
+
+        self.tunnel_obs_path1 = DB("tunnel_path/obs_path_2.db")
+        self.db_path_yaw = self.tunnel_obs_path1.read_db_n("Path","yaw")
+        self.lateral_dx = 0.0
+        self.lateral_dy = 0.0
+
 
     def decision_straight(self, forward):
         sum = 0.0
@@ -152,11 +160,28 @@ class Rotate(Node):
         _,_,ndt_yaw = euler_from_quaternion([msg.orientation.x,msg.orientation.y,msg.orientation.z,msg.orientation.w])
         self.ndt_forward.append(ndt_yaw)
         self.ndt_yaw = ndt_yaw
+
+        self.ndt_position= Point(x=msg.position.x,y=msg.position.y)
         del self.ndt_forward[0]
 
 
-    # def callback_odom(self,msg):
-    #     _,_,self.odom_yaw = euler_from_quaternion([msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w])
+    def callback_odom(self,msg):
+        self.odom_postion = Point(
+            x=msg.pose.pose.position.x,
+            y=msg.pose.pose.position.y
+        )
+        msg_new = msg
+
+        if self.mode == 'True':
+            # 1) 먼저 최신 lateral 보정량 갱신
+            self.update_lateral_error()
+
+            # 2) 그 다음에 위치 보정 적용 (lateral 성분만)
+            msg_new.pose.pose.position.x += self.lateral_dx   # ndt - ekf의 lateral 성분
+            msg_new.pose.pose.position.y += self.lateral_dy
+
+            # 3) 퍼블리시
+        self.pub_odom.publish(msg=msg_new)
 
     # def callback_shape(self, msg):
     #     self.path_shape = msg.data
@@ -211,14 +236,61 @@ class Rotate(Node):
                 if self.decision_straight(self.gps_forward):
                     self.delta = self.mean - self.raw_yaw
         elif self.mode == 'True':
-            if self.log_counter % 10 == 0:
-                self.get_logger().info('using ndt')
-
             if abs(self.delta_ndt) > m.radians(2) and abs(self.delta_ndt) < m.radians(90):
                 if self.decision_straight(self.ndt_forward):
                     self.delta = self.mean - self.raw_yaw
                     self.get_logger().info('rotated by ndt')
 
+    def update_lateral_error(self):
+        """
+        ref_yaw(지도 진행방향)에 직교하는(lateral) 방향으로,
+        (NDT - EKF) 위치 차의 lateral 성분만 뽑아 map 프레임 dx, dy로 환산.
+        """
+        try:
+            # 1) 현재 EKF(odom) 위치 기준으로 경로 인덱스 탐색
+            ind = self.tunnel_obs_path1.find_idx(
+                x=self.odom_postion.x, y=self.odom_postion.y, table="Path"
+            )
+        except Exception as e:
+            self.get_logger().warn(f'find_idx failed: {e}')
+            return
+
+        # DB에서 ref_yaw 가져오기 (rad 가정)
+        try:
+            ref_yaw = float(self.db_path_yaw[ind][0])
+        except Exception as e:
+            self.get_logger().warn(f'failed to read ref_yaw at {ind}: {e}')
+            return
+
+        ref_yaw = normalize_angle(ref_yaw)
+
+        # 2) NDT yaw가 ref_yaw와 충분히 정렬되어 있을 때만 보정(게이팅)
+        if abs(normalize_angle(ref_yaw - self.ndt_yaw)) > m.radians(5.0):
+            # 정렬이 안되면 보정 스킵
+            return
+
+        # 3) lateral 단위벡터 (map frame)
+        lx = -np.sin(ref_yaw)
+        ly =  np.cos(ref_yaw)
+
+        # 4) 에러 벡터 e = NDT - EKF(odom)
+        ex = float(self.ndt_position.x) - float(self.odom_postion.x)
+        ey = float(self.ndt_position.y) - float(self.odom_postion.y)
+
+        # 5) lateral 성분 스칼라
+        e_lat = ex * lx + ey * ly
+
+        # 6) map 프레임 보정량(dx, dy) = e_lat * lateral_unit
+        self.lateral_dx = e_lat * lx
+        self.lateral_dy = e_lat * ly
+        print(self.lateral_dx, self.lateral_dy)
+
+
+        # 디버그 로그
+        self.get_logger().info(
+            f"lateral error correction by ndt | e_lat={e_lat:.3f} m, "
+            f"dx={self.lateral_dx:.3f}, dy={self.lateral_dy:.3f}, yaw(ref/ndt)=({m.degrees(ref_yaw):.1f}/{m.degrees(self.ndt_yaw):.1f})"
+        )
 
 
 def main(args=None):
