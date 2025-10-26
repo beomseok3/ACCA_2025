@@ -22,7 +22,8 @@ import matplotlib.pyplot as plt
 
 class State(Enum):    
 #kcity 본선 대회용 (final - 1012)
-    '''    A1A2 = "driving_a"  #13
+    '''    
+    A1A2 = "driving_a"  #13
     A2A3 = "pickup_b"  #9
     A3A4 = "curve_c"  #8
     A4A5 = "curve_d"  #8

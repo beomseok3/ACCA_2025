@@ -75,7 +75,7 @@ class PID:
             node.get_clock().now().seconds_nanoseconds()[1] / 1e9
         )
 
-    def PIDControl(self, speed, desired_value):
+    def PIDControl(self, speed, desired_value, flag = False):
 
         self.current = self.node.get_clock().now().seconds_nanoseconds()[0] + (
             self.node.get_clock().now().seconds_nanoseconds()[1] / 1e9
@@ -89,7 +89,11 @@ class PID:
         self.i_err += self.p_err * dt * (0.0 if speed == 0 else 1.0)
 
         self.speed = speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err)
-        return int(np.clip(self.speed, 4, 6))
+        if flag:
+            res = int(np.clip(self.speed, 10, 14))
+        else:
+            res =int(np.clip(self.speed, 4, 8))
+        return  res
 
 
 class Obstacle:
@@ -124,7 +128,7 @@ class Obstacle:
 
         self.odom_pose = np.array([0.0, 0.0])
         self.odom_orientation = [0.0, 0.0, 0.0, 1.0]
-
+        self.start_idx =0
         # 장애물 -> points_cloud
         self.obs = np.array([]).reshape(0, 2)
         self.near_obstacle = False
@@ -156,6 +160,10 @@ class Obstacle:
         self.change_time = None
         self.observed_points = []
         self.o_list = [0] * 50
+        self.flag_line_change = False
+        self.target_speed = 6.0
+        self.h_gain = 1.0
+        self.c_gain = 0.85
 
         self.once = 0  # 처음에 한번만 실행하기 위한 변수
 
@@ -555,15 +563,26 @@ class Obstacle:
                 # print(obs_x, self.odometry.x, obs_length)
                 if len(self.num1_obs) < 1:
 
-                    if obs_length <= 2.5:  # 3m -> 2m -> 2.5로 변경 (1012)
+                    if obs_length <= 3.5:  # 3m -> 2m -> 2.5로 변경 (1012)
                         print("긴급회피")
                         self.to_num = 1
                         self.local_points = self.ref_path_points1.tolist()
                         self.publish_local_path(self.local_points)
                         self.change_time = t.time()
+                        self.flag_line_change = True
                         return
 
                 else:
+                    if obs_length <= 3.5:  # 3m
+                        print("회피")
+                        self.to_num = 1
+                        self.local_points = self.ref_path_points1.tolist()
+                        self.publish_local_path(self.local_points)
+                        self.change_time = t.time()
+                        self.flag_line_change = True
+
+                        return
+                    
                     # angle = degrees(
                     #     atan2(self.obs_vector[1], self.obs_vector[0])
                     #     - atan2(vehicle_direction[1], vehicle_direction[0])
@@ -576,14 +595,6 @@ class Obstacle:
                     # #     and (angle > 50 and angle < 70)
                     # #     and obs_length < 5
                     # # ):
-
-                    if obs_length <= 3:  # 3m
-                        print("회피")
-                        self.to_num = 1
-                        self.local_points = self.ref_path_points1.tolist()
-                        self.publish_local_path(self.local_points)
-                        self.change_time = t.time()
-                        return
 
         if self.to_num is None:
             self.local_points = self.ref_path_points2.tolist()
@@ -702,15 +713,17 @@ class Obstacle:
                 self.local_x,
                 self.local_y,
                 self.local_yaw,
-                h_gain=1.0,
-                c_gain=0.8,
+                h_gain=self.h_gain,
+                c_gain=self.c_gain,
             )
             # print(ctr,hdr)
-            target_speed = 15.0
+            # target_speed = 6.0 
+            target_speed = self.target_speed 
+            
             adapted_speed = self.ss.adaptSpeed(
-                target_speed, hdr, ctr, min_value=10, max_value=15
+                target_speed, hdr, ctr, min_value=int(self.target_speed - 2), max_value=int(self.target_speed +2)
             )
-            speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
+            speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed, flag = self.flag_line_change)
 
         else:
             steer, self.target_idx, hdr, ctr = self.st.stanley_control(
@@ -726,6 +739,16 @@ class Obstacle:
                 target_speed, hdr, ctr, min_value=10, max_value=15
             )
             speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed)
+        
+        ## addition ##
+        if self.flag_line_change:
+            if not self.start_idx:
+                self.start_idx = self.target_idx 
+            if self.target_idx - self.start_idx > 30:
+                self.target_speed = 12.0
+                self.h_gain = 0.5
+                self.c_gain = 0.24
+        ## addition ##
 
         msg.speed = int(speed) * 10
         msg.steer = int(degrees((-1) * steer) * 1e3)

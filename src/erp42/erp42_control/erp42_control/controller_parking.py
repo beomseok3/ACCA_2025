@@ -262,7 +262,7 @@ class Parking():
         
         goal_pose = self.rotate_points(
             np.array(
-                [self.roi_cone[self.idx][0] + 2.0, self.roi_cone[self.idx][1] - 1.0]
+                [self.roi_cone[self.idx][0] + 2.0, self.roi_cone[self.idx][1] - 1.2]
             ),
             -self.reference_pose.yaw,
             np.array([self.reference_pose.x, self.reference_pose.y]),
@@ -377,7 +377,7 @@ class Parking():
             
             # Kcity 경사로 setting                
             elif self.parking_state == Parking_state.PARKING:
-                if time.time() - self.parking_stop_time <= 0.2: # DELERE IF NOT NECESSARY
+                if time.time() - self.parking_stop_time <= 0.05: # DELERE IF NOT NECESSARY
                     msg = ControlMessage(mora=0, estop=1,gear=0,speed = 0*10, steer = 0,brake=200)
                     return msg, False                 
                     
@@ -441,10 +441,10 @@ class Parking():
                     )
 
 
-                    target_speed = 5.0 # ORIGINAL 7.0 MIN 6  MAX 8
-                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6
+                    target_speed = 7.0 # ORIGINAL 7.0 MIN 6  MAX 8
+                    adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=6, max_value=8
                     )
-                    speed = self.pid.PIDControl(State.v * 3.6, adapted_speed, min = 4 , max = 6)
+                    speed = self.pid.PIDControl(State.v * 3.6, adapted_speed, min = 6 , max = 8)
                     msg = ControlMessage(mora=0, estop=0,gear=2,speed = int(adapted_speed)*10, steer = int(m.degrees(-1* steer) * 1e3),brake=0)
 
                 except Exception as e:

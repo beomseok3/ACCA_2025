@@ -84,13 +84,19 @@ class Obstacle:
         # 버퍼 폭 (m)
         self.buffer_m = 0.45
         self.small_hgain = 0.5
-        self.small_cgain = 0.3
+        self.small_cgain = 1.3
+        print(f"{self.small_cgain}")
+        print(f"{self.small_cgain}")
+        print(f"{self.small_cgain}")
+        print(f"{self.small_cgain}")
+        print(f"{self.small_cgain}")
+        print(f"{self.small_cgain}")
         self.big_hgain = 1.0
-        self.big_cgain = 0.9
-        self.small_end_dindex = 0
-        self.big_end_dindex = 0 ## mission finish after lane change paramete 50 ( 이동하고 확인 )
-        self.small_thr = 4.5
-        self.big_thr = 5.0
+        self.big_cgain = 1.3
+        self.small_end_dindex = 100
+        self.big_end_dindex = 50 ## mission finish after lane change paramete 50 ( 이동하고 확인 )
+        self.small_thr = 5.0
+        self.big_thr = 5.5
         
         
         # Odom / pose (외부에서 주입되는 odometry 객체의 필드: x, y, yaw, v)

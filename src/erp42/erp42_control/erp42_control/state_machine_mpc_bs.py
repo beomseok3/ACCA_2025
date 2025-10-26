@@ -503,8 +503,8 @@ def main():
     # node.declare_parameter("file_name", "BS/kcity_6th_bs_v1" ".db") 
     # node.declare_parameter("file_name_mpc", "BS/MPC_kcity_6th_bs_v1" ".db")
 
-    node.declare_parameter("file_name", "BS/split/kcity_6th_A1A4_align_align_align" ".db") 
-    node.declare_parameter("file_name_mpc", "BS/split/mpc_kcity_6th_A1A4_align_align_align" ".db")
+    node.declare_parameter("file_name", "BS/kcity_6th_bs_v1" ".db") 
+    node.declare_parameter("file_name_mpc", "BS/MPC_kcity_6th_bs_v1" ".db")
     
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
@@ -516,7 +516,7 @@ def main():
     # Declare Instance
     db = DB(file_name)
     db_mpc = DB(file_name_mpc)
-    state = State.A1A2
+    state = State.A17A18
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
     state_machine = StateMachine(node, odometry, path, state, db, db_mpc)

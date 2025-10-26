@@ -53,9 +53,9 @@ class State(Enum):
     ###################  YS ########################### 
 
     # # ############### BS 0906 ###########################
-    A1A2="driving_a"
+    A1A2="driving_25_a"
     A2A3="pickup_b"
-    A3A4="driving_5_c"
+    A3A4="driving_10_c"
     A4A5="traffic_light_d"
     A5A6="driving_e"
     A6A7="traffic_light_f"
@@ -63,9 +63,9 @@ class State(Enum):
     A8A9="obstacle_h"
     A9A10="curve_i"
     A10A11="traffic_light_j"
-    A11A12="driving_k"
+    A11A12="driving_25_k"
     A12A13="stop_line_l"
-    A13A14="stop_line_m"
+    A13A14="stop_line_slow_m"
     A14A15="curve_p"
     A15A16="driving_q"
     A16A17="traffic_light_r"
@@ -77,7 +77,7 @@ class State(Enum):
     A22A23="driving_x"
     A23A24="traffic_light_y"
     A24A25="driving_z"
-    A25A26="curve_a"
+    A25A26="curve_10_a"
     A26A27="obstacle_b"
     A27A28="curve_c"
     A28A29="curve_d"
@@ -106,11 +106,8 @@ class State(Enum):
 class DBExtractor:
     def __init__(self, path_id, controller="stanley",
                  global_db_dir=os.path.expanduser("~/db_file"),
-                 global_db_name="BS/split/kcity_6th_A1A4_align_align.db"):
+                 global_db_name="BS/kcity_6th_bs_v1.db"):
         self.controller = controller.lower()
-        print("Resolved DB path:", os.path.join(os.path.expanduser("~/acca/db_file"),
-                                        "bunsudae_0830_v_origin.db"))
-
 
         # ① 원본 DB 경로
         # src_path = os.path.join(global_db_dir, global_db_name)
@@ -147,26 +144,30 @@ class DBExtractor:
             'parking': 8,
             'traffic_light': 8,
             'stop_line': 8,
+            'stop_line_slow': 8,
             'obstacle': 8,
         }"""
         
         
         #OLD 
-
         self.speed_table = {
         "driving": 20,
         "curve": 15,
+        "curve_10": 10,
         "slow_8": 8,
         "slow_10" : 10,
         "parking": 15,
         "obstacle": 7, # 12 고려 
         'pickup': 6,
-        'delivery': 8,
-        'driving_5' : 5,
+        'delivery': 6,
+        'driving_10' : 10,
+        'driving_25' : 25,
         'driving_8' : 8,
         "stanley" : 20,
         'traffic_light': 8,
-        'stop_line': 8,
+        'stop_line': 20,
+        'stop_line_slow': 15,
+
 
 
 
@@ -618,7 +619,7 @@ class DBExtractor:
         return int(round(min_w + (max_w - min_w) * min(abs(dv*1.5), 10) / 10))
 
     # 핵심 함수 ─────────────────────────────────────────────
-    def smooth_speed_transitions(self, min_w=50, max_w=100, drive_bias=0.95): # 1.0?
+    def smooth_speed_transitions(self, min_w=50, max_w=100, drive_bias=1.0): # 1.0?
 #####################################################################################################        
         """
         Δv로 L 결정 →  (driving↔X) 이면 L*drive_bias 를 driving 쪽,
@@ -641,6 +642,7 @@ class DBExtractor:
             m1,  m2  = self._mission_base(pid1), self._mission_base(pid2)
             dv       = abs(v2 - v1)
             L        = self._blend_window(dv, min_w, max_w)
+
             # # --- 🔹추가 구간 확장 규칙 정의---
             # # obstacle, traffic_light, parking 등 감속 미션으로 갈 때 완화
             # if m1 == "driving" and m2 in ("obstacle",  "pickup", "delivery"):
@@ -653,16 +655,17 @@ class DBExtractor:
             #     L += addition
             #     print(f"⚙️ Extended window {L} for driving→{m2} (Δv={dv:.1f})")
 
-
             # ① 기본 대칭값
             before = after = L // 2
             # ② driving ↔ other 이면 비대칭 조정
-            if m1 == 'driving' and m2 != 'driving':
+            deaccel_state = ["driving", "curve"]
+            if m1 in deaccel_state and not m2 in deaccel_state:
                 before = int(L * drive_bias)
                 after  = L - before
-            elif m2 == 'driving' and m1 != 'driving':
+            elif m2 in deaccel_state and not m1 in deaccel_state:
                 after  = int(L * drive_bias)
                 before = L - after
+            
 
             start = max(0, t - before)
             end   = min(total, t + after)

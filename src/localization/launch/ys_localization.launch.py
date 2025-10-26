@@ -39,10 +39,19 @@ def generate_launch_description():
         name="robot_state_publisher_ys"
     )
 
+    # ys_odom_tf_node = launch_ros.actions.Node(
+    #     package="tf",
+    #     executable="odom_baselink_tf_publisher",
+    #     output="screen",
+    #     name="odom_baselink_tf_publisher"
+    # )
+    
+
     return LaunchDescription(
         [
             launch_ros.actions.SetParameter(name="use_sim_time", value=False),
             robot_state_publisher_node,
+            # ys_odom_tf_node,
             # wheel_odometry_node,
             # rviz_node
         ]

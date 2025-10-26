@@ -14,6 +14,7 @@ from DB import DB
 import numpy as np
 import math as m
 from Modifier_param import ParamConfigurer
+from LifecycleController import LifecycleController
 from enum import Enum
 import threading
 
@@ -162,11 +163,11 @@ class State(Enum):
     # A7A8="driving_j"
 
     A1A2="stanley_a"
-    A2A3="driving_b"
-    A3A4="driving_c"
+    A2A3="parking_b"
+    A3A4="curve_c"
     A4A5="driving_f"
     A5A6 = "driving_U"
-    # B1B2="stanley_g"
+    B1B2="uturn_g"
     A6A7="stanley_h"
     A7A8="driving_i"
     A8A9="obstacle_j"
@@ -280,6 +281,7 @@ class StateMachine:
         self.pid = PID(node)
         self.ss = SpeedSupporter(node)
         self.pc = ParamConfigurer(node)
+        # self.lc = LifecycleController(node)
 
         self.target_idx = 0
         self.mission_finish = False
@@ -288,7 +290,7 @@ class StateMachine:
         self.uturn = Uturn(self.node)
         self.parking = Parking(self.node)
 
-        self.first_flags = {s: True for s in ["driving","parking","uturn","obstacle", "obstacle_jamming"]}
+        self.first_flags = {s: True for s in ["driving","driving_i","parking","uturn","obstacle", "obstacle_jamming"]}
 
         self.min = 0
         self.max = 25
@@ -330,6 +332,8 @@ class StateMachine:
 
     def update_cmd_msg(self):
         print(self.state.value)
+        # if self.state.value == "driving_i":
+        #     self.activate_ndt(state="driving_i")
         msg = ControlMessage()
         steer, speed_output = self.mpc.pose_callback(self.odometry.pose)
         print(f"steer: {steer}, speed: {speed_output}")
@@ -381,7 +385,12 @@ class StateMachine:
             self.jamming_status = "True"
             self.publish_mode.publish(msg = String(data = self.jamming_status))  # path publish
             #self.pc.set_gps_jamming(bool)
-        
+    
+    # def activate_ndt(self, state):
+    #     if self.first_flags.get(state, False):
+    #         self.first_flags[state] = False
+    #         self.lc.activate_node()
+
     def control_mpc(self, speed_output, steer):
         msg = ControlMessage()
         if self.odometry.x != 0.0:  # 24.10.03 수정
@@ -489,7 +498,8 @@ def main():
     node = rclpy.create_node("state_machine_node")
     node.declare_parameter("file_name", "YS/kcity_6th_ys_v1" ".db")
     node.declare_parameter("file_name_mpc", "YS/MPC_kcity_6th_ys_v1" ".db")
-    node.declare_parameter("odom_topic", "/localization/kinematic_state")
+    # node.declare_parameter("odom_topic", "/localization/kinematic_state")
+    node.declare_parameter("odom_topic", "/localization/kinematic_state/rotated")
 
     # Get Params
     file_name = node.get_parameter("file_name").get_parameter_value().string_value
@@ -499,7 +509,7 @@ def main():
     # Declare Instance
     db = DB(file_name)
     db_mpc = DB(file_name_mpc)
-    state = State.A7A8
+    state = State.A1A2
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
     state_machine = StateMachine(node, odometry, path, state, db, db_mpc)

@@ -9,7 +9,7 @@ import numpy as np
 from ultralytics import YOLO
 
 # YOLO 모델 경로
-MODEL_PATH = '/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/best.pt'
+MODEL_PATH = '/home/acca/acca_ws/src/ACCA_2025/src/yolo/models/traffic_light.pt'
 model = YOLO(MODEL_PATH)
 CLASS_NAMES = model.names  # 예: {0: 'red', 1: 'green', ...}
 

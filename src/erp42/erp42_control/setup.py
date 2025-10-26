@@ -32,6 +32,8 @@ setup(
         ("lib/" + package_name, [package_name + "/controller_uturn_ys.py"]),
         ("lib/" + package_name, [package_name + "/controller_stop_line.py"]),
         ("lib/" + package_name, [package_name + "/Modifier_param.py"]),
+        ("lib/" + package_name, [package_name + "/LifecycleController.py"]),
+        
     ],
     install_requires=["setuptools"],
     zip_safe=False,

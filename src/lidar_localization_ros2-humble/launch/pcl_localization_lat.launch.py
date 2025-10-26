@@ -59,7 +59,7 @@ def generate_launch_description():
             lifecycle_node_matcher=launch.events.matches_action(pcl_localization),
             transition_id=lifecycle_msgs.msg.Transition.TRANSITION_CONFIGURE,
         )
-    )
+    ) ## unconfigured to inactive
 
     from_unconfigured_to_inactive = launch.actions.RegisterEventHandler(
         launch_ros.event_handlers.OnStateTransition(

@@ -26,7 +26,8 @@ import time
 from enum import Enum
 import numpy as np
 import math as m
-
+## TODO
+# cropbox 조정 / 첫 포즈 거리 조정
 
 class SpeedSupporter:
     def __init__(self, node):
@@ -388,7 +389,7 @@ class Parking:
                     if path:
                         px, py, _ = path[0]
                         dist = ((cur_x - px) ** 2 + (cur_y - py) ** 2) ** 0.5
-                        if dist <= 1.0:
+                        if dist <= 1.0: # 1.0m 이내에 있는 경로 우선 선택
                             selected = idx
                             break
 

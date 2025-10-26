@@ -9,7 +9,7 @@
   <joint name="velodyne_ys_joint" type="fixed">
     <parent link="base_link_ys" />
     <child link="velodyne_ys" />
-    <origin xyz="0 0 0" rpy="0 0 0" />
+    <origin xyz="0.38 0 0" rpy="0 0 0" />
   </joint>
 </robot>
 

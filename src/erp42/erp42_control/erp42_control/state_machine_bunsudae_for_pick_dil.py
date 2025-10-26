@@ -16,14 +16,14 @@ from enum import Enum
 import threading
 
 
-# from controller_obstacle import Obstacle
-from controller_pickup_mj import Pickup
+from controller_obstacle import Obstacle
+# from controller_pickup_mj import Pickup
 from controller_delivery_mj import Delivery
 # from controller_parking import Pakring
 # from controller_traffic_light import Trafficlight
 # from controller_stop_line import Stopline
 
-from Modifier_param import set_param
+# from Modifier_param import set_param
 
 
 
@@ -143,10 +143,10 @@ class State(Enum):
     # # A11A12 = "driving_k"   # 13
     # A11A12 = "driving_l"   # 8
     # A12A13 = "driving_m"   # 13
-    A1A2 = "driving_a"     # 13
-    A2A3 = "pickup_b"      # 8
-    A3A4 = "curve_c"       # 8
-    A4A5 = "driving_d"     # 13
+    A1A2 = "delivery_e"     # 13
+    A2A3 = "driving_a"      # 8
+    A3A4 = "obstacle_b"       # 8
+    A4A5 = "driving_e"     # 13
     A5A6 = "delivery_e"   # 8
     A6A7 = "driving_f"     # 13
     A7A8 = "curve_g"       # 8
@@ -210,11 +210,11 @@ class StateMachine():
 
         self.target_idx = 0
         self.mission_finish = False
-        self.abs_var = 5
+        self.abs_var = None
 
 
-        # self.obstacle = Obstacle(self.node)
-        self.pickup = Pickup(self.node)
+        self.obstacle = Obstacle(self.node)
+        # self.pickup = Pickup(self.node)
         self.delivery = Delivery(self.node)
         # self.parking = Pakring(self.node)
         # self.traffic_light = Trafficlight(self.node)
@@ -264,7 +264,7 @@ class StateMachine():
 
                 # msg.speed = int(adapted_speed) * 10
                 msg.speed = int(speed) * 10
-                msg.steer = int(m.degrees((-1) * steer))
+                msg.steer = int(m.degrees((-1) * steer)*1e3)
                 msg.gear = 2
                 msg.brake = int(brake)
             else:
@@ -286,16 +286,16 @@ class StateMachine():
             else:
                 pass
         
-        elif self.state.value[:-2] == "parking":
-            if self.k < 1:
-                try:
-                    set_param("bs_cropbox_filter","detection_area","[-2.,4.,-4.,0.]")
+        # elif self.state.value[:-2] == "parking":
+        #     if self.k < 1:
+        #         try:
+        #             set_param("bs_cropbox_filter","detection_area","[-2.,4.,-4.,0.]")
 
-                except:
-                    self.k -=1
-                else:
-                    self.k +=1
-            msg, self.mission_finish = self.parking.control_parking(self.odometry)
+        #         except:
+        #             self.k -=1
+        #         else:
+        #             self.k +=1
+        #     msg, self.mission_finish = self.parking.control_parking(self.odometry)
 
         elif self.state.value[:-2] == "obstacle":
             msg, self.mission_finish = self.obstacle.control_obstacle(self.odometry, self.path)
@@ -369,7 +369,7 @@ def main():
     # Declare Params
     # node.declare_parameter("file_name", "1006_1507_acca.db") #kcity
     # node.declare_parameter("file_name", "global_path.db") #dolge
-    node.declare_parameter("file_name", "bunsudae_v1.db") #bunsudae
+    node.declare_parameter("file_name", "obs_test.db") #bunsudae
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
 
@@ -381,7 +381,7 @@ def main():
 
     #Declare Instance
     db = DB(file_name)
-    state = State.A5A6
+    state = State.A2A3
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
     state_machine = StateMachine(node, odometry, path, state)

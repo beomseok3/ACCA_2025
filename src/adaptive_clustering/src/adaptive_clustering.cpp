@@ -132,7 +132,7 @@ public:
 private:
   void clusterFlagCallback(const std_msgs::msg::String::SharedPtr msg) {
     if (msg->data == "delivery" || msg->data == "pickup") {
-      cluster_size_min_ = 500;
+      cluster_size_min_ = 5;
       cluster_size_max_ = 5000;
       RCLCPP_INFO(this->get_logger(), "ClusterFlag: %s → Using LARGE cluster size (min=%d, max=%d)",
                   msg->data.c_str(), cluster_size_min_, cluster_size_max_);

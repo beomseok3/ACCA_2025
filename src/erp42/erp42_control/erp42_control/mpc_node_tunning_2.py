@@ -631,7 +631,7 @@ class MPC(Node):
                 ind_total_length = 10 * total_length
                 margin = 10 #1m  # 필요시 조정
                 dind = (ind_total_length + margin) / max(1, self.config.TK)
-                self.get_logger().info(f"pred path length={total_length:.2f}, dind={dind:.2f}")
+                # self.get_logger().info(f"pred path length={total_length:.2f}, dind={dind:.2f}")
         except Exception as e:
             self.get_logger().warn(f"[MPC] dind from last_pred_path failed: {e}")
         # try:

@@ -132,7 +132,7 @@ class Rotate(Node):
         mean = sum / len(forward)
         for f in forward:
             dyaw = mean - f
-            if abs(m.degrees(dyaw)) > 2:
+            if abs(m.degrees(dyaw)) > 3.5:
                 print("no!")
                 return False
             else:
@@ -273,11 +273,11 @@ class Rotate(Node):
         ref_yaw = normalize_angle(ref_yaw)
 
         # 2) NDT yaw가 ref_yaw와 충분히 정렬되어 있을 때만 보정(게이팅)
-        if abs(normalize_angle(ref_yaw - self.ndt_yaw)) > m.radians(5.0):
+        # if abs(normalize_angle(ref_yaw - self.ndt_yaw)) > m.radians(12.0):
             # 정렬이 안되면 보정 스킵
+            # return
+        if not self.decision_straight(self.imu_forward):
             return
-        # if not self.decision_straight(self.imu_forward):
-        #     return
 
         # 3) lateral 단위벡터 (map frame)
         lx = -np.sin(ref_yaw)

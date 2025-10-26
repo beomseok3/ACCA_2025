@@ -202,7 +202,7 @@ class Trafficlight:
             self.node.get_logger().error("[traffic] empty path → E-Stop")
             return msg, True
 
-        # Stanley
+        # Stanley 0.5 0.24 bs control stanley 와 paramter 동일 
         steer, idx, hdr, ctr = self.st.stanley_control(
             odometry, path.cx, path.cy, path.cyaw, h_gain=0.5, c_gain=0.24
         )
