@@ -49,7 +49,7 @@ class PID:
         self.current = now[0] + (now[1] / 1e9)
         self.last    = self.current
 
-    def PIDControl(self, speed, desired_value, min_var = 6, max_var = 14):
+    def PIDControl(self, speed, desired_value):
         now = self.node.get_clock().now().seconds_nanoseconds()
         self.current = now[0] + (now[1] / 1e9)
         dt = max(1e-3, self.current - self.last)
@@ -60,7 +60,7 @@ class PID:
         self.i_err += self.p_err * dt * (0.0 if speed == 0 else 1.0)
 
         self.speed = speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err)
-        return int(np.clip(self.speed, min_var, max_var))
+        return int(np.clip(self.speed, 6, 14))
 
 
 class Obstacle:
@@ -95,7 +95,7 @@ class Obstacle:
         self.big_cgain = 1.3
         self.small_end_dindex = 100
         self.big_end_dindex = 50 ## mission finish after lane change paramete 50 ( 이동하고 확인 )
-        self.small_thr = 3.7
+        self.small_thr = 5.0
         self.big_thr = 5.5
         
         
@@ -134,8 +134,8 @@ class Obstacle:
 
         # ==== DB에서 4개 경로 읽기 (path_id/idx 모두 안 씀) ====
         # 파일 위치는 DB.py 내부 규칙(/home/libok/db_file/<name>)에 따름
-        self.db_small_l1 = DB("school/rotated/small_l1.db")
-        self.db_small_l2 = DB("school/rotated/small_l2.db")
+        self.db_small_l1 = DB("small_l1.db")
+        self.db_small_l2 = DB("small_l2.db")
         self.db_big_l1   = DB("big_l1.db")
         self.db_big_l2   = DB("big_l2.db")
 
@@ -429,31 +429,18 @@ class Obstacle:
             steer, self.target_idx, hdr, ctr = self.st.stanley_control(
                 odometry, self.local_x, self.local_y, self.local_yaw, h_gain=0.5, c_gain=0.3
             )
-            if self.state == "big":
-                target_speed = 12.0
-                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=6, max_value=14)
-                speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
-            else:
-                target_speed = 5.0
-                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6)
-                print(f"{adapted_speed}")
-                speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed, min_var = 4 , max_var = 6)
-
+            target_speed = 12.0 if self.state == "big" else 8.0
+            adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=6, max_value=14)
+            speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
         else:
             self.h_gain = self.small_hgain if self.state == "small" else self.big_hgain
             self.c_gain = self.small_cgain if self.state == "small" else self.big_cgain
             steer, self.target_idx, hdr, ctr = self.st.stanley_control(
                 odometry, path.cx, path.cy, path.cyaw, h_gain=self.h_gain, c_gain=self.c_gain
             )
-            if self.state == "big":
-                target_speed = 12.0
-                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=6, max_value=14)
-                speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed)
-            else:
-                target_speed = 5.0
-                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=4, max_value=6)
-                print(f"{adapted_speed}")
-                speed = self.pid.PIDControl(odometry.v * 3.6, adapted_speed, min_var = 4, max_var = 6)
+            target_speed = 12.0 if self.state == "big" else 8.0
+            adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=6, max_value=14)
+            speed = self.pid.PIDControl(self.odometry.v * 3.6, adapted_speed)
 
         msg.speed = int(speed) * 10
         msg.steer = int(degrees((-1) * steer)*1e3)

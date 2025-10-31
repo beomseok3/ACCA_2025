@@ -52,7 +52,7 @@ class Delivery:
         self.signs = [None, None, None, None, "B1", "B2", "B3"]
 
         # ── 제어 파라미터 ────────────────────────────────────────────────
-        self.v_search = 12.0  # 기본 추종 속도
+        self.v_search = 8.0  # 기본 추종 속도
         self.v_fast = 12.0  # 재출발 후 빠른 추종 속도
         self.max_steer_deg = 28.0  # 조향 제한(deg)
         self.stop_radius = 3.0  # [m] sign까지 거리 임계값
@@ -60,7 +60,7 @@ class Delivery:
 
         # 경로 완료 판정
         self.target_px = 80.0  # [px] 이미지 크기
-        self.bound = 20  # [idx] 정지 거리
+        self.bound = 23  # [idx] 정지 거리
         self.start_idx = 1e9
         self.goal_count_thr = 1  # 완료 판정 유지 카운트 (노이즈 억제)
 
@@ -79,6 +79,8 @@ class Delivery:
         self.state = "FOLLOW"
         self._hold_until_sec = None
 
+        self.first = 0
+
     # ─────────────────────────────────────────────────────────────────────
     # 콜백 & 유틸
     # ─────────────────────────────────────────────────────────────────────
@@ -89,7 +91,7 @@ class Delivery:
         (confidence 필드 사용 시 임계값 체크 추가)
         """
         if self.abs_var is None:
-            self.abs_var = 5
+            self.abs_var = 4
         # if self.find_sign:
         #     return
 
@@ -200,13 +202,61 @@ class Delivery:
             path_msg.poses.append(pose)
         self.delivery_path_pub.publish(path_msg)
 
+    # def _safe_stop(self) -> ControlMessage:
+    #     msg = ControlMessage()
+    #     msg.steer = 0
+    #     msg.speed = 0
+    #     msg.gear = 2
+    #     msg.estop = 1
+    #     return msg
     def _safe_stop(self) -> ControlMessage:
         msg = ControlMessage()
         msg.steer = 0
         msg.speed = 0
         msg.gear = 2
         msg.estop = 1
+
+        # ────────────────────────────────
+        # Ball Marker Publish (현재 위치, 영구 표시)
+        # ────────────────────────────────
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = self.node.get_clock().now().to_msg()
+        marker.ns = "safe_stop_point"
+        
+        # 여러 정지점을 누적 표시하려면 id를 계속 증가시켜야 함
+        if not hasattr(self, "stop_marker_id"):
+            self.stop_marker_id = 0
+        self.stop_marker_id += 1
+        marker.id = self.stop_marker_id
+
+        marker.type = Marker.SPHERE
+        marker.action = Marker.ADD
+        marker.pose.position.x = float(self.x)
+        marker.pose.position.y = float(self.y)
+        marker.pose.position.z = 0.2
+        marker.scale.x = 0.5
+        marker.scale.y = 0.5
+        marker.scale.z = 0.5
+
+        # 색상 (빨간색)
+        marker.color.a = 1.0
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+
+        # RViz에서 영구히 남도록 설정
+        from builtin_interfaces.msg import Duration
+        marker.lifetime = Duration(sec=0, nanosec=0)
+
+        # 퍼블리시
+        self.point_pub.publish(marker)
+
+        # 디버그 로그
+        print(f"[SAFE STOP] estop={msg.estop} at ({self.x:.2f}, {self.y:.2f}) marker_id={marker.id}")
+
         return msg
+
 
     def _compute_control(
         self, path_tuple, odom, speed_cmd: float, estop: int = 0
@@ -255,6 +305,11 @@ class Delivery:
         - path    : 외부 제공 경로 객체 (path.cx, path.cy, path.cyaw)
         반환: (ControlMessage, done: bool)
         """
+        if self.first <10:
+            self.first += 1
+            msg = ControlMessage()
+            msg.estop =1
+            return msg,False
         # 상태 갱신
         self.x, self.y, self.yaw = odometry.x, odometry.y, odometry.yaw
         self.abs_var = abs_var

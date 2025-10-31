@@ -316,7 +316,7 @@ class Drive:
 
         msg = ControlMessage()
         msg.speed = int(adapted_speed) * 10
-        msg.steer = int(m.degrees((-1) * steer))
+        msg.steer = int(m.degrees((-1) * steer)*1e3)
         msg.gear = 2
         msg.brake = int(input_brake)
 

@@ -166,7 +166,7 @@ class Obstacle:
         self.once = 0  # 처음에 한번만 실행하기 위한 변수
 
         # ───────────────── DB에서 ref 경로 로딩 (추가된 부분) ─────────────────
-        self.path1_db = DB("tunnel_path/obs_path_1.db")
+        self.path1_db = DB("tunnel_path/obs_path_1_02.db")
         # self.path2_db = DB("tunnel_path/obs_path_2.db")
         self.path2_db = DB("tunnel_path/obs_path_2_tf_02.db")
 

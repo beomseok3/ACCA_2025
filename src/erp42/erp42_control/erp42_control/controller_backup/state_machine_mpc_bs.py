@@ -159,7 +159,7 @@ class State(Enum):
     # A8A9="driving_h"    # obs
     A9A10="curve_i"
     A10A11="traffic_light_j"
-    A11A12="stanley_k"
+    A11A12="driving_k"
     A12A13="stop_line_l"
     A13A14="stop_line_m"
     A14A15="curve_p"
@@ -173,7 +173,7 @@ class State(Enum):
     A22A23="driving_x"
     A23A24="traffic_light_y"
     A24A25="driving_z"
-    A25A26="stanley_p"
+    A25A26="curve_a"
     A26A27="obstacle_b"
     A27A28="curve_c"
     A28A29="driving_d"
@@ -432,7 +432,7 @@ class StateMachine:
             target_speed = self.set_target_speed()
             # 에러(hdr, ctr) 기반 목표 속력 조정
             adapted_speed = self.ss.adaptSpeed(
-                target_speed, hdr, ctr, min_value=8, max_value=21
+                target_speed, hdr, ctr, min_value=10, max_value=21
             )  
             # speed 조정 (PI control)
             speed = self.pid.PIDControl(
@@ -504,8 +504,8 @@ def main():
     # node.declare_parameter("file_name", "BS/kcity_6th_bs_v1" ".db") 
     # node.declare_parameter("file_name_mpc", "BS/MPC_kcity_6th_bs_v1" ".db")
 
-    node.declare_parameter("file_name", "stopline/rotated/kcity_6th_bs_A11A15" ".db") 
-    node.declare_parameter("file_name_mpc", "stopline/rotated/MPC_kcity_6th_bs_A11A15" ".db")
+    node.declare_parameter("file_name", "BS/kcity_6th_bs_v1" ".db") 
+    node.declare_parameter("file_name_mpc", "BS/MPC_kcity_6th_bs_v1" ".db")
     
     node.declare_parameter("odom_topic", "/localization/kinematic_state")
 
@@ -517,7 +517,7 @@ def main():
     # Declare Instance
     db = DB(file_name)
     db_mpc = DB(file_name_mpc)
-    state = State.A11A12
+    state = State.A1A2
     path = GetPath(db, state)
     odometry = GetOdometry(node, odom_topic)
     state_machine = StateMachine(node, odometry, path, state, db, db_mpc)

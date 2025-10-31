@@ -70,7 +70,8 @@ private:
     double mean = sum / forward_.size();
 
     for (double y : forward_)
-      if (std::abs((mean - y) * 180.0 / M_PI) > 1.0)  // 2 deg 허용
+      if (std::abs((mean - y) * 180.0 / M_PI) > 2.0)  // 2 deg 허용
+      // if (std::abs((mean - y) * 180.0 / M_PI) > 1.0)  // 2 deg 허용
         return false;
 
     mean_ = mean;

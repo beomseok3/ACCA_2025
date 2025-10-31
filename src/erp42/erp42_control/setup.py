@@ -67,6 +67,7 @@ setup(
             "steer_logger = erp42_control.steer_logger:main",
             "cmd_publisher_20hz = erp42_control.cmd_publisher_20hz:main",
             "controller_cone_mpc = erp42_control.controller_cone_mpc:main",
+            "controller_cone_mpc_12 = erp42_control.controller_cone_mpc_12:main",
             "statemachine_pp = erp42_control.statemachine_pp:main",
             "cone_yw = erp42_control.cone_yw:main",
             

@@ -354,7 +354,7 @@ class PathPublisher(Node):
                 # start_cu_distance = np.hypot(self.first_point[0] - self.current_x, self.first_point[1] - self.current_y)
                 self.get_logger().info(f"dis_s : {start_end_distance}")
                
-                if start_end_distance < 2.5: ## TODO 1008 문제 많음
+                if start_end_distance < 2.3: ## TODO 1008 문제 많음
                     self.flag_3 = True
                     print("한바퀴")
                     

@@ -65,7 +65,7 @@ class State(Enum):
     A10A11="traffic_light_j"
     A11A12="driving_25_k"
     A12A13="stop_line_l"
-    A13A14="stop_line_slow_m"
+    A13A14="stop_line_m"
     A14A15="curve_p"
     A15A16="driving_q"
     A16A17="traffic_light_r"
@@ -154,6 +154,7 @@ class DBExtractor:
         "driving": 20,
         "curve": 15,
         "curve_10": 10,
+        "curve_8": 8,
         "slow_8": 8,
         "slow_10" : 10,
         "parking": 15,
@@ -165,7 +166,7 @@ class DBExtractor:
         'driving_8' : 8,
         "stanley" : 20,
         'traffic_light': 8,
-        'stop_line': 20,
+        'stop_line': 15,
         'stop_line_slow': 15,
 
 

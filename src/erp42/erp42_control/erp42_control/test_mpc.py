@@ -152,7 +152,6 @@ class mpc_config:
     MAX_STEER: float = 0.4189  # maximum steering angle [rad] # expand
     MAX_DSTEER = np.deg2rad(5)  # 1.05 rad/s
     MAX_SPEED: float = float(25/3.6)  # maximum speed [m/s] ~ 5.0 for levine sim
-    # MAX_SPEED: float = float(25/3.6)  # maximum speed [m/s] ~ 5.0 for levine sim # 너무 tight해서 
     MIN_SPEED: float = -2.0  # minimum backward speed [m/s]
     MAX_ACCEL: float = 100.0  # maximum acceleration [m/ss]
 

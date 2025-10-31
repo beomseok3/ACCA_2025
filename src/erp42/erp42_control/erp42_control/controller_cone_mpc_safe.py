@@ -11,6 +11,7 @@ from geometry_msgs.msg import PoseArray
 from stanley_cone import Stanley
 from .mpc_node_cone import MPC
 from scipy.ndimage import gaussian_filter1d
+
 # from tf_transformations import *
 import numpy as np
 import math as m
@@ -31,11 +32,11 @@ def compute_yaw_from_spline(cs_x, cs_y, t_values):
     dy = cs_y.derivative()(t_values)
     return np.arctan2(dy, dx)
 
+
 def euler_from_quaternion(quaternion):
     """
     Converts quaternion (w in last place) to euler roll, pitch, yaw
     quaternion = [x, y, z, w]
-    Bellow should be replaced when porting for ROS 2 Python tf_conversions is done.
     """
     x = quaternion[0]
     y = quaternion[1]
@@ -54,6 +55,7 @@ def euler_from_quaternion(quaternion):
     yaw = np.arctan2(siny_cosp, cosy_cosp)
 
     return roll, pitch, yaw
+
 
 class PID:
     def __init__(self, node):
@@ -96,12 +98,19 @@ class PID:
 
         return int(np.clip(self.speed, min, max))
 
-class PathHandler():
+
+class PathHandler:
     def __init__(self, node, path_topic, first_lap_done_topic):
         self.node = node
-        self.node.create_subscription(Path, path_topic, self.callback_path, qos_profile_system_default)
-        self.node.create_subscription(Bool, first_lap_done_topic, self.first_lap_done_path, qos_profile_system_default)
-        
+        self.node.create_subscription(
+            Path, path_topic, self.callback_path, qos_profile_system_default
+        )
+        self.node.create_subscription(
+            Bool,
+            first_lap_done_topic,
+            self.first_lap_done_path,
+            qos_profile_system_default,
+        )
 
         self.cx = []
         self.cy = []
@@ -111,7 +120,13 @@ class PathHandler():
         self.init_db()
         self.path = False
         self.one_lap_done = False
-        
+
+        # ★ Drive.decision_straight 바인딩을 주입받아 사용할 콜백
+        self.decision_fn = None
+
+    def set_decision_fn(self, fn):
+        """Drive.decision_straight 같은 판정 함수를 주입"""
+        self.decision_fn = fn
 
     def backup_then_reset_db(self):
         """기존 DB가 있으면 타임스탬프 .bak로 백업하고 원본 제거"""
@@ -122,37 +137,38 @@ class PathHandler():
             if os.path.isfile(self.db_path):
                 ts = datetime.now().strftime("%Y%m%d-%H%M%S")
                 backup_path = f"{self.db_path}.{ts}.db"
-                # 백업: move = 백업 + 원본 제거
-                shutil.copy2(self.db_path, backup_path)  # ✅ move → copy2 로 변경
-                self.node.get_logger().warn(f"[init_db] Found existing DB. Backed up to: {backup_path}")
+                shutil.copy2(self.db_path, backup_path)  # ✅ move → copy2
+                self.node.get_logger().warn(
+                    f"[init_db] Found existing DB. Backed up to: {backup_path}"
+                )
                 os.remove(self.db_path)
                 self.node.get_logger().info(
-                    f"[init_db] Original DB deleted after backup: {self.db_path}")
+                    f"[init_db] Original DB deleted after backup: {self.db_path}"
+                )
         except Exception as e:
             self.node.get_logger().error(f"[init_db] DB backup failed: {e}")
 
-
     def init_db(self):
         thread_id = threading.get_ident()
-        self.node.get_logger().info(f'[init_db] Thread ID : {thread_id}')
+        self.node.get_logger().info(f"[init_db] Thread ID : {thread_id}")
 
-        # ✅ 여기가 핵심: 테이블 만들기 전에 백업/초기화
+        # ✅ 테이블 만들기 전에 백업/초기화
         self.backup_then_reset_db()
 
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute('''
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS path (
                     path_id  CHAR(4),
                     idx INTEGER PRIMARY KEY AUTOINCREMENT,
                     x REAL, y REAL, yaw REAL, speed REAL
                 )
-            ''')
+            """
+            )
 
     def resample_path(self, cx, cy, spacing=0.005):
         """균일한 간격(spacing)으로 (x, y) 경로 리샘플링"""
-        
-        # 누적 거리 계산
         dx = np.diff(cx)
         dy = np.diff(cy)
         dist = np.sqrt(dx**2 + dy**2)
@@ -165,8 +181,8 @@ class PathHandler():
         n_samples = int(total_length / spacing)
         uniform_dist = np.linspace(0, total_length, n_samples)
 
-        fx = interpolate.interp1d(cumulative, cx, kind='linear')
-        fy = interpolate.interp1d(cumulative, cy, kind='linear')
+        fx = interpolate.interp1d(cumulative, cx, kind="linear")
+        fy = interpolate.interp1d(cumulative, cy, kind="linear")
 
         rx = fx(uniform_dist)
         ry = fy(uniform_dist)
@@ -181,11 +197,13 @@ class PathHandler():
 
         if msg.data:
             try:
-                str_time = time.time()               
-                 
+                str_time = time.time()
+
                 with sqlite3.connect(self.db_path) as conn:
 
-                    self.node.get_logger().info(f"[done_path] Opened DB connection in thread ID: {thread_id}")
+                    self.node.get_logger().info(
+                        f"[done_path] Opened DB connection in thread ID: {thread_id}"
+                    )
                     cur = conn.cursor()
 
                     # ✅ 중복 제거
@@ -205,8 +223,6 @@ class PathHandler():
                     self.cx, self.cy = self.resample_path(raw_cx, raw_cy, spacing=0.1)
 
                     # 기존 경로
-                    x = np.array(self.cx)
-                    y = np.array(self.cy)
                     yaw_list = []
                     for row in self.way.poses:
                         q = row.pose.orientation
@@ -217,23 +233,28 @@ class PathHandler():
                     min_len = min(len(self.cx), len(self.cy), len(self.way.poses))
                     min_len -= 5
                     for i in range(min_len):
-                        x = self.cx[i]
-                        y = self.cy[i]
+                        x_i = self.cx[i]
+                        y_i = self.cy[i]
                         q = self.way.poses[i].pose.orientation
-                        _, _, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
-                        
-                        # 기본 속도 설정
-                        speed = 12 # 9 modified 25.10.09  
+                        _, _, yaw_i = euler_from_quaternion([q.x, q.y, q.z, q.w])
+
+                        # ★★★ 여기서 decision_straight 사용해 속도만 결정 ★★★
+                        if self.decision_fn is not None and self.decision_fn(i):
+                            speed = 15.0  # 직선
+                        else:
+                            speed = 8.0  # 곡선
 
                         cur.execute(
-                            "INSERT INTO Path (path_id, x, y, yaw, speed) VALUES (?, ?, ?, ?, ?)",
-                            ("A1A2", x, y, yaw, speed)
+                            "INSERT INTO path (path_id, x, y, yaw, speed) VALUES (?, ?, ?, ?, ?)",
+                            ("A1A2", x_i, y_i, yaw_i, speed),
                         )
 
                     conn.commit()
                     end_time = time.time()
-                    print("latency", end_time-str_time)
-                    self.node.get_logger().info("[done_path] Path with curvature-based speed saved to DB.")
+                    print("latency", end_time - str_time)
+                    self.node.get_logger().info(
+                        "[done_path] Path with straight/curve speed saved to DB."
+                    )
                     self.path = True
 
             except Exception as e:
@@ -250,58 +271,82 @@ class PathHandler():
         for p in data.poses:
             cx.append(p.pose.position.x)
             cy.append(p.pose.position.y)
-            _, _, yaw = euler_from_quaternion([
-                p.pose.orientation.x,
-                p.pose.orientation.y,
-                p.pose.orientation.z,
-                p.pose.orientation.w
-            ])
+            _, _, yaw = euler_from_quaternion(
+                [
+                    p.pose.orientation.x,
+                    p.pose.orientation.y,
+                    p.pose.orientation.z,
+                    p.pose.orientation.w,
+                ]
+            )
             cyaw.append(yaw)
         return cx, cy, cyaw
 
-class State():
+
+class State:
     def __init__(self, node, odom_topic):
-        node.create_subscription(Odometry, odom_topic, self.callback, qos_profile_system_default)
+        node.create_subscription(
+            Odometry, odom_topic, self.callback, qos_profile_system_default
+        )
 
-        self.x = 0.  # m
-        self.y = 0.  # m
-        self.yaw = 0.  # rad
-        self.v = 0.  # m/s
+        self.x = 0.0  # m
+        self.y = 0.0  # m
+        self.yaw = 0.0  # rad
+        self.v = 0.0  # m/s
 
-    def callback(self,msg):
+    def callback(self, msg):
         self.pose = msg
         self.x = msg.pose.pose.position.x
         self.y = msg.pose.pose.position.y
-        _,_,self.yaw = euler_from_quaternion([msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w])    
+        _, _, self.yaw = euler_from_quaternion(
+            [
+                msg.pose.pose.orientation.x,
+                msg.pose.pose.orientation.y,
+                msg.pose.pose.orientation.z,
+                msg.pose.pose.orientation.w,
+            ]
+        )
         self.v = msg.twist.twist.linear.x
 
-class SpeedSupporter():
+
+class SpeedSupporter:
     def func(self, x, a, b):
         return a * (x - b)
 
-    def adaptSpeed(self,value,hdr,ctr,min_value,max_value, he_gain, ce_gain, he_thr, ce_thr):
+    def adaptSpeed(
+        self, value, hdr, ctr, min_value, max_value, he_gain, ce_gain, he_thr, ce_thr
+    ):
         hdr = self.func(abs(hdr), -he_gain, he_thr)
         ctr = self.func(abs(ctr), -ce_gain, ce_thr)
         err = hdr + ctr
         res = np.clip(value + err, min_value, max_value)
         return res
-                      
 
 
-class Drive():
+class Drive:
     def __init__(self, node, state, path):
-        self.pub = node.create_publisher(ControlMessage, "cmd_msg", qos_profile_system_default)
-        self.one_lap_done_pub = node.create_publisher(Bool, "one_lap_done", qos_profile_system_default)
-        node.create_subscription(Float32, "hdr", self.hdr_callback,qos_profile_system_default)
-        node.create_subscription(Float32, "ctr", self.ctr_callback, qos_profile_system_default)
-        
-
+        self.pub = node.create_publisher(
+            ControlMessage, "cmd_msg", qos_profile_system_default
+        )
+        self.one_lap_done_pub = node.create_publisher(
+            Bool, "one_lap_done", qos_profile_system_default
+        )
+        node.create_subscription(
+            Float32, "hdr", self.hdr_callback, qos_profile_system_default
+        )
+        node.create_subscription(
+            Float32, "ctr", self.ctr_callback, qos_profile_system_default
+        )
+        print("start")
+        print("start")
+        print("start")
+        print("start")
         self.hdr = 0.0
         self.ctr = 0.0
-        
+
         self.path = path
         self.state = state
- 
+
         self.st = Stanley()
         self.ss = SpeedSupporter()
         self.pid = PID(node)
@@ -309,6 +354,8 @@ class Drive():
 
         self.first_lap = True
 
+        # ★ PathHandler에 decision_straight 주입 (DB 저장 시 속도 결정에 사용)
+        self.path.set_decision_fn(self.decision_straight)
 
     def set_mpc(self, mpc_instance):
         self.mpc = mpc_instance
@@ -319,37 +366,49 @@ class Drive():
     def ctr_callback(self, msg):
         self.ctr = msg.data
 
-    def publish_cmd(self):        
-        target_idx, error  = self.st.calc_target_index(self.state, self.path.cx, self.path.cy)
+    def publish_cmd(self):
+        target_idx, error = self.st.calc_target_index(
+            self.state, self.path.cx, self.path.cy
+        )
         self.decision_first_lap(target_idx)
-        
+
         ####### First_lap Controller ########
-        if not self.path.one_lap_done: 
+        if not self.path.one_lap_done:
             if self.decision_last_idx(target_idx):
                 h_gain_curve = 0.8
                 c_gain_curve = 0.5
-                target_speed = 1.0
+                target_speed = 2.0
 
-                steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_curve, c_gain_curve, target_idx, error)
-                adapted_speed = self.ss.adaptSpeed(target_speed, hdr, ctr, min_value=2, max_value=4, he_gain=50.0, ce_gain=30.0, he_thr=0.001, ce_thr=0.002)
+                steer, hdr, ctr = self.st.stanley_control(
+                    self.state,
+                    self.path.cyaw,
+                    h_gain_curve,
+                    c_gain_curve,
+                    target_idx,
+                    error,
+                )
+                adapted_speed = target_speed
                 if self.state.v * 3.6 >= adapted_speed:
                     input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                 else:
                     input_brake = 0
-                speed = adapted_speed 
+                speed = adapted_speed
                 print("close last idx", adapted_speed)
 
             else:
                 if self.decision_straight(target_idx):
-                    # h_gain_straight = 0.5
-                    # c_gain_straight = 0.24
-
                     h_gain_straight = 0.6
                     c_gain_straight = 0.3
-                    # target_speed = 5.0
-                    target_speed = 12.0 # origin (12.0) modified 25.10.04
+                    target_speed = 12.0  # 1랩은 기존 로직 유지
 
-                    steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_straight, c_gain_straight, target_idx, error)
+                    steer, hdr, ctr = self.st.stanley_control(
+                        self.state,
+                        self.path.cyaw,
+                        h_gain_straight,
+                        c_gain_straight,
+                        target_idx,
+                        error,
+                    )
                     adapted_speed = self.ss.adaptSpeed(
                         target_speed,
                         hdr,
@@ -359,52 +418,44 @@ class Drive():
                         he_gain=40.0,
                         ce_gain=30.0,
                         he_thr=0.07,
-                        ce_thr=0.05
-                        )
-                    # adapted_speed = self.ss.adaptSpeed(
-                    #     target_speed,
-                    #     hdr,
-                    #     ctr,
-                    #     min_value=8, 
-                    #     max_value=15,
-                    #     he_gain=40.0, 
-                    #     ce_gain=30.0, 
-                    #     he_thr=0.07, 
-                    #     ce_thr=0.05
-                    #     ) # modified 25.10.04
-                    
-                    # origin before 1004 
-                        # min_value=9,
-                        # max_value=12,
-                    
+                        ce_thr=0.05,
+                    )
                     if self.state.v * 3.6 >= adapted_speed:
-                        input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
+                        input_brake = (
+                            abs(self.state.v * 3.6 - adapted_speed) / 20.0
+                        ) * 200
                     else:
                         input_brake = 0
                     speed = adapted_speed
-
                     print("straight", adapted_speed)
-
-
                 else:
                     h_gain_curve = 0.8
                     c_gain_curve = 0.5
-                    target_speed = 6.0 # origin (7.0) modified 25.10.04
+                    target_speed = 6.0  # 1랩은 기존 로직 유지
 
-                    steer, hdr, ctr = self.st.stanley_control(self.state, self.path.cyaw, h_gain_curve, c_gain_curve, target_idx, error)
+                    steer, hdr, ctr = self.st.stanley_control(
+                        self.state,
+                        self.path.cyaw,
+                        h_gain_curve,
+                        c_gain_curve,
+                        target_idx,
+                        error,
+                    )
                     adapted_speed = self.ss.adaptSpeed(
-                        target_speed, 
-                        hdr, 
-                        ctr, 
-                        min_value=5, # origin (6) modified 25.10.04
-                        max_value=6,  # origin(7) modified 25.10.04
-                        he_gain=50.0, 
-                        ce_gain=30.0, 
-                        he_thr=0.001, 
-                        ce_thr=0.002
-                        )
+                        target_speed,
+                        hdr,
+                        ctr,
+                        min_value=5,
+                        max_value=6,
+                        he_gain=50.0,
+                        ce_gain=30.0,
+                        he_thr=0.001,
+                        ce_thr=0.002,
+                    )
                     if self.state.v * 3.6 >= adapted_speed:
-                        input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
+                        input_brake = (
+                            abs(self.state.v * 3.6 - adapted_speed) / 20.0
+                        ) * 200
                     else:
                         input_brake = 0
                     speed = adapted_speed
@@ -412,68 +463,60 @@ class Drive():
 
         ####### Second_lap Controller ########
         else:
-            # modified 25.10.08 (직선 판단 불필요)          
+            # 2랩은 MPC 출력 사용 (DB에 저장된 속도는 MPC 내부에서 사용)
             _, steer, speed_output = self.mpc.pose_callback(self.state.pose)
             kspeed = speed_output * 3.6
-            
-            ## Fallback Logic (Stanley Controlller) ##
+
+            # Fallback Logic (Stanley Controller)
             if self.hdr != 0 and self.ctr != 0:
                 print("\nStanley_warning\n")
                 adapted_speed = self.ss.adaptSpeed(
-                    kspeed, 
-                    self.hdr, 
-                    self.ctr, 
-                    min_value=5, 
-                    max_value=10, 
-                    he_gain=40.0, 
-                    ce_gain=30.0, 
-                    he_thr=0.07, 
-                    ce_thr=0.05
-                    )
+                    kspeed,
+                    self.hdr,
+                    self.ctr,
+                    min_value=5,
+                    max_value=10,
+                    he_gain=40.0,
+                    ce_gain=30.0,
+                    he_thr=0.07,
+                    ce_thr=0.05,
+                )
                 if self.state.v * 3.6 >= adapted_speed:
                     input_brake = (abs(self.state.v * 3.6 - adapted_speed) / 20.0) * 200
                 else:
                     input_brake = 0
                 speed = adapted_speed
-            
-            ## MPC ##
             else:
                 if self.state.v * 3.6 >= kspeed:
-                    input_brake = (abs(self.state.v * 3.6 - kspeed) / 20.0) * 200
+                    input_brake = (abs(self.state.v * 3.6 - kspeed) / 20.0) * 200 * 3
                 else:
                     input_brake = 0
                 speed = kspeed
 
-            # speed = self.pid.PIDControl(self.state.v * 3.6, speed, 0, 25)
-
-
         msg = ControlMessage()
-        msg.speed = int(speed)*10 
-        msg.steer = int(m.degrees((-1)*steer) * 1e3)
+        msg.speed = int(speed) * 10
+        msg.steer = int(m.degrees((-1) * steer) * 1e3)
         msg.gear = 2
-        msg.brake = int(input_brake)
+        msg.brake = int(np.clip(int(input_brake),0,200))
 
         self.pub.publish(msg)
 
     def decision_first_lap(self, target_idx):
-        '''
-        True:\n
+        """
         생성된 path가 10m 이상이고 target_idx가 10 이하(출발점 부근)일 때
-        '''
-        if len(self.path.cyaw) >= 100 and target_idx <= 10 and self.first_lap: 
+        """
+        if len(self.path.cyaw) >= 100 and target_idx <= 10 and self.first_lap:
             self.first_lap = False
             self.one_lap_done_pub.publish(Bool(data=True))
 
     def decision_last_idx(self, target_idx):
-        ''' 
-        True:\n
-        path의 마지막 노드랑 차랑 인덱스가 10개(1m) 이내일때 
-        '''
-        if  abs(len(self.path.cyaw) - target_idx) <= 10: 
+        """
+        path의 마지막 노드랑 차랑 인덱스가 10개(1m) 이내일때
+        """
+        if abs(len(self.path.cyaw) - target_idx) <= 10:
             return True
         else:
             return False
-        
 
     def decision_straight(self, target_idx):
         yaw_list = []
@@ -483,22 +526,22 @@ class Drive():
             except IndexError:
                 break
         mean = np.mean(np.abs(np.diff(yaw_list)))
-        # print(mean)
-        if mean > 0.0075: #1027 0.01 -> 0.0075 -> 0.015 -> 0.02 --> 0.0075
-            return False
+        # print(mean)  # 필요 시 디버깅
+        if mean > 0.018:  # 1027 0.01 -> 0.0075 -> 0.015 -> 0.02 -> 0.018
+            return False  # 곡선
         else:
-            return True
-        
+            return True  # 직선
 
-def main(args = None):
-    rclpy.init(args = args)
-    
+
+def main(args=None):
+    rclpy.init(args=args)
+
     node = rclpy.create_node("driving_node")
     state = State(node, "/odometry/navsat")
     path_tracking = PathHandler(node, "del_path", "one_lap_done")
     d = Drive(node, state, path_tracking)
-    
-    thread = threading.Thread(target=rclpy.spin, args= (node, ), daemon = True)
+
+    thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
     thread.start()
 
     rate = node.create_rate(10)  # 10Hz
@@ -507,26 +550,24 @@ def main(args = None):
     first = True
     db = None
     db_path = "/mpc/path_data.db"
-       
 
     while rclpy.ok():
         try:
             if not mpc_ready and path_tracking.path and first:
-                if db is None:  # db가 아직 없다면 생성
-                    
+                if db is None:
                     db = DB(db_path)
                     first = False
-                    
+
             if not mpc_ready and path_tracking.path:
                 mpc = MPC(db)
                 d.set_mpc(mpc)
-                mpc_ready = True 
+                mpc_ready = True
             d.publish_cmd()
         except Exception as ex:
             print(ex)
         rate.sleep()
-    
-    
-    
-if __name__=="__main__":
+
+
+if __name__ == "__main__":
     main()
+
